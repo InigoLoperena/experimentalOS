@@ -1,0 +1,2861 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import {
+  Activity as ActivityIcon,
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Copy,
+  FlaskConical,
+  GitBranch,
+  Layers,
+  Lightbulb,
+  LogOut,
+  Plus,
+  RefreshCw,
+  Search,
+  Star,
+  Target,
+  Users,
+  X,
+  LayoutGrid,
+  BarChart3,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { defaultVariants, getVariants, Variant } from "@/lib/variants";
+import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
+import {
+  ancestors,
+  channels,
+  Item,
+  Member,
+  Activity,
+  Fields,
+  Kind,
+  kinds,
+  parents,
+  progress,
+  rates,
+  score,
+  states,
+  validate,
+} from "@/lib/model";
+type View =
+  | "map"
+  | "experiments"
+  | "priority"
+  | "okr"
+  | "projects"
+  | "learning"
+  | "team"
+  | "activity"
+  | "method";
+type Workspace = { id: string; name: string };
+type Invitation = {
+  id: string;
+  token: string;
+  role: string;
+  expires_at: string;
+  used_by: string | null;
+};
+type Field = {
+  key: string;
+  label: string;
+  type?: "text" | "textarea" | "number" | "date" | "select" | "checkbox";
+  options?: string[];
+  required?: boolean;
+};
+const numberFields: Field[] = [
+  { key: "metric", label: "Métrica", required: true },
+  { key: "baseline", label: "Valor inicial", type: "number" },
+  { key: "current", label: "Valor actual", type: "number" },
+  { key: "target", label: "Objetivo", type: "number" },
+  { key: "unit", label: "Unidad" },
+];
+const iceFields: Field[] = [
+  { key: "impact", label: "Impacto (1–10)", type: "number" },
+  { key: "confidence", label: "Confianza (1–10)", type: "number" },
+  { key: "ease", label: "Facilidad (1–10)", type: "number" },
+];
+const schemas: Record<Kind, Field[]> = {
+  north_star: [
+    {
+      key: "definition",
+      label: "Definición y regla de cálculo",
+      type: "textarea",
+      required: true,
+    },
+    {
+      key: "value_moment",
+      label: "Momento en que el usuario recibe valor",
+      type: "textarea",
+    },
+    ...numberFields,
+    {
+      key: "frequency",
+      label: "Frecuencia",
+      type: "select",
+      options: ["Diaria", "Semanal", "Mensual"],
+    },
+    { key: "source", label: "Fuente de datos" },
+  ],
+  goal: [
+    ...numberFields,
+    { key: "stage", label: "Etapa del Product Hackers Canvas (editable)" },
+  ],
+  opportunity: [
+    {
+      key: "opportunity_type",
+      label: "Tipo",
+      type: "select",
+      options: ["Problema", "Oportunidad"],
+    },
+    {
+      key: "evidence",
+      label: "Evidencia del problema o la oportunidad",
+      type: "textarea",
+      required: true,
+    },
+    { key: "source", label: "Fuente / enlace de la evidencia" },
+    { key: "stage", label: "Etapa del Product Hackers Canvas (editable)" },
+    {
+      key: "focus",
+      label: "Oportunidad prioritaria (máximo 5)",
+      type: "checkbox",
+    },
+  ],
+  idea: [
+    { key: "description", label: "Qué proponemos y por qué", type: "textarea" },
+    { key: "stage", label: "Etapa del Product Hackers Canvas" },
+    { key: "metric", label: "KPI al que contribuye" },
+    {
+      key: "experimental_focus",
+      label: "Foco experimental: quién, qué y por qué",
+      type: "textarea",
+    },
+    { key: "evidence", label: "Evidencia para priorizar", type: "textarea" },
+    ...iceFields,
+  ],
+  experiment: [
+    { key: "e_id", label: "Código del experimento (E-ID)" },
+    {
+      key: "context",
+      label: "Contexto: por qué hacemos esto ahora",
+      type: "textarea",
+    },
+    { key: "champion_email", label: "Email del champion" },
+    { key: "stage", label: "Etapa del Product Hackers Canvas" },
+    {
+      key: "hypothesis",
+      label: "Hipótesis: si hacemos X, esperamos Y porque Z",
+      type: "textarea",
+    },
+    {
+      key: "method",
+      label: "Método",
+      type: "select",
+      options: [
+        "A/B aleatorizado",
+        "Test multivariante",
+        "Piloto",
+        "Antes / después",
+        "Entrevistas",
+        "Smoke test",
+        "Otro",
+      ],
+    },
+    { key: "control", label: "Control / situación actual", type: "textarea" },
+    {
+      key: "variant",
+      label: "Tratamiento / cambio propuesto",
+      type: "textarea",
+    },
+    { key: "metric", label: "Métrica principal" },
+    { key: "baseline", label: "Valor inicial", type: "number" },
+    { key: "target", label: "Objetivo", type: "number" },
+    { key: "unit", label: "Unidad" },
+    {
+      key: "success_criteria",
+      label: "Criterio de éxito acordado antes de lanzar",
+      type: "textarea",
+    },
+    {
+      key: "secondary_metrics",
+      label: "Métricas secundarias",
+      type: "textarea",
+    },
+    {
+      key: "guardrail",
+      label: "Métrica de protección y límite",
+      type: "textarea",
+    },
+    {
+      key: "audience",
+      label: "Audiencia y regla de asignación",
+      type: "textarea",
+    },
+    {
+      key: "traffic_plan",
+      label: "Asignación de tráfico y unidad de aleatorización",
+      type: "textarea",
+    },
+    {
+      key: "risks",
+      label: "Riesgos y cómo los detectaremos",
+      type: "textarea",
+    },
+    {
+      key: "mitigation",
+      label: "Medidas para mitigar los riesgos",
+      type: "textarea",
+    },
+    { key: "analysis_plan", label: "Plan de análisis", type: "textarea" },
+    { key: "decision_date", label: "Fecha límite de decisión", type: "date" },
+    { key: "win_plan", label: "Qué haremos si gana", type: "textarea" },
+    { key: "lose_plan", label: "Qué haremos si pierde", type: "textarea" },
+    {
+      key: "evidence",
+      label: "Evidencia que respalda la hipótesis",
+      type: "textarea",
+    },
+    { key: "sample_target", label: "Muestra prevista", type: "number" },
+    { key: "channel", label: "Canal", type: "select", options: channels },
+    { key: "status", label: "Estado", type: "select", options: states },
+    { key: "start", label: "Inicio", type: "date" },
+    { key: "end", label: "Fin previsto", type: "date" },
+    { key: "cost", label: "Coste", type: "number" },
+    {
+      key: "currency",
+      label: "Moneda",
+      type: "select",
+      options: ["USD", "EUR", "ARS"],
+    },
+    ...iceFields,
+    { key: "source_url", label: "Enlace al análisis / campaña" },
+    { key: "external_id", label: "Identificador externo / flag" },
+    { key: "result", label: "Resultado y evidencia", type: "textarea" },
+    {
+      key: "conclusion",
+      label: "Conclusión y límites del análisis",
+      type: "textarea",
+    },
+    { key: "learning", label: "Aprendizaje reutilizable", type: "textarea" },
+    { key: "next_steps", label: "Próximos pasos", type: "textarea" },
+    { key: "tags", label: "Etiquetas (separadas por comas)" },
+    {
+      key: "decision",
+      label: "Decisión",
+      type: "select",
+      options: ["", "Escalar", "Iterar", "Descartar", "Inconcluso"],
+    },
+  ],
+  objective: [
+    { key: "description", label: "Qué queremos conseguir", type: "textarea" },
+    { key: "period", label: "Periodo (ej. 2026-Q4)" },
+  ],
+  kr: [...numberFields, { key: "period", label: "Periodo" }],
+  project: [
+    { key: "description", label: "Alcance del proyecto", type: "textarea" },
+    { key: "client", label: "Cliente / empresa" },
+    { key: "growth_manager", label: "Growth Manager" },
+    { key: "contact_name", label: "Persona de contacto" },
+    { key: "contact_email", label: "Email de contacto" },
+    { key: "contact_phone", label: "Teléfono de contacto" },
+    { key: "site_url", label: "Web del proyecto" },
+    { key: "funnel_focus", label: "Foco del funnel" },
+    { key: "north_star", label: "North Star de referencia" },
+    { key: "analytics_url", label: "Enlace a Analytics" },
+    { key: "tasks_url", label: "Enlace a tareas" },
+    { key: "meeting_notes_url", label: "Enlace a notas de reuniones" },
+    {
+      key: "status",
+      label: "Estado",
+      type: "select",
+      options: ["Planificado", "En curso", "Finalizado", "Archivado"],
+    },
+    { key: "start", label: "Inicio", type: "date" },
+    { key: "end", label: "Fin previsto", type: "date" },
+  ],
+};
+const nav: { id: View; label: string; icon: typeof Star }[] = [
+  { id: "map", label: "Mapa de crecimiento", icon: GitBranch },
+  { id: "experiments", label: "Experimentos", icon: FlaskConical },
+  { id: "priority", label: "Priorización", icon: Layers },
+  { id: "okr", label: "Objetivos y KR", icon: Target },
+  { id: "projects", label: "Proyectos", icon: LayoutGrid },
+  { id: "learning", label: "Aprendizajes", icon: Lightbulb },
+  { id: "team", label: "Equipo", icon: Users },
+  { id: "activity", label: "Actividad", icon: ActivityIcon },
+  { id: "method", label: "Método y fuentes", icon: BookOpen },
+];
+function IconFor({ kind }: { kind: Kind }) {
+  const I =
+    kind === "north_star"
+      ? Star
+      : kind === "experiment"
+        ? FlaskConical
+        : kind === "idea"
+          ? Lightbulb
+          : kind === "opportunity"
+            ? Search
+            : Target;
+  return <I size={16} />;
+}
+function Badge({ state }: { state: unknown }) {
+  return (
+    <span
+      className={
+        "badge " +
+        (state === "En curso"
+          ? "running"
+          : state === "Finalizado"
+            ? "done"
+            : "")
+      }
+    >
+      {String(state || "Backlog")}
+    </span>
+  );
+}
+function Meter({ value }: { value: number }) {
+  return (
+    <div className="meter">
+      <span style={{ width: value + "%" }} />
+    </div>
+  );
+}
+function Action({
+  children,
+  onClick,
+  disabled = false,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      className={"btn " + className}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+}
+export default function Home() {
+  const [view, setView] = useState<View>("map");
+  const [items, setItems] = useState<Item[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [activity, setActivity] = useState<Activity[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [demo, setDemo] = useState(!supabase);
+  const [loading, setLoading] = useState(!!supabase);
+  const [toast, setToast] = useState("");
+  const [filter, setFilter] = useState("");
+  const [status, setStatus] = useState("Todos");
+  const [channel, setChannel] = useState("Todos");
+  const [selected, setSelected] = useState<Item | null>(null);
+  const [draft, setDraft] = useState<Item | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [newKind, setNewKind] = useState<Kind>("experiment");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [error, setError] = useState("");
+  const [recovery, setRecovery] = useState(false);
+  const [pendingInvite, setPendingInvite] = useState("");
+  const dialog = useRef<HTMLDialogElement>(null);
+  const detail = useRef<HTMLDialogElement>(null);
+  const role = demo
+    ? "owner"
+    : members.find((m) => m.user_id === user?.id)?.role;
+  const editable = role === "owner" || role === "editor";
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("recovery")) setRecovery(true);
+    setPendingInvite(params.get("invite") || "");
+  }, []);
+  const tell = (s: string) => {
+    setToast(s);
+    window.setTimeout(() => setToast(""), 5000);
+  };
+  const author = (id: string | null) =>
+    members.find((m) => m.user_id === id)?.name || "Miembro";
+  useEffect(() => {
+    if (!supabase) return;
+    let live = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!live) return;
+      if (error) setError(error.message);
+      setUser(data.session?.user || null);
+      setLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      setUser(s?.user || null);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
+    return () => {
+      live = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+  useEffect(() => {
+    if (demo) {
+      setWorkspace({ id: "demo", name: "Greenhunt · ejemplo" });
+      setItems(structuredClone(demoItems));
+      setMembers(demoMembers);
+      setActivity(demoActivity);
+      setLoading(false);
+      return;
+    }
+    if (!user) {
+      setWorkspace(null);
+      setItems([]);
+      setMembers([]);
+      setActivity([]);
+      setWorkspaces([]);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const r = await supabase!
+        .from("workspaces")
+        .select("id,name")
+        .order("created_at");
+      if (!alive) return;
+      if (r.error) setError(r.error.message);
+      else {
+        setWorkspaces(r.data || []);
+        setWorkspace(
+          (prev) =>
+            r.data?.find((w) => w.id === prev?.id) || r.data?.[0] || null,
+        );
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, demo]);
+  async function load(w = workspace) {
+    if (!w || demo) return;
+    setLoading(true);
+    const r = await Promise.all([
+      supabase!
+        .from("records")
+        .select("*")
+        .eq("workspace_id", w.id)
+        .order("created_at"),
+      supabase!
+        .from("members")
+        .select("user_id,role,profiles(name)")
+        .eq("workspace_id", w.id),
+      supabase!
+        .from("audit_log")
+        .select("id,actor_id,actor_name,action,record_id,title,created_at")
+        .eq("workspace_id", w.id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase!
+        .from("invitations")
+        .select("id,token,role,expires_at,used_by")
+        .eq("workspace_id", w.id),
+    ]);
+    const err = r.find((x) => x.error)?.error;
+    if (err) {
+      setError(err.message);
+    } else {
+      setItems(r[0].data || []);
+      setMembers(
+        (r[1].data || []).map((m: any) => ({
+          user_id: m.user_id,
+          role: m.role,
+          name: m.profiles?.name || "Miembro",
+        })),
+      );
+      setActivity(r[2].data || []);
+      setInvitations(r[3].data || []);
+      setError("");
+    }
+    setLoading(false);
+  }
+  useEffect(() => {
+    if (workspace && !demo) void load(workspace);
+  }, [workspace?.id, demo]);
+  useEffect(() => {
+    if (draft) {
+      dialog.current?.showModal();
+    } else dialog.current?.close();
+  }, [draft]);
+  useEffect(() => {
+    if (selected) detail.current?.showModal();
+    else detail.current?.close();
+  }, [selected]);
+  function create(kind: Kind, parent_id: string | null = null) {
+    if (!workspace) return;
+    if (kind === "north_star" && items.some((i) => i.kind === "north_star")) {
+      tell(
+        "Edita la North Star existente: cada empresa tiene una métrica principal.",
+      );
+      return;
+    }
+    setError("");
+    const defaults = Object.fromEntries(
+      schemas[kind]
+        .filter((f) => f.type === "select")
+        .map((f) => [f.key, f.options?.[0] || ""]),
+    );
+    setDraft({
+      id: crypto.randomUUID(),
+      workspace_id: workspace.id,
+      kind,
+      parent_id,
+      related_id: null,
+      title: "",
+      owner_id: demo ? "demo-user" : user?.id || null,
+      fields: {
+        ...defaults,
+        ...(kind === "experiment"
+          ? {
+              status: "Backlog",
+              channel: channels[0],
+              method: "A/B aleatorizado",
+              currency: "USD",
+              impact: 5,
+              confidence: 5,
+              ease: 5,
+              e_id: "EXP-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+              variants: JSON.stringify(defaultVariants),
+            }
+          : kind === "idea"
+            ? { impact: 5, confidence: 5, ease: 5 }
+            : {}),
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: user?.id || null,
+      updated_by: user?.id || null,
+    });
+  }
+  async function save() {
+    if (!draft) return;
+    const problem =
+      validate(draft) ||
+      (draft.kind === "experiment" &&
+      ["En curso", "En análisis", "Finalizado"].includes(
+        String(draft.fields.status),
+      ) &&
+      !draft.owner_id
+        ? "Asigna un champion antes de lanzar."
+        : null);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const exists = items.some((i) => i.id === draft.id);
+    if (
+      draft.kind === "opportunity" &&
+      draft.fields.focus &&
+      items.filter(
+        (i) => i.kind === "opportunity" && i.fields.focus && i.id !== draft.id,
+      ).length >= 5
+    ) {
+      setError("Selecciona un máximo de 5 oportunidades prioritarias.");
+      setSaving(false);
+      return;
+    }
+    if (demo) {
+      setItems((prev) =>
+        exists
+          ? prev.map((i) => (i.id === draft.id ? draft : i))
+          : [...prev, draft],
+      );
+      setActivity((prev) => [
+        {
+          id: crypto.randomUUID(),
+          actor_id: "demo-user",
+          action: exists ? "update" : "insert",
+          record_id: draft.id,
+          title: draft.title,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setDraft(null);
+      tell("Guardado en esta sesión de demostración");
+      setSaving(false);
+      return;
+    }
+    const payload = {
+      title: draft.title,
+      owner_id: draft.owner_id,
+      parent_id: draft.parent_id,
+      related_id: draft.related_id,
+      fields: draft.fields,
+    };
+    const q = exists
+      ? supabase!
+          .from("records")
+          .update(payload)
+          .eq("id", draft.id)
+          .eq("updated_at", draft.updated_at)
+          .select()
+      : supabase!
+          .from("records")
+          .insert({
+            ...payload,
+            id: draft.id,
+            workspace_id: draft.workspace_id,
+            kind: draft.kind,
+          })
+          .select();
+    const r = await q;
+    if (r.error) {
+      setError(r.error.message);
+    } else if (!r.data?.length) {
+      setError(
+        "Otra persona ha modificado este registro. Cierra el formulario y actualiza antes de editar.",
+      );
+    } else {
+      setDraft(null);
+      tell("Cambios guardados");
+      await load();
+    }
+    setSaving(false);
+  }
+  async function exportData() {
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            schema_version: 1,
+            exported_at: new Date().toISOString(),
+            workspace,
+            records: items,
+          },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "experimental-os-export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  const experiments = items.filter((i) => i.kind === "experiment");
+  const finished = experiments.filter((i) => i.fields.status === "Finalizado");
+  const active = experiments.filter((i) => i.fields.status === "En curso");
+  const nsm = items.find((i) => i.kind === "north_star");
+  const goals = items.filter((i) => i.kind === "goal");
+  const visibleExperiments = experiments.filter(
+    (i) =>
+      (status === "Todos" || i.fields.status === status) &&
+      (channel === "Todos" || i.fields.channel === channel) &&
+      [
+        i.title,
+        i.fields.hypothesis,
+        i.fields.channel,
+        i.fields.e_id,
+        i.fields.tags,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(filter.toLowerCase()),
+  );
+  function itemCard(i: Item) {
+    return (
+      <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
+        <div className="row">
+          <span className={"kind " + i.kind}>
+            <IconFor kind={i.kind} />
+            {kinds[i.kind]}
+          </span>
+          {i.kind === "opportunity" && i.fields.focus && (
+            <span className="focus">Prioritaria</span>
+          )}
+        </div>
+        <strong>{i.title}</strong>
+        {["goal", "kr"].includes(i.kind) && (
+          <>
+            <div className="row small">
+              <span>
+                {i.fields.current ?? "—"} / {i.fields.target ?? "—"}{" "}
+                {i.fields.unit}
+              </span>
+              <span>{progress(i.fields)}%</span>
+            </div>
+            <Meter value={progress(i.fields)} />
+          </>
+        )}
+        {i.kind === "idea" && (
+          <span className="small">
+            ICE {score(i.fields)} ·{" "}
+            {items.filter((x) => x.parent_id === i.id).length} experimentos
+          </span>
+        )}
+        {i.kind === "experiment" && (
+          <div className="row">
+            <Badge state={i.fields.status} />
+            <span className="small">{i.fields.channel}</span>
+          </div>
+        )}
+      </button>
+    );
+  }
+  function branch(i: Item) {
+    const children = items.filter((x) => x.parent_id === i.id);
+    return (
+      <div className={"tree-branch " + i.kind} key={i.id}>
+        {itemCard(i)}
+        {children.length > 0 && (
+          <details open={i.kind !== "idea"}>
+            <summary>
+              <ChevronRight size={14} />
+              {children.length}{" "}
+              {i.kind === "opportunity" ? "ideas" : "experimentos"}
+            </summary>
+            <div className="branch-children">{children.map(branch)}</div>
+          </details>
+        )}
+        {editable && i.kind !== "experiment" && (
+          <button
+            className="add-node"
+            onClick={() =>
+              create(
+                i.kind === "goal"
+                  ? "opportunity"
+                  : i.kind === "opportunity"
+                    ? "idea"
+                    : "experiment",
+                i.id,
+              )
+            }
+          >
+            <Plus size={14} />
+            {i.kind === "goal"
+              ? "Añadir oportunidad"
+              : i.kind === "opportunity"
+                ? "Añadir idea"
+                : "Diseñar experimento"}
+          </button>
+        )}
+      </div>
+    );
+  }
+  useEffect(() => {
+    const context = (
+      document as Document & {
+        modelContext?: {
+          registerTool: (
+            tool: unknown,
+            options: { signal: AbortSignal },
+          ) => void | Promise<void>;
+        };
+      }
+    ).modelContext;
+    if (!context?.registerTool || !workspace) return;
+    const lifecycle = new AbortController();
+    try {
+      void Promise.resolve(
+        context.registerTool(
+          {
+            name: "read_growth_workspace",
+            title: "Consultar el mapa de crecimiento",
+            description:
+              "Lee los registros visibles de la empresa actual, con North Star, GOI Tree, OKR y experimentos.",
+            inputSchema: {
+              type: "object",
+              properties: {},
+              additionalProperties: false,
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: true },
+            execute: (input: unknown) => {
+              if (
+                !input ||
+                typeof input !== "object" ||
+                Object.keys(input).length
+              )
+                throw new Error("Se esperaba un objeto vacío");
+              return { workspace, records: items };
+            },
+          },
+          { signal: lifecycle.signal },
+        ),
+      ).catch(() => {});
+    } catch {}
+    return () => lifecycle.abort();
+  }, [workspace, items]);
+  if (loading && !workspace)
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <Star className="brand-star" />
+          <h1>Cargando tu espacio…</h1>
+        </div>
+      </div>
+    );
+  if (recovery && !demo)
+    return (
+      <PasswordRecovery
+        onDone={() => {
+          setRecovery(false);
+          window.history.replaceState({}, "", window.location.pathname);
+        }}
+      />
+    );
+  if (!user && !demo)
+    return <Auth onDemo={() => setDemo(true)} onMessage={tell} />;
+  if (!workspace)
+    return (
+      <WorkspaceSetup
+        onCreated={async () => {
+          const r = await supabase!.from("workspaces").select("id,name");
+          setWorkspaces(r.data || []);
+          setWorkspace(r.data?.[0] || null);
+        }}
+      />
+    );
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <a
+          className="brand"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView("map");
+          }}
+        >
+          <span className="brand-symbol">
+            <Star size={19} />
+          </span>
+          <span>
+            experimental<span className="brand-os">OS</span>
+          </span>
+        </a>
+        <div className="workspace-switch">
+          <span className="workspace-avatar">{workspace.name[0]}</span>
+          <div>
+            <strong>{workspace.name}</strong>
+            <span>Laboratorio de crecimiento</span>
+          </div>
+          {workspaces.length > 1 && (
+            <select
+              aria-label="Empresa"
+              value={workspace.id}
+              onChange={(e) =>
+                setWorkspace(
+                  workspaces.find((w) => w.id === e.target.value) || null,
+                )
+              }
+            >
+              {workspaces.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <span className="nav-caption">ESPACIO DE TRABAJO</span>
+        <nav>
+          {nav.map(({ id, label, icon: I }) => (
+            <button
+              key={id}
+              className={view === id ? "active" : ""}
+              onClick={() => {
+                setView(id);
+                setFilter("");
+                setStatus("Todos");
+                setChannel("Todos");
+              }}
+            >
+              <I size={18} />
+              {label}
+              {id === "experiments" && (
+                <span className="nav-count">{experiments.length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="cycle">
+            <span className="small">CICLO ACTUAL</span>
+            <strong>Aprender. Decidir. Repetir.</strong>
+            <div className="cycle-line">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div className="profile">
+            <span className="avatar">{author(user?.id || "demo-user")[0]}</span>
+            <div>
+              <strong>
+                {demo ? "Sesión de ejemplo" : author(user?.id || null)}
+              </strong>
+              <span>
+                {role === "owner"
+                  ? "Propietario"
+                  : role === "editor"
+                    ? "Editor"
+                    : "Lector"}
+              </span>
+            </div>
+            <button
+              aria-label="Salir"
+              onClick={async () => {
+                if (demo) {
+                  setDemo(false);
+                  if (!supabase) setDemo(true);
+                  else setWorkspace(null);
+                } else {
+                  await supabase!.auth.signOut();
+                }
+              }}
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
+        </div>
+      </aside>
+      <div className="main-shell">
+        <header className="topbar">
+          <div>
+            <span>Empresa</span>
+            <ChevronRight size={14} />
+            <strong>{nav.find((n) => n.id === view)?.label}</strong>
+          </div>
+          <div>
+            <span className="top-status">
+              {demo ? "Datos de ejemplo" : "Espacio compartido"}
+            </span>
+            <button
+              className="icon-button"
+              aria-label="Actualizar datos"
+              onClick={() =>
+                demo
+                  ? tell("La demostración se guarda solo en esta sesión")
+                  : void load()
+              }
+            >
+              <RefreshCw size={17} className={loading ? "spin" : ""} />
+            </button>
+          </div>
+        </header>
+        <main>
+          {pendingInvite && !demo && (
+            <div className="notice row">
+              <span>Tienes una invitación para unirte a una empresa.</span>
+              <Action
+                onClick={async () => {
+                  const r = await supabase!.rpc("join_workspace", {
+                    invite_token: pendingInvite,
+                  });
+                  if (r.error) tell(r.error.message);
+                  else {
+                    const w = await supabase!
+                      .from("workspaces")
+                      .select("id,name");
+                    setWorkspaces(w.data || []);
+                    setWorkspace(w.data?.find((x) => x.id === r.data) || null);
+                    setPendingInvite("");
+                    window.history.replaceState(
+                      {},
+                      "",
+                      window.location.pathname,
+                    );
+                  }
+                }}
+              >
+                Aceptar invitación
+              </Action>
+            </div>
+          )}
+          {demo && (
+            <div className="demo-banner">
+              <span>
+                <strong>Demostración interactiva.</strong> Datos ficticios; los
+                cambios se pierden al recargar.
+              </span>
+              <button
+                onClick={() => {
+                  if (supabase) setDemo(false);
+                  else
+                    tell(
+                      "Para habilitar cuentas reales, configura Supabase siguiendo README.md.",
+                    );
+                }}
+              >
+                {supabase ? "Acceder a mi empresa" : "Cómo activar mi empresa"}
+              </button>
+            </div>
+          )}
+          <div className="page-heading">
+            <div>
+              <span className="eyebrow">
+                {view === "map" ? "ESTRATEGIA EN ACCIÓN" : "LABORATORIO"}
+              </span>
+              <h1>{nav.find((n) => n.id === view)?.label}</h1>
+              <p>
+                {view === "map"
+                  ? "Conecta cada experimento con el valor que aportas a tus usuarios."
+                  : view === "experiments"
+                    ? "De una hipótesis a una decisión documentada."
+                    : view === "priority"
+                      ? "Elige qué probar primero. ICE = impacto × confianza × facilidad."
+                      : view === "okr"
+                        ? "Compromisos por periodo, conectados a tus Goals."
+                        : view === "learning"
+                          ? "Lo que sabemos y lo que haremos a continuación."
+                          : view === "team"
+                            ? "Personas, responsabilidades y acceso a tu empresa."
+                            : view === "projects"
+                              ? "Coordina el trabajo que hace posibles los experimentos."
+                              : view === "activity"
+                                ? "Historial de acciones atribuidas a cada miembro."
+                                : "Las fuentes y las decisiones que dan forma al sistema."}
+              </p>
+            </div>
+            {editable && (
+              <div className="create-control">
+                <select
+                  aria-label="Tipo de nuevo registro"
+                  value={newKind}
+                  onChange={(e) => setNewKind(e.target.value as Kind)}
+                >
+                  {Object.entries(kinds).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <Action className="primary" onClick={() => create(newKind)}>
+                  <Plus size={17} /> Crear
+                </Action>
+              </div>
+            )}
+          </div>
+          {error && !draft && (
+            <div role="alert" className="error">
+              {error}
+            </div>
+          )}
+          {view === "map" && (
+            <>
+              <div className="stats">
+                <Stat
+                  label="En ejecución"
+                  value={active.length}
+                  hint="experimentos activos"
+                  icon={<FlaskConical size={18} />}
+                />
+                <Stat
+                  label="Cerrados"
+                  value={finished.length}
+                  hint="con decisión documentada"
+                  icon={<Check size={18} />}
+                />
+                <Stat
+                  label="Ideas por explorar"
+                  value={items.filter((i) => i.kind === "idea").length}
+                  hint="en el árbol de crecimiento"
+                  icon={<Lightbulb size={18} />}
+                />
+                <Stat
+                  label="Oportunidades prioritarias"
+                  value={
+                    items.filter(
+                      (i) => i.kind === "opportunity" && i.fields.focus,
+                    ).length
+                  }
+                  hint="máximo 5 para mantener el foco"
+                  icon={<Target size={18} />}
+                />
+              </div>
+              {nsm ? (
+                <button className="north-star" onClick={() => setSelected(nsm)}>
+                  <div className="north-icon">
+                    <Star size={28} />
+                  </div>
+                  <div className="north-content">
+                    <span>NORTH STAR METRIC</span>
+                    <h2>{nsm.title}</h2>
+                    <p>
+                      {String(
+                        nsm.fields.definition ||
+                          "Define cómo se mide el valor que recibe el usuario.",
+                      )}
+                    </p>
+                    <span className="north-source">
+                      {nsm.fields.frequency} · {nsm.fields.source}
+                    </span>
+                  </div>
+                  <div className="north-value">
+                    <strong>
+                      {nsm.fields.current ?? "—"}
+                      <small> / {nsm.fields.target ?? "—"}</small>
+                    </strong>
+                    <span>
+                      {nsm.fields.unit} · {progress(nsm.fields)}% del recorrido
+                    </span>
+                    <Meter value={progress(nsm.fields)} />
+                  </div>
+                </button>
+              ) : (
+                <Empty
+                  title="Define tu North Star"
+                  text="Empieza por una métrica que refleje el valor que reciben tus usuarios."
+                  action={editable ? () => create("north_star") : undefined}
+                />
+              )}
+              <div className="section-heading">
+                <div>
+                  <h2>Tu GOI Tree</h2>
+                  <p>Goals · oportunidades · ideas · experimentos</p>
+                </div>
+                {editable && nsm && (
+                  <Action onClick={() => create("goal", nsm.id)}>
+                    <Plus size={16} /> Nuevo Goal
+                  </Action>
+                )}
+              </div>
+              <div className="goi-grid">
+                {goals.map((g) => (
+                  <section className="goal-column" key={g.id}>
+                    {itemCard(g)}
+                    <div className="goal-content">
+                      {items.filter((i) => i.parent_id === g.id).map(branch)}
+                      {editable && (
+                        <button
+                          className="add-node"
+                          onClick={() => create("opportunity", g.id)}
+                        >
+                          <Plus size={14} /> Añadir oportunidad
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+              {nsm && !goals.length && (
+                <Empty
+                  title="Encuentra las palancas de crecimiento"
+                  text="Añade Goals medibles que puedan mover tu North Star."
+                />
+              )}
+              <div className="map-legend">
+                <span>
+                  <i className="legend-dot goal" /> Goal
+                </span>
+                <span>
+                  <i className="legend-dot opportunity" /> Oportunidad
+                </span>
+                <span>
+                  <i className="legend-dot idea" /> Idea
+                </span>
+                <span>
+                  <i className="legend-dot experiment" /> Experimento
+                </span>
+                <span>Haz clic en un elemento para ver su ficha</span>
+              </div>
+            </>
+          )}
+          {view === "experiments" && (
+            <>
+              <div className="filterbar">
+                <label className="search">
+                  <Search size={17} />
+                  <input
+                    aria-label="Buscar experimentos"
+                    placeholder="Buscar por nombre, hipótesis o canal…"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                  />
+                </label>
+                <select
+                  aria-label="Filtrar estado"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  {["Todos", ...states].map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Filtrar canal"
+                  value={channel}
+                  onChange={(e) => setChannel(e.target.value)}
+                >
+                  {["Todos", ...channels].map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Experimento</th>
+                      <th>Canal</th>
+                      <th>Estado</th>
+                      <th>Responsable</th>
+                      <th>ICE</th>
+                      <th>Fin previsto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleExperiments.map((e) => (
+                      <tr key={e.id}>
+                        <td>
+                          <button
+                            className="table-title"
+                            onClick={() => setSelected(e)}
+                          >
+                            {e.title}
+                            <span>
+                              {e.fields.metric || "Métrica pendiente"}
+                            </span>
+                          </button>
+                        </td>
+                        <td>{e.fields.channel}</td>
+                        <td>
+                          <Badge state={e.fields.status} />
+                        </td>
+                        <td>{author(e.owner_id)}</td>
+                        <td>
+                          <strong>{score(e.fields)}</strong>
+                        </td>
+                        <td>{e.fields.end || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!visibleExperiments.length && (
+                <Empty
+                  title="Sin experimentos en esta vista"
+                  text="Cambia los filtros o crea tu primer experimento."
+                />
+              )}
+            </>
+          )}
+          {view === "priority" && (
+            <>
+              <div className="notice">
+                ICE sigue la fórmula de la hoja compartida: impacto × confianza
+                × facilidad. Consulta las escalas antes de puntuar. La evidencia
+                y el contexto guían la decisión.
+              </div>
+              <IceGuide />
+              <div className="priority-list">
+                {items
+                  .filter(
+                    (i) =>
+                      i.kind === "idea" ||
+                      (i.kind === "experiment" &&
+                        ["Backlog", "Diseñado"].includes(
+                          String(i.fields.status),
+                        )),
+                  )
+                  .sort((a, b) => score(b.fields) - score(a.fields))
+                  .map((i, n) => (
+                    <button
+                      key={i.id}
+                      className="priority-row"
+                      onClick={() => setSelected(i)}
+                    >
+                      <span className="rank">
+                        {String(n + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <span className={"kind " + i.kind}>
+                          {kinds[i.kind]}
+                        </span>
+                        <h3>{i.title}</h3>
+                        <p>
+                          {ancestors(i, items)
+                            .slice(0, -1)
+                            .map((x) => x.title)
+                            .join(" / ")}
+                        </p>
+                      </div>
+                      <div className="ice-values">
+                        <span>
+                          Impacto<strong>{i.fields.impact || 0}</strong>
+                        </span>
+                        <span>
+                          Confianza<strong>{i.fields.confidence || 0}</strong>
+                        </span>
+                        <span>
+                          Facilidad<strong>{i.fields.ease || 0}</strong>
+                        </span>
+                        <span className="total">
+                          ICE<strong>{score(i.fields)}</strong>
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </>
+          )}
+          {view === "okr" && (
+            <div className="okr-list">
+              {items
+                .filter((i) => i.kind === "objective")
+                .map((o) => (
+                  <section key={o.id} className="panel">
+                    <div className="section-heading">
+                      <button
+                        className="plain-heading"
+                        onClick={() => setSelected(o)}
+                      >
+                        <span className="eyebrow">
+                          OBJETIVO · {o.fields.period || "Sin periodo"}
+                        </span>
+                        <h2>{o.title}</h2>
+                        <p>{o.fields.description}</p>
+                      </button>
+                      {editable && (
+                        <Action onClick={() => create("kr", o.id)}>
+                          <Plus size={16} /> Key Result
+                        </Action>
+                      )}
+                    </div>
+                    {items
+                      .filter((i) => i.parent_id === o.id)
+                      .map((kr) => (
+                        <button
+                          className="kr-row"
+                          key={kr.id}
+                          onClick={() => setSelected(kr)}
+                        >
+                          <div>
+                            <span className="kind kr">KEY RESULT</span>
+                            <h3>{kr.title}</h3>
+                            <p>
+                              {goals.find((g) => g.id === kr.related_id)
+                                ?.title || "Vincula este KR a un Goal"}
+                            </p>
+                          </div>
+                          <div className="kr-progress">
+                            <strong>
+                              {kr.fields.current ?? "—"} /{" "}
+                              {kr.fields.target ?? "—"} {kr.fields.unit}
+                            </strong>
+                            <Meter value={progress(kr.fields)} />
+                            <span>{progress(kr.fields)}%</span>
+                          </div>
+                        </button>
+                      ))}
+                  </section>
+                ))}
+              {!items.some((i) => i.kind === "objective") && (
+                <Empty
+                  title="Define un objetivo del periodo"
+                  text="Añade resultados clave medibles y vincúlalos a tus Goals."
+                  action={editable ? () => create("objective") : undefined}
+                />
+              )}
+            </div>
+          )}
+          {view === "projects" && (
+            <div className="cards-grid">
+              {items
+                .filter((i) => i.kind === "project")
+                .map((p) => (
+                  <button
+                    className="project-card panel"
+                    key={p.id}
+                    onClick={() => setSelected(p)}
+                  >
+                    <div className="row">
+                      <Layers size={20} />
+                      <Badge state={p.fields.status} />
+                    </div>
+                    <h2>{p.title}</h2>
+                    <p>{p.fields.description}</p>
+                    <div className="project-foot">
+                      <span>
+                        {
+                          experiments.filter(
+                            (e) => e.fields.project_id === p.id,
+                          ).length
+                        }{" "}
+                        experimentos vinculados
+                      </span>
+                      <span>{author(p.owner_id)}</span>
+                    </div>
+                  </button>
+                ))}
+              {!items.some((i) => i.kind === "project") && (
+                <Empty
+                  title="Agrupa el trabajo en proyectos"
+                  text="Un proyecto puede coordinar varios experimentos y contribuir a un Goal."
+                  action={editable ? () => create("project") : undefined}
+                />
+              )}
+            </div>
+          )}
+          {view === "learning" && (
+            <div className="learning-list">
+              <label className="search">
+                <Search size={17} />
+                <input
+                  aria-label="Buscar aprendizajes"
+                  placeholder="Buscar por aprendizaje, contexto o etiquetas…"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                />
+              </label>
+              {finished
+                .filter((e) =>
+                  [e.title, e.fields.learning, e.fields.context, e.fields.tags]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(filter.toLowerCase()),
+                )
+                .map((e) => (
+                  <article className="learning-card panel" key={e.id}>
+                    <div className="row">
+                      <span className="kind experiment">
+                        {e.fields.channel}
+                      </span>
+                      <Badge state={e.fields.decision} />
+                    </div>
+                    <button
+                      className="plain-heading"
+                      onClick={() => setSelected(e)}
+                    >
+                      <h2>{e.title}</h2>
+                    </button>
+                    <div className="learning-grid">
+                      <div>
+                        <span className="eyebrow">RESULTADO</span>
+                        <p>{e.fields.result}</p>
+                      </div>
+                      <div>
+                        <span className="eyebrow">APRENDIZAJE</span>
+                        <p>{e.fields.learning}</p>
+                      </div>
+                      <div>
+                        <span className="eyebrow">DECISIÓN</span>
+                        <p>{e.fields.decision}</p>
+                        <span className="small">{author(e.owner_id)}</span>
+                        <p>{e.fields.next_steps}</p>
+                        <span className="small">{e.fields.tags}</span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              {!finished.length && (
+                <Empty
+                  title="Cada experimento deja un aprendizaje"
+                  text="Al cerrar un experimento, documenta el resultado y la siguiente decisión."
+                />
+              )}
+            </div>
+          )}
+          {view === "team" && (
+            <>
+              <div className="panel">
+                <div className="section-heading">
+                  <h2>Miembros de la empresa</h2>
+                  <span>{members.length} personas</span>
+                </div>
+                {members.map((m) => (
+                  <div className="member-row" key={m.user_id}>
+                    <span className="avatar">{m.name[0]}</span>
+                    <strong>{m.name}</strong>
+                    {role === "owner" && m.role !== "owner" && !demo ? (
+                      <>
+                        <select
+                          aria-label={"Rol de " + m.name}
+                          value={m.role}
+                          onChange={async (e) => {
+                            const r = await supabase!.rpc(
+                              "change_member_role",
+                              {
+                                w: workspace.id,
+                                member_id: m.user_id,
+                                new_role: e.target.value,
+                              },
+                            );
+                            if (r.error) tell(r.error.message);
+                            else await load();
+                          }}
+                        >
+                          <option value="editor">Editor</option>
+                          <option value="viewer">Lector</option>
+                        </select>
+                        <button
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                "¿Retirar el acceso de " +
+                                  m.name +
+                                  " a esta empresa? Sus acciones permanecerán en el historial.",
+                              )
+                            )
+                              return;
+                            const r = await supabase!.rpc("remove_member", {
+                              w: workspace.id,
+                              member_id: m.user_id,
+                            });
+                            if (r.error) tell(r.error.message);
+                            else await load();
+                          }}
+                        >
+                          Retirar acceso
+                        </button>
+                      </>
+                    ) : (
+                      <span className="badge">
+                        {m.role === "owner"
+                          ? "Propietario"
+                          : m.role === "editor"
+                            ? "Editor"
+                            : "Lector"}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {role === "owner" && (
+                <div className="panel invite-panel">
+                  <h2>Invitar a una persona</h2>
+                  <p>
+                    El enlace es de un solo uso y caduca en 7 días. La persona
+                    crea su propia cuenta antes de unirse.
+                  </p>
+                  <div className="row">
+                    <select
+                      aria-label="Rol de la invitación"
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                    >
+                      <option value="editor">Editor · crear y editar</option>
+                      <option value="viewer">Lector · consultar</option>
+                    </select>
+                    <Action
+                      onClick={async () => {
+                        if (demo) {
+                          tell(
+                            "Las invitaciones reales se habilitan al conectar Supabase",
+                          );
+                          return;
+                        }
+                        const r = await supabase!.rpc("create_invitation", {
+                          w: workspace.id,
+                          invite_role: inviteRole,
+                        });
+                        if (r.error) tell(r.error.message);
+                        else {
+                          setInviteUrl(
+                            window.location.origin + "/?invite=" + r.data,
+                          );
+                          await load();
+                        }
+                      }}
+                    >
+                      <Plus size={16} /> Crear enlace
+                    </Action>
+                  </div>
+                  {inviteUrl && (
+                    <div className="copy-link">
+                      <input
+                        readOnly
+                        aria-label="Enlace de invitación"
+                        value={inviteUrl}
+                      />
+                      <Action
+                        onClick={() => {
+                          void navigator.clipboard
+                            .writeText(inviteUrl)
+                            .then(() => tell("Enlace copiado"))
+                            .catch(() => tell("Copia el enlace manualmente"));
+                        }}
+                      >
+                        <Copy size={16} /> Copiar
+                      </Action>
+                    </div>
+                  )}
+                  {invitations
+                    .filter(
+                      (i) => !i.used_by && new Date(i.expires_at) > new Date(),
+                    )
+                    .map((i) => (
+                      <div key={i.id} className="member-row">
+                        <span>
+                          {i.role === "editor" ? "Editor" : "Lector"} · caduca{" "}
+                          {new Date(i.expires_at).toLocaleDateString("es")}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            const r = await supabase!.rpc("revoke_invitation", {
+                              w: workspace.id,
+                              invitation_id: i.id,
+                            });
+                            if (r.error) tell(r.error.message);
+                            else await load();
+                          }}
+                        >
+                          Revocar
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+              {!demo && (
+                <div className="panel">
+                  <h2>Unirse a otra empresa</h2>
+                  <WorkspaceSetup
+                    inline
+                    onCreated={async () => {
+                      const r = await supabase!
+                        .from("workspaces")
+                        .select("id,name");
+                      setWorkspaces(r.data || []);
+                      setWorkspace(r.data?.[r.data.length - 1] || null);
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {view === "activity" && (
+            <div className="panel activity-list">
+              {activity.map((a) => (
+                <div key={a.id} className="activity-row">
+                  <div className="activity-dot">
+                    <ActivityIcon size={16} />
+                  </div>
+                  <div>
+                    <strong>{a.actor_name || author(a.actor_id)}</strong>
+                    <p>
+                      {a.action === "insert"
+                        ? "Creó"
+                        : a.action === "update"
+                          ? "Actualizó"
+                          : a.action === "join"
+                            ? "Se unió a la empresa"
+                            : a.action === "role"
+                              ? "Cambió un rol"
+                              : "Acción"}{" "}
+                      ·{" "}
+                      <button
+                        onClick={() => {
+                          const i = items.find((x) => x.id === a.record_id);
+                          if (i) setSelected(i);
+                        }}
+                      >
+                        {a.title}
+                      </button>
+                    </p>
+                  </div>
+                  <time>
+                    {new Date(a.created_at).toLocaleString("es", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </time>
+                </div>
+              ))}
+              {!activity.length && (
+                <Empty
+                  title="Aún no hay acciones"
+                  text="Los cambios realizados en el espacio quedarán registrados aquí."
+                />
+              )}
+              <span className="small">
+                Se muestran las 100 acciones más recientes. El historial se
+                registra en la base de datos.
+              </span>
+            </div>
+          )}
+          {view === "method" && <Method />}
+          <footer className="footer">
+            <span>Experimental OS · V1</span>
+            <button onClick={() => void exportData()}>
+              Exportar registros JSON
+            </button>
+          </footer>
+        </main>
+      </div>
+      <dialog
+        ref={detail}
+        className="detail-dialog"
+        onCancel={() => setSelected(null)}
+        onClick={(e) => {
+          if (e.target === detail.current) setSelected(null);
+        }}
+      >
+        {selected && (
+          <div className="detail-content">
+            <div className="row">
+              <span className={"kind " + selected.kind}>
+                <IconFor kind={selected.kind} />
+                {kinds[selected.kind]}
+              </span>
+              <button
+                className="icon-button"
+                aria-label="Cerrar ficha"
+                onClick={() => setSelected(null)}
+              >
+                <X />
+              </button>
+            </div>
+            <div className="breadcrumb">
+              {ancestors(selected, items)
+                .slice(0, -1)
+                .map((i) => i.title)
+                .join(" / ")}
+            </div>
+            <h2>{selected.title}</h2>
+            <div className="row detail-meta">
+              <span>
+                {selected.kind === "experiment" ? "Champion" : "Responsable"}:{" "}
+                {selected.owner_id ? author(selected.owner_id) : "Sin asignar"}
+              </span>
+              {selected.fields.status && (
+                <Badge state={selected.fields.status} />
+              )}
+            </div>
+            {editable && (
+              <Action
+                className="primary"
+                onClick={() => {
+                  setDraft(structuredClone(selected));
+                  setSelected(null);
+                  setError("");
+                }}
+              >
+                Editar ficha
+              </Action>
+            )}
+            {selected.kind === "experiment" && (
+              <>
+                <p className="small">
+                  Análisis:{" "}
+                  {selected.fields.analyst_id
+                    ? author(String(selected.fields.analyst_id))
+                    : "Sin asignar"}
+                </p>
+                <VariantResults variants={getVariants(selected.fields)} />
+                <div className="alignment">
+                  <span className="eyebrow">ALINEACIÓN</span>
+                  <p>
+                    {
+                      ancestors(selected, items).find((i) => i.kind === "goal")
+                        ?.title
+                    }
+                  </p>
+                  <p>
+                    {String(selected.fields.kr_ids || "")
+                      .split(",")
+                      .filter(Boolean)
+                      .map((id) => items.find((i) => i.id === id)?.title)
+                      .join(" · ") || "Sin KR vinculado"}
+                  </p>
+                  <p>
+                    {
+                      items.find((i) => i.id === selected.fields.project_id)
+                        ?.title
+                    }
+                  </p>
+                </div>
+                {rates(selected.fields) && (
+                  <div className="results-card">
+                    <h3>Comparación descriptiva</h3>
+                    <div className="results-grid">
+                      <span>
+                        A
+                        <strong>{rates(selected.fields)!.a.toFixed(1)}%</strong>
+                      </span>
+                      <span>
+                        B
+                        <strong>{rates(selected.fields)!.b.toFixed(1)}%</strong>
+                      </span>
+                      <span>
+                        Variación relativa
+                        <strong>
+                          {rates(selected.fields)!.lift === null
+                            ? "—"
+                            : rates(selected.fields)!.lift!.toFixed(1) + "%"}
+                        </strong>
+                      </span>
+                    </div>
+                    <p>
+                      Estas tasas no prueban significancia ni causalidad.
+                      Adjunta el análisis y sus límites antes de tomar una
+                      decisión.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            <dl className="field-details">
+              {schemas[selected.kind]
+                .filter(
+                  (f) =>
+                    selected.fields[f.key] !== undefined &&
+                    selected.fields[f.key] !== "",
+                )
+                .map((f) => (
+                  <div key={f.key}>
+                    <dt>{f.label}</dt>
+                    <dd>
+                      {typeof selected.fields[f.key] === "boolean"
+                        ? selected.fields[f.key]
+                          ? "Sí"
+                          : "No"
+                        : String(selected.fields[f.key])}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+            <div className="detail-audit">
+              Creado por{" "}
+              {selected.created_by_name || author(selected.created_by)} ·{" "}
+              {new Date(selected.created_at).toLocaleDateString("es")}
+              <br />
+              Última edición:{" "}
+              {selected.updated_by_name || author(selected.updated_by)} ·{" "}
+              {new Date(selected.updated_at).toLocaleString("es")}
+            </div>
+          </div>
+        )}
+      </dialog>
+      <dialog
+        ref={dialog}
+        className="edit-dialog"
+        onCancel={() => {
+          if (!saving) setDraft(null);
+        }}
+      >
+        {draft && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void save();
+            }}
+          >
+            <div className="dialog-head">
+              <div>
+                <span className="eyebrow">
+                  {items.some((i) => i.id === draft.id) ? "EDITAR" : "CREAR"}{" "}
+                  {kinds[draft.kind].toUpperCase()}
+                </span>
+                <h2>{draft.title || "Nueva ficha"}</h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Cerrar formulario"
+                disabled={saving}
+                onClick={() => setDraft(null)}
+              >
+                <X />
+              </button>
+            </div>
+            <div className="form-body">
+              <label className="full">
+                Nombre
+                <input
+                  required
+                  value={draft.title}
+                  onChange={(e) =>
+                    setDraft({ ...draft, title: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                {draft.kind === "experiment" ? "Champion" : "Responsable"}
+                <select
+                  value={draft.owner_id || ""}
+                  onChange={(e) =>
+                    setDraft({ ...draft, owner_id: e.target.value || null })
+                  }
+                >
+                  <option value="">Sin asignar</option>
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {parents[draft.kind] && (
+                <label>
+                  {kinds[parents[draft.kind]!]} al que pertenece
+                  <select
+                    required
+                    value={draft.parent_id || ""}
+                    onChange={(e) =>
+                      setDraft({ ...draft, parent_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">Seleccionar…</option>
+                    {items
+                      .filter((i) => i.kind === parents[draft.kind])
+                      .map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.title}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+              {["kr", "project"].includes(draft.kind) && (
+                <label>
+                  Goal vinculado
+                  <select
+                    value={draft.related_id || ""}
+                    onChange={(e) =>
+                      setDraft({ ...draft, related_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">Sin vincular</option>
+                    {goals.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {schemas[draft.kind].map((f) => (
+                <label
+                  key={f.key}
+                  className={
+                    f.type === "textarea"
+                      ? "full"
+                      : f.type === "checkbox"
+                        ? "check-label full"
+                        : ""
+                  }
+                >
+                  {f.type === "checkbox" ? (
+                    <>
+                      <input
+                        type="checkbox"
+                        checked={!!draft.fields[f.key]}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            fields: {
+                              ...draft.fields,
+                              [f.key]: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      {f.label}
+                    </>
+                  ) : (
+                    <>
+                      {f.label}
+                      {f.type === "textarea" ? (
+                        <textarea
+                          required={f.required}
+                          rows={3}
+                          value={String(draft.fields[f.key] ?? "")}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              fields: {
+                                ...draft.fields,
+                                [f.key]: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      ) : f.type === "select" ? (
+                        <select
+                          value={String(
+                            draft.fields[f.key] ?? f.options?.[0] ?? "",
+                          )}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              fields: {
+                                ...draft.fields,
+                                [f.key]: e.target.value,
+                              },
+                            })
+                          }
+                        >
+                          {f.options?.map((s) => (
+                            <option key={s} value={s}>
+                              {s || "Pendiente"}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.type || "text"}
+                          required={f.required}
+                          step={f.type === "number" ? "any" : undefined}
+                          min={
+                            ["impact", "confidence", "ease"].includes(f.key)
+                              ? 1
+                              : [
+                                    "cost",
+                                    "sample_target",
+                                    "control_n",
+                                    "control_success",
+                                    "variant_n",
+                                    "variant_success",
+                                  ].includes(f.key)
+                                ? 0
+                                : undefined
+                          }
+                          max={
+                            ["impact", "confidence", "ease"].includes(f.key)
+                              ? 10
+                              : undefined
+                          }
+                          value={String(draft.fields[f.key] ?? "")}
+                          onChange={(e) => {
+                            const fields = { ...draft.fields };
+                            if (f.type === "number" && e.target.value === "")
+                              delete fields[f.key];
+                            else
+                              fields[f.key] =
+                                f.type === "number"
+                                  ? Number(e.target.value)
+                                  : e.target.value;
+                            setDraft({ ...draft, fields });
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                </label>
+              ))}
+              {draft.kind === "experiment" && (
+                <>
+                  <VariantEditor
+                    variants={getVariants(draft.fields)}
+                    onChange={(variants) =>
+                      setDraft({
+                        ...draft,
+                        fields: {
+                          ...draft.fields,
+                          variants: JSON.stringify(variants),
+                        },
+                      })
+                    }
+                  />
+                  <label>
+                    Responsable del análisis
+                    <select
+                      value={String(draft.fields.analyst_id || "")}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          fields: {
+                            ...draft.fields,
+                            analyst_id: e.target.value,
+                          },
+                        })
+                      }
+                    >
+                      <option value="">Seleccionar…</option>
+                      {members.map((m) => (
+                        <option key={m.user_id} value={m.user_id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Proyecto
+                    <select
+                      value={String(draft.fields.project_id || "")}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          fields: {
+                            ...draft.fields,
+                            project_id: e.target.value,
+                          },
+                        })
+                      }
+                    >
+                      <option value="">Sin proyecto</option>
+                      {items
+                        .filter((i) => i.kind === "project")
+                        .map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {i.title}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <fieldset className="full">
+                    <legend>Key Results a los que contribuye</legend>
+                    {items
+                      .filter((i) => i.kind === "kr")
+                      .map((kr) => (
+                        <label className="check-label" key={kr.id}>
+                          <input
+                            type="checkbox"
+                            checked={String(draft.fields.kr_ids || "")
+                              .split(",")
+                              .includes(kr.id)}
+                            onChange={(e) => {
+                              const ids = String(draft.fields.kr_ids || "")
+                                .split(",")
+                                .filter(Boolean);
+                              setDraft({
+                                ...draft,
+                                fields: {
+                                  ...draft.fields,
+                                  kr_ids: (e.target.checked
+                                    ? [...ids, kr.id]
+                                    : ids.filter((id) => id !== kr.id)
+                                  ).join(","),
+                                },
+                              });
+                            }}
+                          />
+                          {kr.title}
+                        </label>
+                      ))}
+                    {!items.some((i) => i.kind === "kr") && (
+                      <span className="small">
+                        Crea primero un objetivo y sus Key Results.
+                      </span>
+                    )}
+                  </fieldset>
+                </>
+              )}
+              {error && (
+                <div role="alert" className="error full">
+                  {error}
+                </div>
+              )}
+            </div>
+            <div className="dialog-foot">
+              <button
+                type="button"
+                className="btn"
+                disabled={saving}
+                onClick={() => setDraft(null)}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn primary" disabled={saving}>
+                {saving ? "Guardando…" : "Guardar ficha"}
+              </button>
+            </div>
+          </form>
+        )}
+      </dialog>
+      {toast && (
+        <div className="toast" role="status">
+          <Check size={18} />
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+function Stat({
+  label,
+  value,
+  hint,
+  icon,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="stat">
+      <div className="row">
+        <span>{label}</span>
+        {icon}
+      </div>
+      <strong>{value}</strong>
+      <span className="small">{hint}</span>
+    </div>
+  );
+}
+function Empty({
+  title,
+  text,
+  action,
+}: {
+  title: string;
+  text: string;
+  action?: () => void;
+}) {
+  return (
+    <div className="empty">
+      <GitBranch size={28} />
+      <h3>{title}</h3>
+      <p>{text}</p>
+      {action && (
+        <Action className="primary" onClick={action}>
+          <Plus size={16} /> Crear
+        </Action>
+      )}
+    </div>
+  );
+}
+function Auth({
+  onDemo,
+  onMessage,
+}: {
+  onDemo: () => void;
+  onMessage: (s: string) => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<
+    "login" | "signup" | "reset" | "new-password"
+  >("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const { data } = supabase!.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setMode("new-password");
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+  return (
+    <div className="auth-shell">
+      <div className="auth-intro">
+        <span className="brand-symbol">
+          <Star />
+        </span>
+        <h1>
+          Cada idea merece
+          <br />
+          un experimento.
+        </h1>
+        <p>
+          Una empresa alineada. Un árbol de oportunidades.
+          <br />
+          Un lugar para aprender juntos.
+        </p>
+        <div className="auth-steps">
+          <span>North Star</span>
+          <span>GOI Tree</span>
+          <span>Experimentos</span>
+        </div>
+      </div>
+      <div className="auth-card">
+        <span className="eyebrow">EXPERIMENTAL OS</span>
+        <h2>
+          {mode === "signup"
+            ? "Crea tu cuenta"
+            : mode === "reset"
+              ? "Recupera tu acceso"
+              : mode === "new-password"
+                ? "Nueva contraseña"
+                : "Entra en tu empresa"}
+        </h2>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError("");
+            let result;
+            if (mode === "signup")
+              result = await supabase!.auth.signUp({
+                email,
+                password,
+                options: {
+                  data: { name },
+                  emailRedirectTo: window.location.href,
+                },
+              });
+            else if (mode === "reset")
+              result = await supabase!.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + "/?recovery=1",
+              });
+            else if (mode === "new-password")
+              result = await supabase!.auth.updateUser({ password });
+            else
+              result = await supabase!.auth.signInWithPassword({
+                email,
+                password,
+              });
+            if (result.error) setError(result.error.message);
+            else if (mode === "signup")
+              setMessage(
+                "Cuenta creada. Si se requiere confirmación, revisa tu email.",
+              );
+            else if (mode === "reset")
+              setMessage("Revisa tu email para recuperar el acceso.");
+            else if (mode === "new-password") {
+              onMessage("Contraseña actualizada");
+              setMode("login");
+            }
+            setBusy(false);
+          }}
+        >
+          {mode === "signup" && (
+            <label>
+              Nombre
+              <input
+                required
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+          )}
+          {mode !== "new-password" && (
+            <label>
+              Email
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+          )}
+          {mode !== "reset" && (
+            <label>
+              Contraseña
+              <input
+                type="password"
+                autoComplete={
+                  mode === "signup" ? "new-password" : "current-password"
+                }
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          )}
+          {error && (
+            <div role="alert" className="error">
+              {error}
+            </div>
+          )}
+          {message && (
+            <div role="status" className="notice">
+              {message}
+            </div>
+          )}
+          <button className="btn primary" disabled={busy}>
+            {busy
+              ? "Un momento…"
+              : mode === "signup"
+                ? "Crear cuenta"
+                : mode === "reset"
+                  ? "Enviar enlace"
+                  : mode === "new-password"
+                    ? "Actualizar contraseña"
+                    : "Entrar"}
+          </button>
+        </form>
+        <div className="auth-links">
+          <button
+            onClick={() => setMode(mode === "login" ? "signup" : "login")}
+          >
+            {mode === "login" ? "Crear una cuenta" : "Volver a iniciar sesión"}
+          </button>
+          {mode === "login" && (
+            <button onClick={() => setMode("reset")}>
+              Olvidé mi contraseña
+            </button>
+          )}
+        </div>
+        <button className="demo-link" onClick={onDemo}>
+          Explorar la demostración
+        </button>
+      </div>
+    </div>
+  );
+}
+function WorkspaceSetup({
+  onCreated,
+  inline = false,
+}: {
+  onCreated: () => void;
+  inline?: boolean;
+}) {
+  const [name, setName] = useState("");
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get("invite") || "");
+  }, []);
+  const form = (
+    <div className="setup-form">
+      {!inline && (
+        <>
+          <span className="brand-symbol">
+            <Star />
+          </span>
+          <h1>Tu empresa experimental</h1>
+          <p>Crea un espacio privado o únete mediante una invitación.</p>
+        </>
+      )}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          const r = await supabase!.rpc("create_workspace", {
+            workspace_name: name,
+          });
+          if (r.error) setError(r.error.message);
+          else onCreated();
+          setBusy(false);
+        }}
+      >
+        <label>
+          Nombre de la empresa
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Mi empresa"
+          />
+        </label>
+        <button className="btn primary" disabled={busy}>
+          Crear empresa
+        </button>
+      </form>
+      <hr />
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          let t = token;
+          try {
+            if (token.includes("://"))
+              t = new URL(token).searchParams.get("invite") || "";
+          } catch {}
+          const r = await supabase!.rpc("join_workspace", { invite_token: t });
+          if (r.error) setError(r.error.message);
+          else {
+            window.history.replaceState({}, "", window.location.pathname);
+            onCreated();
+          }
+          setBusy(false);
+        }}
+      >
+        <label>
+          Enlace o código de invitación
+          <input
+            required
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+          />
+        </label>
+        <button className="btn" disabled={busy}>
+          Unirme a la empresa
+        </button>
+      </form>
+      {error && (
+        <div role="alert" className="error">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+  return inline ? (
+    form
+  ) : (
+    <div className="auth-shell">
+      <div className="auth-card">{form}</div>
+    </div>
+  );
+}
+function Method() {
+  return (
+    <div className="method-content">
+      <section className="panel">
+        <span className="eyebrow">MARCO PRINCIPAL</span>
+        <h2>Un árbol que conecta estrategia y aprendizaje</h2>
+        <div className="method-chain">
+          {[
+            "North Star",
+            "Goals",
+            "Oportunidades",
+            "Ideas",
+            "Experimentos",
+          ].map((s, i) => (
+            <span key={s}>
+              <small>0{i + 1}</small>
+              {s}
+            </span>
+          ))}
+        </div>
+        <p>
+          La North Star expresa valor entregado al usuario. Los Goals son
+          métricas de entrada; las oportunidades nacen de evidencia. Una idea
+          puede generar varias hipótesis y experimentos. Mantén como máximo
+          cinco oportunidades prioritarias.
+        </p>
+        <p>
+          Los OKR se registran como compromisos por periodo: sus KR se vinculan
+          a Goals y los experimentos pueden contribuir a varios KR. Los
+          proyectos coordinan la ejecución.
+        </p>
+        <a
+          href="https://producthackers.com/es/blog/que-es-goi-tree/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Fuente: GOI Tree · Product Hackers <ArrowUpRight size={14} />
+        </a>
+        <a
+          href="https://producthackers.com/es/blog/guia-north-star-metric/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Fuente: guía North Star Metric · Product Hackers{" "}
+          <ArrowUpRight size={14} />
+        </a>
+      </section>
+      <section className="panel">
+        <h2>El ciclo de un experimento</h2>
+        <div className="method-chain">
+          {["Backlog", "Diseñado", "En curso", "En análisis", "Finalizado"].map(
+            (s, i) => (
+              <span key={s}>
+                <small>0{i + 1}</small>
+                {s}
+              </span>
+            ),
+          )}
+        </div>
+        <p>
+          Antes de lanzar, acuerda hipótesis, métrica, criterio de éxito,
+          método, fechas y responsable. Al cerrar, registra evidencia,
+          conclusión, aprendizaje y decisión. Un resultado inconcluso también es
+          aprendizaje.
+        </p>
+        <p>
+          En esta V1, los resultados se registran manualmente. Puedes enlazar
+          informes de PostHog, Amplitude, campañas de Ads o email. El sistema
+          organiza los experimentos; no ejecuta el reparto A/B ni importa datos
+          automáticamente.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Alcance de la adaptación</h2>
+        <p>
+          El modelo GOI y la definición de North Star proceden de los dos
+          artículos accesibles. El vínculo con OKR y los estados y las reglas de
+          cierre son decisiones de implementación de esta V1. No representan una
+          reproducción verificada del libro completo.
+        </p>
+        <p>
+          Los documentos compartidos aportan el Experiment Brief y la ficha de
+          conocimiento: champion, diseño, métricas, riesgos, análisis, contexto,
+          aprendizaje, próximos pasos y etiquetas. La hoja aporta las fichas de
+          proyecto, el foco experimental, la fórmula ICE (I × C × E), sus
+          escalas y el registro por variantes A, B, C o más.
+        </p>
+        <ul>
+          <li>
+            <a
+              href="https://docs.google.com/document/d/15p9nczRCVR5-o0S0Dr1zaAOcJoLsz35B4tLvD71FY24/edit"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Plantilla de aprendizajes
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://docs.google.com/document/d/1k6y4MrZMCLMdAy9ldtbpFoJeXS5YuMJJxsyQT6hJ76g/edit"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Experiment Brief
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://docs.google.com/spreadsheets/d/1PEyxWM5RNL4rRzcIz8ehBPCAJGVwwGZgEjXpWpFf62o/edit?gid=1171375705"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Growth Plan Template
+            </a>
+          </li>
+        </ul>
+      </section>
+    </div>
+  );
+}
+function VariantEditor({
+  variants,
+  onChange,
+}: {
+  variants: Variant[];
+  onChange: (v: Variant[]) => void;
+}) {
+  function update(index: number, k: keyof Variant, value: string | number) {
+    onChange(variants.map((v, i) => (i === index ? { ...v, [k]: value } : v)));
+  }
+  return (
+    <fieldset className="full variant-editor">
+      <legend>Variantes y resultados por variante</legend>
+      <p className="small">
+        Para pruebas aleatorizadas, el reparto debe sumar 100%. Las conversiones
+        describen métricas binarias; para otras métricas registra el resultado
+        textual.
+      </p>
+      {variants.map((v, i) => (
+        <section className="variant-block" key={i}>
+          <div className="row">
+            <strong>Variante {i + 1}</strong>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={"Eliminar variante " + v.name}
+              onClick={() => onChange(variants.filter((_, n) => n !== i))}
+            >
+              <X size={15} />
+            </button>
+          </div>
+          <div className="variant-fields">
+            <label>
+              Nombre
+              <input
+                value={v.name}
+                onChange={(e) => update(i, "name", e.target.value)}
+              />
+            </label>
+            <label>
+              Tráfico (%)
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                value={v.traffic}
+                onChange={(e) => update(i, "traffic", Number(e.target.value))}
+              />
+            </label>
+            <label className="full">
+              Descripción
+              <textarea
+                value={v.description}
+                onChange={(e) => update(i, "description", e.target.value)}
+              />
+            </label>
+            <label>
+              Usuarios expuestos
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={v.exposed}
+                onChange={(e) => update(i, "exposed", Number(e.target.value))}
+              />
+            </label>
+            <label>
+              Conversiones
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={v.conversions}
+                onChange={(e) =>
+                  update(i, "conversions", Number(e.target.value))
+                }
+              />
+            </label>
+            <label>
+              Resultado
+              <input
+                value={v.result}
+                onChange={(e) => update(i, "result", e.target.value)}
+              />
+            </label>
+            <label>
+              Evaluación
+              <select
+                value={v.success}
+                onChange={(e) => update(i, "success", e.target.value)}
+              >
+                {["", "Cumple", "No cumple", "Inconcluso"].map((s) => (
+                  <option key={s} value={s}>
+                    {s || "Pendiente"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+      ))}
+      <button
+        className="btn"
+        type="button"
+        onClick={() =>
+          onChange([
+            ...variants,
+            {
+              name: String.fromCharCode(65 + variants.length),
+              description: "",
+              traffic: 0,
+              exposed: 0,
+              conversions: 0,
+              result: "",
+              success: "",
+            },
+          ])
+        }
+      >
+        <Plus size={15} /> Añadir variante
+      </button>
+    </fieldset>
+  );
+}
+function VariantResults({ variants }: { variants: Variant[] }) {
+  if (!variants.length) return null;
+  return (
+    <section className="results-card">
+      <h3>Resultados por variante</h3>
+      {variants.map((v, i) => (
+        <div className="variant-result" key={i}>
+          <strong>{v.name}</strong>
+          <span>
+            {v.traffic}% de tráfico · {v.exposed} expuestos · {v.conversions}{" "}
+            conversiones
+          </span>
+          <span>
+            {v.exposed
+              ? ((100 * v.conversions) / v.exposed).toFixed(1) +
+                "% de conversión"
+              : "Sin datos de conversión"}
+          </span>
+          <p>{v.result}</p>
+          <Badge state={v.success || "Pendiente"} />
+        </div>
+      ))}
+      <p>
+        La comparación es descriptiva. El análisis estadístico y sus límites
+        deben documentarse antes de decidir.
+      </p>
+    </section>
+  );
+}
+function IceGuide() {
+  return (
+    <details className="ice-guide">
+      <summary>Escalas ICE de la plantilla compartida</summary>
+      <div className="ice-guide-grid">
+        <section>
+          <h3>Impacto</h3>
+          <p>
+            Incremento esperado en la métrica de entrada al aplicar la idea al
+            100%.
+          </p>
+          <ol>
+            <li>Impacto marginal</li>
+            <li>+3%</li>
+            <li>+5%</li>
+            <li>+10%</li>
+            <li>+20%</li>
+            <li>+33%</li>
+            <li>+50%</li>
+            <li>+100%</li>
+            <li>+1000%</li>
+            <li>Impacto extraordinario</li>
+          </ol>
+        </section>
+        <section>
+          <h3>Confianza</h3>
+          <p>Asocia la puntuación a la evidencia disponible.</p>
+          <ol>
+            <li>Disruptivo, sin precedente</li>
+            <li>Disruptivo, sin precedente</li>
+            <li>Sin datos</li>
+            <li>Analítica y referencias externas</li>
+            <li>Analítica y mapa de calor</li>
+            <li>Analítica y grabaciones</li>
+            <li>Analítica y feedback</li>
+            <li>Analítica y un test exitoso</li>
+            <li>Analítica y 3–4 tests exitosos</li>
+            <li>Máxima convicción</li>
+          </ol>
+        </section>
+        <section>
+          <h3>Facilidad</h3>
+          <p>
+            Horas estimadas para probar la idea. Menos horas, más puntuación.
+          </p>
+          <ol>
+            {[560, 320, 120, 80, 40, 24, 16, 8, 4, 2].map((h) => (
+              <li key={h}>{h} horas</li>
+            ))}
+          </ol>
+        </section>
+      </div>
+    </details>
+  );
+}
+function PasswordRecovery({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="auth-shell">
+      <div className="auth-card">
+        <h2>Establece tu nueva contraseña</h2>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            const r = await supabase!.auth.updateUser({ password });
+            if (r.error) setMessage(r.error.message);
+            else onDone();
+            setBusy(false);
+          }}
+        >
+          <label>
+            Nueva contraseña
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          {message && <p role="alert">{message}</p>}
+          <button className="btn primary" disabled={busy}>
+            Guardar contraseña
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
