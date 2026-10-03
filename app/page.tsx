@@ -410,8 +410,21 @@ export default function Home() {
         .from("invitations")
         .select("id,token,role,expires_at,used_by")
         .eq("workspace_id", w.id),
+      supabase!.from("workspaces").select("*").eq("id", w.id).single(),
     ]);
     if (version !== loadVersion.current) return;
+    // Los permisos de la empresa no dependen de la carga de sus registros.
+    if (!r[1].error) setMembers(
+      (r[1].data || []).map((m: any) => ({
+        user_id: m.user_id, role: m.role,
+        name: m.profiles?.name || "Miembro", avatar_url: m.profiles?.avatar_url || null,
+      })),
+    );
+    if (!r[4].error && r[4].data) {
+      const refreshed = r[4].data as Workspace;
+      setWorkspace(refreshed);
+      setWorkspaces(prev => prev.map(company => company.id === w.id ? refreshed : company));
+    }
     const err = r.find((x) => x.error)?.error;
     if (err) {
       setError(err.message);
@@ -443,14 +456,6 @@ export default function Home() {
                 },
           ),
         ),
-      );
-      setMembers(
-        (r[1].data || []).map((m: any) => ({
-          user_id: m.user_id,
-          role: m.role,
-          name: m.profiles?.name || "Miembro",
-          avatar_url: m.profiles?.avatar_url || null,
-        })),
       );
       setActivity(r[2].data || []);
       setInvitations(r[3].data || []);
@@ -830,7 +835,11 @@ export default function Home() {
     if (!workspace || role !== "owner") throw new Error("Solo el administrador puede editar esta empresa.");
     if (!demo) {
       const r = await supabase!.rpc("update_workspace_profile", { w: workspace.id, company_name: next.name, company_website: next.website, company_logo: next.logo_url });
-      if (r.error) throw new Error(r.error.message);
+      if (r.error) throw new Error(
+        ["PGRST202", "42883", "42703"].includes(r.error.code)
+          ? "Falta activar la actualización de Supabase para guardar los datos de la empresa. Sigue los pasos del enlace y vuelve a intentarlo."
+          : r.error.message,
+      );
     }
     setWorkspace(next);
     setWorkspaces(prev => prev.map(w => w.id === next.id ? next : w));
@@ -840,7 +849,11 @@ export default function Home() {
     if (!workspace || role !== "owner") throw new Error("Solo el administrador puede eliminar esta empresa.");
     if (demo) throw new Error("La empresa de ejemplo no se puede eliminar. Esta acción se habilita en tu empresa real.");
     const r = await supabase!.rpc("delete_workspace", { w: workspace.id, confirmation_name: confirmation });
-    if (r.error) throw new Error(r.error.message);
+    if (r.error) throw new Error(
+      ["PGRST202", "42883", "42703"].includes(r.error.code)
+        ? "Falta activar la actualización de Supabase para eliminar la empresa. Sigue los pasos del enlace y vuelve a intentarlo."
+        : r.error.message,
+    );
     ++loadVersion.current;
     const remaining = workspaces.filter(w => w.id !== workspace.id);
     setItems([]); setMembers([]); setActivity([]); setInvitations([]); setInviteUrl("");
@@ -1493,7 +1506,6 @@ export default function Home() {
           {view === "team" && (
             <>
               <CompanySettings key={workspace.id} company={workspace} administrator={role === "owner"}
-                ready={demo || (profileReady && Object.prototype.hasOwnProperty.call(workspace, "website"))}
                 onSave={saveCompany} onDelete={deleteCompany} />
               <div className="panel">
                 <div className="section-heading">

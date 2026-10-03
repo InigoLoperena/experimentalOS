@@ -116,8 +116,8 @@ export function ProfileDialog({ profile, ready, onSave, onClose }: {
   </dialog>;
 }
 
-export function CompanySettings({ company, administrator, ready, onSave, onDelete }: {
-  company: CompanyProfile; administrator: boolean; ready: boolean;
+export function CompanySettings({ company, administrator, onSave, onDelete }: {
+  company: CompanyProfile; administrator: boolean;
   onSave: (company: CompanyProfile) => Promise<void>; onDelete: (confirmation: string) => Promise<void>;
 }) {
   const [name, setName] = useState(company.name);
@@ -130,7 +130,7 @@ export function CompanySettings({ company, administrator, ready, onSave, onDelet
   useEffect(() => {
     setName(company.name); setWebsite(company.website || ""); setLogo(company.logo_url || ""); setConfirmation("");
   }, [company.name, company.website, company.logo_url]);
-  const disabled = busy || !ready;
+  const disabled = busy;
   return <section className="panel company-settings">
     <h2>Perfil de la empresa</h2>
     {!administrator ? <div className="company-summary">
@@ -139,7 +139,6 @@ export function CompanySettings({ company, administrator, ready, onSave, onDelet
       {company.website && <a href={company.website} target="_blank" rel="noreferrer">{company.website}</a>}
       <p className="small">El administrador de la empresa puede editar este perfil y gestionar sus miembros.</p>
     </div> : <>
-      {!ready && <p className="notice" role="status">{pendingMessage}</p>}
       <form onSubmit={async e => {
         e.preventDefault(); if (disabled || uploading) return;
         setBusy(true); setError("");
@@ -171,6 +170,8 @@ export function CompanySettings({ company, administrator, ready, onSave, onDelet
         </form>
       </details>
     </>}
-    {error && <p className="error" role="alert">{error}</p>}
+    {error && <div className="error" role="alert"><p>{error}</p>
+      {error.includes("actualización de Supabase") && <a href="https://github.com/InigoLoperena/experimentalOS/blob/main/ACTUALIZAR-PERFILES.md" target="_blank" rel="noreferrer">Ver cómo activar la gestión de la empresa</a>}
+    </div>}
   </section>;
 }
