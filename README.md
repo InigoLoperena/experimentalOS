@@ -4,7 +4,7 @@ Aplicación multiusuario para organizar la experimentación por proyectos. Next.
 
 ## Navegación
 
-- **Experimentos:** fichas sencillas con búsqueda por nombre, champion, hipótesis y etiquetas.
+- **Experimentos:** fichas sencillas con búsqueda por nombre, responsable, hipótesis y etiquetas.
 - **Proyectos:** crear y editar proyectos y abrir su GOI Tree.
 - **Aprendizajes:** documentación separada del experimento, con resultados, evidencia, conocimiento y siguientes pasos.
 - **Equipo:** perfil de la empresa, miembros, roles e invitaciones.
@@ -17,13 +17,21 @@ El árbol es desplegable. Los Goals son métricas de entrada que pueden influir 
 
 ## Ficha de experimento
 
-Incluye únicamente nombre, champion, contexto, hipótesis, métrica principal, criterio de éxito, métricas secundarias que pueden verse afectadas, audiencia, asignación de tráfico, riesgos, fecha de inicio, impacto, confianza, facilidad y etiquetas.
+Incluye nombre, responsable, contexto, hipótesis, métrica principal, criterio de éxito, métricas secundarias que pueden verse afectadas, audiencia, asignación de tráfico, riesgos, fecha de inicio, impacto, confianza, facilidad y etiquetas. Las pruebas y materiales se añaden aparte en **Archivos y enlaces**.
 
 El proyecto se toma del selector de la vista; no es otro campo del formulario. Si el experimento se crea desde una idea del árbol, su vínculo se conserva automáticamente. También se pueden crear experimentos independientes desde su lista.
 
 No incluye estados, canal, variantes, muestras, conversiones, resultados, analista, costes, fecha final ni vínculos a OKR. La asignación de tráfico se documenta en texto; esta aplicación no ejecuta tests ni hace análisis estadístico.
 
 Para documentar lo descubierto, abre el experimento y pulsa **Documentar aprendizaje**. El aprendizaje se guarda en una ficha separada dentro del mismo proyecto; también puede crearse directamente en Aprendizajes.
+
+## Archivos y enlaces
+
+Las fichas de experimentos, aprendizajes, North Star, Goals, oportunidades e ideas admiten imágenes JPG, PNG, WebP y GIF, PDF, DOCX y enlaces http/https. Las imágenes muestran miniaturas; los PDF tienen vista previa y los DOCX se pueden abrir o descargar. Máximo 10 MB por archivo. Guarda una ficha nueva para añadir sus adjuntos; los adjuntos de una ficha existente se guardan inmediatamente y pueden retirarse con confirmación.
+
+Los archivos se guardan en un espacio privado de Supabase Storage, con enlaces temporales para visualizar y descargar. Los miembros de la empresa pueden leerlos, y solo administradores y editores pueden añadirlos o retirarlos. Los adjuntos heredan el proyecto de la ficha, registran quién los añadió y no alteran los campos de los experimentos. La exportación JSON incluye sus metadatos y rutas; los archivos originales permanecen en Storage.
+
+Ejecuta `supabase/migrations/004_record_attachments.sql` siguiendo [ACTIVAR-ADJUNTOS.md](ACTIVAR-ADJUNTOS.md). La actualización crea el espacio y las políticas de acceso automáticamente. La aplicación reintenta limpiar archivos pendientes al recargar o iniciar sesión, incluso después de eliminar una empresa.
 
 ## Actualizar una instalación existente
 
@@ -42,7 +50,7 @@ Si el código se despliega antes de ejecutar la migración, la aplicación muest
 ## Instalar desde cero
 
 1. Crea un proyecto Supabase nuevo. No ejecutes este esquema sobre una base de otra aplicación.
-2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql` y `supabase/migrations/003_profiles_and_company.sql`.
+2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql`, `supabase/migrations/003_profiles_and_company.sql` y `supabase/migrations/004_record_attachments.sql`.
 3. Configura estas variables con Project URL y la clave pública anon/publishable:
 
 ```dotenv
@@ -63,7 +71,7 @@ Los cambios de variables `NEXT_PUBLIC_*` requieren un nuevo despliegue.
 
 Pulsa el icono **Mi perfil** de la barra superior o **Editar mi perfil** junto a tu nombre para cambiar tu nombre y foto. Se aceptan imágenes JPG, PNG o WebP de hasta 5 MB; la aplicación las reduce y las guarda sin configurar otro servicio. Los nombres de las acciones antiguas se conservan en el historial.
 
-En **Equipo → Perfil de la empresa**, su administrador puede cambiar nombre, web y logo. Quien crea una empresa es su administrador (rol interno `owner`). Los demás miembros pueden consultar su perfil. El administrador puede retirar el acceso de editores y lectores de su empresa; sus cuentas y el historial se conservan y sus fichas dejan de tenerlos como champion. No puede retirar a otro administrador ni administrar empresas a las que no pertenece con ese rol.
+En **Equipo → Perfil de la empresa**, su administrador puede cambiar nombre, web y logo. Quien crea una empresa es su administrador (rol interno `owner`). Los demás miembros pueden consultar su perfil. El administrador puede retirar el acceso de editores y lectores de su empresa; sus cuentas y el historial se conservan y sus fichas dejan de tenerlos como responsable. No puede retirar a otro administrador ni administrar empresas a las que no pertenece con ese rol.
 
 La opción **Eliminar empresa** pide escribir su nombre exacto. Elimina definitivamente todos sus datos, proyectos, registros, invitaciones e historial, y conserva las cuentas personales y las demás empresas. Después se abre otra empresa accesible o la pantalla para crear una nueva/unirse a una. Los permisos y la confirmación también se comprueban en Supabase; no dependen solo de los botones.
 

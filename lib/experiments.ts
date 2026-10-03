@@ -24,7 +24,7 @@ export const experimentFields: {
   { key: "tags", label: "Etiquetas (separadas por comas)" },
 ];
 
-// Name and champion live in the record's title and owner_id, respectively.
+// El nombre y el responsable se guardan en title y owner_id, respectivamente.
 export function cleanExperimentFields(fields: Fields): Fields {
   return Object.fromEntries(
     experimentFields

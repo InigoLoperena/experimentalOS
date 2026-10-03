@@ -27,6 +27,9 @@ import { supabase } from "@/lib/supabase";
 import { experimentFields, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, CompanySettings, ProfileDialog, type CompanyProfile, type PersonalProfile } from "./profile-settings";
+import { RecordAttachments } from "./record-attachments";
+import { supportsAttachments, type Attachment } from "@/lib/attachments";
+import { cleanupAttachments } from "@/lib/attachment-service";
 import {
   ancestors,
   Item,
@@ -262,6 +265,8 @@ export default function Home() {
   const [selected, setSelected] = useState<Item | null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
+  const [attachmentsBusy, setAttachmentsBusy] = useState(false);
+  const [demoAttachments, setDemoAttachments] = useState<Record<string, Attachment[]>>({});
   const [newKind, setNewKind] = useState<Kind>("experiment");
   const [inviteRole, setInviteRole] = useState("editor");
   const [inviteUrl, setInviteUrl] = useState("");
@@ -334,6 +339,7 @@ export default function Home() {
       setWorkspace({ id: "demo", name: "Greenhunt · ejemplo", website: null, logo_url: null });
       setProfile({ name: demoMembers[0].name, avatar_url: null });
       setProfileReady(true);
+      setDemoAttachments({});
       setItems(structuredClone(demoItems).map(normalizeExperiment));
       setMembers(demoMembers);
       setActivity(demoActivity);
@@ -385,6 +391,9 @@ export default function Home() {
       setProfileReady(Object.prototype.hasOwnProperty.call(data, "avatar_url"));
     });
     return () => { alive = false; };
+  }, [user?.id, demo]);
+  useEffect(() => {
+    if (user && !demo) void cleanupAttachments().catch(() => {});
   }, [user?.id, demo]);
   async function load(w = workspace) {
     if (!w || demo) return;
@@ -557,7 +566,7 @@ export default function Home() {
     });
   }
   async function save() {
-    if (!draft) return;
+    if (!draft || saving || attachmentsBusy) return;
     if (!demo && !schemaReady) {
       setError(
         "Completa primero la actualización de Supabase indicada en el repositorio.",
@@ -606,6 +615,7 @@ export default function Home() {
         setView("map");
       }
       setDraft(null);
+      if (supportsAttachments(record.kind)) setSelected(record);
       tell("Guardado en esta sesión de demostración");
       setSaving(false);
       return;
@@ -649,19 +659,29 @@ export default function Home() {
       setDraft(null);
       tell("Cambios guardados");
       await load();
+      if (supportsAttachments(record.kind)) setSelected(normalizeExperiment(r.data[0] as Item));
     }
     setSaving(false);
   }
   async function exportData() {
+    const exportRecords = projectScoped ? items : workspaceItems;
+    let exportedAttachments: Attachment[] = [];
+    if (demo) exportedAttachments = exportRecords.flatMap(record => demoAttachments[record.id] || []).map(({ preview_url, ...attachment }) => attachment);
+    else if (exportRecords.length) {
+      const attached = await supabase!.from("record_attachments").select("*").eq("workspace_id", workspace!.id).in("record_id", exportRecords.map(record => record.id));
+      if (attached.error && !["42P01", "PGRST205"].includes(attached.error.code)) { tell("No se han podido exportar los adjuntos: " + attached.error.message); return; }
+      exportedAttachments = attached.data || [];
+    }
     const blob = new Blob(
       [
         JSON.stringify(
           {
-            schema_version: 2,
+            schema_version: 3,
             exported_at: new Date().toISOString(),
             workspace,
             project: projectScoped ? currentProject : null,
-            records: projectScoped ? items : workspaceItems,
+            records: exportRecords,
+            attachments: exportedAttachments,
           },
           null,
           2,
@@ -855,12 +875,14 @@ export default function Home() {
         : r.error.message,
     );
     ++loadVersion.current;
+    let cleanupPending = false;
+    try { await cleanupAttachments(); } catch { cleanupPending = true; }
     const remaining = workspaces.filter(w => w.id !== workspace.id);
     setItems([]); setMembers([]); setActivity([]); setInvitations([]); setInviteUrl("");
     setLoading(false); setError("");
     setSelected(null); setDraft(null); setProjectId(""); setFilter(""); setView("team");
     setWorkspaces(remaining); setWorkspace(remaining[0] || null);
-    tell("Empresa eliminada. Tu cuenta personal se conserva.");
+    tell(cleanupPending ? "Empresa eliminada. La limpieza de sus archivos se reintentará al recargar." : "Empresa eliminada. Tu cuenta personal se conserva.");
   }
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
   if (loading && !workspace)
@@ -1330,7 +1352,7 @@ export default function Home() {
                   <Search size={17} />
                   <input
                     aria-label="Buscar experimentos"
-                    placeholder="Buscar por nombre, champion, hipótesis o etiquetas…"
+                    placeholder="Buscar por nombre, responsable, hipótesis o etiquetas…"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                   />
@@ -1341,7 +1363,7 @@ export default function Home() {
                   <thead>
                     <tr>
                       <th>Experimento</th>
-                      <th>Champion</th>
+                      <th>Responsable</th>
                       <th>ICE</th>
                       <th>Fecha de inicio</th>
                       <th>Etiquetas</th>
@@ -1685,9 +1707,9 @@ export default function Home() {
       <dialog
         ref={detail}
         className="detail-dialog"
-        onCancel={() => setSelected(null)}
+        onCancel={e => { if (attachmentsBusy) e.preventDefault(); else setSelected(null); }}
         onClick={(e) => {
-          if (e.target === detail.current) setSelected(null);
+          if (!attachmentsBusy && e.target === detail.current) setSelected(null);
         }}
       >
         {selected && (
@@ -1700,6 +1722,7 @@ export default function Home() {
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
+                disabled={attachmentsBusy}
                 onClick={() => setSelected(null)}
               >
                 <X />
@@ -1714,7 +1737,7 @@ export default function Home() {
             <h2>{selected.title}</h2>
             <div className="row detail-meta">
               <span>
-                {selected.kind === "experiment" ? "Champion" : "Responsable"}:{" "}
+                Responsable:{" "}
                 {selected.owner_id ? author(selected.owner_id) : "Sin asignar"}
               </span>
               {selected.kind !== "experiment" && selected.fields.status && (
@@ -1724,6 +1747,7 @@ export default function Home() {
             {editable && (demo || schemaReady) && (
               <Action
                 className="primary"
+                disabled={attachmentsBusy}
                 onClick={() => {
                   setDraft(structuredClone(selected));
                   setSelected(null);
@@ -1735,6 +1759,7 @@ export default function Home() {
             )}
             {selected.kind === "experiment" && editable && (
               <Action
+                disabled={attachmentsBusy}
                 onClick={() => {
                   create("learning", selected.id);
                   setSelected(null);
@@ -1763,6 +1788,9 @@ export default function Home() {
                   </div>
                 ))}
             </dl>
+            {supportsAttachments(selected.kind) && <RecordAttachments key={selected.id}
+              record={selected} editable={editable} demo={demo} values={demoAttachments[selected.id] || []}
+              onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy} />}
             <div className="detail-audit">
               Creado por{" "}
               {selected.created_by_name || author(selected.created_by)} ·{" "}
@@ -1778,8 +1806,8 @@ export default function Home() {
       <dialog
         ref={dialog}
         className="edit-dialog"
-        onCancel={() => {
-          if (!saving) setDraft(null);
+        onCancel={e => {
+          if (saving || attachmentsBusy) e.preventDefault(); else setDraft(null);
         }}
       >
         {draft && (
@@ -1801,7 +1829,7 @@ export default function Home() {
                 type="button"
                 className="icon-button"
                 aria-label="Cerrar formulario"
-                disabled={saving}
+                disabled={saving || attachmentsBusy}
                 onClick={() => setDraft(null)}
               >
                 <X />
@@ -1820,7 +1848,7 @@ export default function Home() {
               </label>
               {draft.kind !== "project" && (
                 <label>
-                  {draft.kind === "experiment" ? "Champion" : "Responsable"}
+                  Responsable
                   <select
                     value={draft.owner_id || ""}
                     onChange={(e) =>
@@ -1985,6 +2013,12 @@ export default function Home() {
                   )}
                 </label>
               ))}
+              {supportsAttachments(draft.kind) && <div className="full">
+                {allItems.some(item => item.id === draft.id) ? <RecordAttachments key={draft.id}
+                  record={draft} editable={editable && !saving} demo={demo} values={demoAttachments[draft.id] || []}
+                  onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy} />
+                  : <p className="small">Guarda la ficha para adjuntar imágenes, PDF, DOCX o enlaces. Se abrirá la ficha para añadirlos.</p>}
+              </div>}
               {error && (
                 <div role="alert" className="error full">
                   {error}
@@ -1995,12 +2029,12 @@ export default function Home() {
               <button
                 type="button"
                 className="btn"
-                disabled={saving}
+                disabled={saving || attachmentsBusy}
                 onClick={() => setDraft(null)}
               >
                 Cancelar
               </button>
-              <button type="submit" className="btn primary" disabled={saving}>
+              <button type="submit" className="btn primary" disabled={saving || attachmentsBusy}>
                 {saving ? "Guardando…" : "Guardar ficha"}
               </button>
             </div>
@@ -2361,7 +2395,7 @@ function Method() {
           observarás y qué resultado considerarás un éxito.
         </p>
         <p>
-          Asigna un champion, documenta el reparto de tráfico, los riesgos y la
+          Asigna un responsable, documenta el reparto de tráfico, los riesgos y la
           fecha de inicio. Usa impacto, confianza y facilidad para decidir qué
           probar primero. La aplicación documenta el experimento; la prueba se
           ejecuta en tu producto o herramienta habitual.
@@ -2413,6 +2447,7 @@ function Method() {
           Usa nombres claros y descriptivos. Abre o pliega las ramas para
           recorrer el árbol sin perder el contexto.
         </p>
+        <p>Abre una ficha del árbol para adjuntar capturas, imágenes, PDF, DOCX o enlaces que aporten contexto y evidencia. También puedes hacerlo en Experimentos y Aprendizajes.</p>
         <a
           href="https://producthackers.com/es/blog/que-es-goi-tree/"
           target="_blank"
