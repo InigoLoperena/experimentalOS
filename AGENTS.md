@@ -13,6 +13,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - The source of truth is `InigoLoperena/experimentalOS` on GitHub.
 - The user explicitly requested that code changes be implemented and synchronized in this repository, rather than delivered only as ZIP archives or edits to a temporary folder. Their Windows folder is updated separately through GitHub Desktop Fetch/Pull.
 - For this project the user has authorized updating `main` with requested changes after validation. Respect any later instruction to use branches or reviews instead. Never force-push over concurrent work.
-- Preserve the six requested navigation sections and the simplified experiment fields. Keep experiments, Growth Trees and learnings scoped to projects.
+- Preserve the six requested navigation sections and the simplified experiment fields. Keep experiments, GOI Trees and learnings scoped to projects.
 - Run appropriate validation before publishing code and report the resulting GitHub commit.
 - Supabase migrations and authentication settings are separate from a Vercel code deployment. Do not claim they were applied unless verified. Give clear instructions for any remaining setup.

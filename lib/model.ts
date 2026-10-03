@@ -31,6 +31,7 @@ export type Member = {
   user_id: string;
   role: "owner" | "editor" | "viewer";
   name: string;
+  avatar_url?: string | null;
 };
 export type Activity = {
   id: string;

@@ -256,33 +256,6 @@ nav button svg {
   margin-top: auto;
   padding-top: 24px;
 }
-.cycle {
-  background: #f5f8f4;
-  padding: 15px;
-  border: 1px solid #e4ebe2;
-  border-radius: 8px;
-}
-.cycle strong {
-  display: block;
-  font-size: 13px;
-  margin: 6px 0 14px;
-}
-.cycle-line {
-  display: flex;
-  gap: 4px;
-}
-.cycle-line span {
-  height: 4px;
-  width: 33%;
-  background: #a3bf85;
-  border-radius: 5px;
-}
-.cycle-line span:nth-child(2) {
-  background: #b8cb9c;
-}
-.cycle-line span:nth-child(3) {
-  background: #d6e0cc;
-}
 .profile {
   display: flex;
   align-items: center;
@@ -314,6 +287,98 @@ nav button svg {
   background: #e8eee8;
   font-size: 14px;
   color: var(--green);
+}
+.avatar,
+.workspace-avatar {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.avatar img,
+.workspace-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.company-shortcut {
+  background: none;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: left;
+}
+.company-shortcut:hover {
+  text-decoration: underline;
+}
+.profile-dialog {
+  width: min(540px, calc(100vw - 32px));
+  max-height: 90dvh;
+  overflow: auto;
+}
+.company-settings {
+  margin-bottom: 20px;
+}
+.company-settings .form-body {
+  padding: 20px 0;
+}
+.photo-field {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.photo-field > .avatar,
+.photo-field > .workspace-avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+}
+.photo-field label {
+  flex: 1;
+  min-width: 160px;
+}
+.photo-field input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+}
+.company-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 18px;
+}
+.company-summary p {
+  flex-basis: 100%;
+}
+.company-danger {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.company-danger summary {
+  color: #a12d2d;
+  cursor: pointer;
+}
+.company-danger p {
+  margin: 15px 0;
+  font-size: 14px;
+  max-width: 70ch;
+}
+.company-danger label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  margin-bottom: 12px;
+}
+.btn.danger {
+  background: #a12d2d;
+  color: white;
+}
+.no-company-actions {
+  padding: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 .main-shell {
   margin-left: 252px;

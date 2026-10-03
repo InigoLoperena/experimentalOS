@@ -5,15 +5,15 @@ Aplicación multiusuario para organizar la experimentación por proyectos. Next.
 ## Navegación
 
 - **Experimentos:** fichas sencillas con búsqueda por nombre, champion, hipótesis y etiquetas.
-- **Proyectos:** crear y editar proyectos y abrir su Growth Tree.
+- **Proyectos:** crear y editar proyectos y abrir su GOI Tree.
 - **Aprendizajes:** documentación separada del experimento, con resultados, evidencia, conocimiento y siguientes pasos.
-- **Equipo:** acceso a la empresa, roles e invitaciones.
-- **Growth Tree:** North Star → Goals y sub-Goals → Oportunidades → Ideas → Experimentos.
+- **Equipo:** perfil de la empresa, miembros, roles e invitaciones.
+- **GOI Tree:** North Star → Goals y sub-Goals → Oportunidades → Ideas → Experimentos.
 - **Cómo utilizar Experimental OS:** explicaciones breves y enlaces a las fuentes.
 
-Experimentos, Aprendizajes y Growth Tree tienen un selector común de proyecto. Al cambiarlo, solo aparecen los registros de ese proyecto. Cada proyecto tiene una North Star propia y puede destacar un máximo de cinco oportunidades. No se permiten padres de otro proyecto, ciclos en el árbol ni traslados de registros entre proyectos. Los miembros de una empresa mantienen sus roles en todos sus proyectos.
+Experimentos, Aprendizajes y GOI Tree tienen un selector común de proyecto. Al cambiarlo, solo aparecen los registros de ese proyecto. Cada proyecto tiene una North Star propia y puede destacar un máximo de cinco oportunidades. No se permiten padres de otro proyecto, ciclos en el árbol ni traslados de registros entre proyectos. Los miembros de una empresa mantienen sus roles en todos sus proyectos.
 
-El árbol es desplegable. Los Goals son métricas de entrada que pueden influir en la North Star y admiten sub-Goals. Las oportunidades documentan problemas reales o mejoras por aprovechar. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de Growth Tree usando impacto × confianza × facilidad.
+El árbol es desplegable. Los Goals son métricas de entrada que pueden influir en la North Star y admiten sub-Goals. Las oportunidades documentan problemas reales o mejoras por aprovechar. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de GOI Tree usando impacto × confianza × facilidad.
 
 ## Ficha de experimento
 
@@ -33,6 +33,8 @@ Consulta [ACTUALIZAR-SUPABASE.md](ACTUALIZAR-SUPABASE.md).
 2. Desactiva **Confirm email** en Authentication → Sign In / Providers → Email y guarda. Al registrarse, Supabase devuelve la sesión y la aplicación abre el acceso automáticamente.
 3. GitHub/Vercel despliegan el código; la migración de Supabase se ejecuta por separado.
 
+Para activar los perfiles personales y la gestión de la empresa, ejecuta también `supabase/migrations/003_profiles_and_company.sql` después de la actualización anterior. Si ya ejecutaste la 002, solo necesitas ejecutar la 003. Tienes los pasos en [ACTUALIZAR-PERFILES.md](ACTUALIZAR-PERFILES.md).
+
 La migración conserva los registros y el historial. Agrupa los datos antiguos en el primer proyecto existente; si no había proyecto, crea «Proyecto inicial». Copia los resultados y aprendizajes de los experimentos antiguos a fichas de aprendizaje separadas. Los campos antiguos del experimento se conservan en la base hasta la siguiente edición, cuando se retiran de la ficha activa y quedan en el historial de auditoría.
 
 Si el código se despliega antes de ejecutar la migración, la aplicación muestra que la actualización está pendiente y bloquea la creación y edición de fichas. Los datos siguen guardados. Cuando termines la actualización, pulsa Actualizar datos o recarga la página.
@@ -40,7 +42,7 @@ Si el código se despliega antes de ejecutar la migración, la aplicación muest
 ## Instalar desde cero
 
 1. Crea un proyecto Supabase nuevo. No ejecutes este esquema sobre una base de otra aplicación.
-2. En SQL Editor ejecuta `supabase/migrations/001_initial.sql` y, después, `supabase/migrations/002_project_growth_tree.sql`.
+2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql` y `supabase/migrations/003_profiles_and_company.sql`.
 3. Configura estas variables con Project URL y la clave pública anon/publishable:
 
 ```dotenv
@@ -53,9 +55,17 @@ Nunca uses `service_role`, una clave secreta o credenciales de PostgreSQL en var
 4. Activa Email y desactiva Confirm email en Supabase Auth. No necesitas SMTP para registrar cuentas. La recuperación de contraseña sigue utilizando emails y puede requerir configurar SMTP propio.
 5. En Authentication → URL Configuration establece Site URL al dominio de producción y autoriza las Redirect URLs de recuperación para ese dominio. Para desarrollo puedes añadir `http://localhost:3000/**`; evita comodines que incluyan dominios ajenos.
 6. Importa el repositorio en Vercel como Next.js. Install Command: `npm ci`; Build Command: `npm run build`; Output Directory: predeterminado. Añade las dos variables anteriores en Production y, si corresponde, en Preview.
-7. Crea una cuenta, una empresa y tu primer proyecto. Después configura su North Star y construye su Growth Tree.
+7. Crea una cuenta, una empresa y tu primer proyecto. Después configura su North Star y construye su GOI Tree.
 
 Los cambios de variables `NEXT_PUBLIC_*` requieren un nuevo despliegue.
+
+## Perfiles y administración
+
+Pulsa el icono **Mi perfil** de la barra superior o **Editar mi perfil** junto a tu nombre para cambiar tu nombre y foto. Se aceptan imágenes JPG, PNG o WebP de hasta 5 MB; la aplicación las reduce y las guarda sin configurar otro servicio. Los nombres de las acciones antiguas se conservan en el historial.
+
+En **Equipo → Perfil de la empresa**, su administrador puede cambiar nombre, web y logo. Quien crea una empresa es su administrador (rol interno `owner`). Los demás miembros pueden consultar su perfil. El administrador puede retirar el acceso de editores y lectores de su empresa; sus cuentas y el historial se conservan y sus fichas dejan de tenerlos como champion. No puede retirar a otro administrador ni administrar empresas a las que no pertenece con ese rol.
+
+La opción **Eliminar empresa** pide escribir su nombre exacto. Elimina definitivamente todos sus datos, proyectos, registros, invitaciones e historial, y conserva las cuentas personales y las demás empresas. Después se abre otra empresa accesible o la pantalla para crear una nueva/unirse a una. Los permisos y la confirmación también se comprueban en Supabase; no dependen solo de los botones.
 
 ## Desarrollo y verificaciones
 

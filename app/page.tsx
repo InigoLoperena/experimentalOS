@@ -21,10 +21,12 @@ import {
   Users,
   X,
   LayoutGrid,
+  UserRound,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { experimentFields, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
+import { Avatar, CompanySettings, ProfileDialog, type CompanyProfile, type PersonalProfile } from "./profile-settings";
 import {
   ancestors,
   Item,
@@ -39,7 +41,7 @@ import {
   validate,
 } from "@/lib/model";
 type View = "experiments" | "projects" | "learning" | "team" | "map" | "method";
-type Workspace = { id: string; name: string };
+type Workspace = CompanyProfile;
 type Invitation = {
   id: string;
   token: string;
@@ -181,7 +183,7 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "learning", label: "Aprendizajes", icon: Lightbulb },
   { id: "team", label: "Equipo", icon: Users },
-  { id: "map", label: "Growth Tree", icon: GitBranch },
+  { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
 ];
 function IconFor({ kind }: { kind: Kind }) {
@@ -250,6 +252,9 @@ export default function Home() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<PersonalProfile>({ name: "Miembro" });
+  const [profileReady, setProfileReady] = useState(!supabase);
+  const [showProfile, setShowProfile] = useState(false);
   const [demo, setDemo] = useState(!supabase);
   const [loading, setLoading] = useState(!!supabase);
   const [toast, setToast] = useState("");
@@ -290,6 +295,7 @@ export default function Home() {
     : availableKinds[0];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
+  const loadVersion = useRef(0);
   const role = demo
     ? "owner"
     : members.find((m) => m.user_id === user?.id)?.role;
@@ -325,7 +331,9 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (demo) {
-      setWorkspace({ id: "demo", name: "Greenhunt · ejemplo" });
+      setWorkspace({ id: "demo", name: "Greenhunt · ejemplo", website: null, logo_url: null });
+      setProfile({ name: demoMembers[0].name, avatar_url: null });
+      setProfileReady(true);
       setItems(structuredClone(demoItems).map(normalizeExperiment));
       setMembers(demoMembers);
       setActivity(demoActivity);
@@ -338,6 +346,9 @@ export default function Home() {
       setMembers([]);
       setActivity([]);
       setWorkspaces([]);
+      setProfile({ name: "Miembro" });
+      setProfileReady(false);
+      setShowProfile(false);
       return;
     }
     let alive = true;
@@ -345,7 +356,7 @@ export default function Home() {
       setLoading(true);
       const r = await supabase!
         .from("workspaces")
-        .select("id,name")
+        .select("*")
         .order("created_at");
       if (!alive) return;
       if (r.error) setError(r.error.message);
@@ -361,9 +372,23 @@ export default function Home() {
     return () => {
       alive = false;
     };
-  }, [user, demo]);
+  }, [user?.id, demo]);
+  useEffect(() => {
+    if (!user || demo) return;
+    let alive = true;
+    setProfile({ name: user.user_metadata?.name || "Miembro" });
+    setProfileReady(false);
+    void supabase!.from("profiles").select("*").eq("id", user.id).single().then(({ data, error }) => {
+      if (!alive) return;
+      if (error) { setError(error.message); return; }
+      setProfile({ name: data.name, avatar_url: data.avatar_url || null });
+      setProfileReady(Object.prototype.hasOwnProperty.call(data, "avatar_url"));
+    });
+    return () => { alive = false; };
+  }, [user?.id, demo]);
   async function load(w = workspace) {
     if (!w || demo) return;
+    const version = ++loadVersion.current;
     setLoading(true);
     const r = await Promise.all([
       supabase!
@@ -373,7 +398,7 @@ export default function Home() {
         .order("created_at"),
       supabase!
         .from("members")
-        .select("user_id,role,profiles(name)")
+        .select("user_id,role,profiles(*)")
         .eq("workspace_id", w.id),
       supabase!
         .from("audit_log")
@@ -386,6 +411,7 @@ export default function Home() {
         .select("id,token,role,expires_at,used_by")
         .eq("workspace_id", w.id),
     ]);
+    if (version !== loadVersion.current) return;
     const err = r.find((x) => x.error)?.error;
     if (err) {
       setError(err.message);
@@ -423,6 +449,7 @@ export default function Home() {
           user_id: m.user_id,
           role: m.role,
           name: m.profiles?.name || "Miembro",
+          avatar_url: m.profiles?.avatar_url || null,
         })),
       );
       setActivity(r[2].data || []);
@@ -432,7 +459,11 @@ export default function Home() {
     setLoading(false);
   }
   useEffect(() => {
-    if (workspace && !demo) void load(workspace);
+    if (!demo) {
+      ++loadVersion.current;
+      setMembers([]); setItems([]); setActivity([]); setInvitations([]); setInviteUrl("");
+      if (workspace) void load(workspace);
+    }
   }, [workspace?.id, demo]);
   useEffect(() => {
     if (draft) {
@@ -761,9 +792,9 @@ export default function Home() {
         context.registerTool(
           {
             name: "read_growth_workspace",
-            title: "Consultar el Growth Tree del proyecto",
+            title: "Consultar el GOI Tree del proyecto",
             description:
-              "Lee los registros visibles del proyecto seleccionado, con North Star, Growth Tree, experimentos y aprendizajes.",
+              "Lee los registros visibles del proyecto seleccionado, con North Star, GOI Tree, experimentos y aprendizajes.",
             inputSchema: {
               type: "object",
               properties: {},
@@ -786,6 +817,39 @@ export default function Home() {
     } catch {}
     return () => lifecycle.abort();
   }, [workspace, items, currentProject]);
+  async function saveProfile(next: PersonalProfile) {
+    if (!demo) {
+      const r = await supabase!.rpc("update_my_profile", { profile_name: next.name, photo: next.avatar_url });
+      if (r.error) throw new Error(r.error.message);
+    }
+    setProfile(next);
+    setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
+    tell("Perfil actualizado");
+  }
+  async function saveCompany(next: CompanyProfile) {
+    if (!workspace || role !== "owner") throw new Error("Solo el administrador puede editar esta empresa.");
+    if (!demo) {
+      const r = await supabase!.rpc("update_workspace_profile", { w: workspace.id, company_name: next.name, company_website: next.website, company_logo: next.logo_url });
+      if (r.error) throw new Error(r.error.message);
+    }
+    setWorkspace(next);
+    setWorkspaces(prev => prev.map(w => w.id === next.id ? next : w));
+    tell("Empresa actualizada");
+  }
+  async function deleteCompany(confirmation: string) {
+    if (!workspace || role !== "owner") throw new Error("Solo el administrador puede eliminar esta empresa.");
+    if (demo) throw new Error("La empresa de ejemplo no se puede eliminar. Esta acción se habilita en tu empresa real.");
+    const r = await supabase!.rpc("delete_workspace", { w: workspace.id, confirmation_name: confirmation });
+    if (r.error) throw new Error(r.error.message);
+    ++loadVersion.current;
+    const remaining = workspaces.filter(w => w.id !== workspace.id);
+    setItems([]); setMembers([]); setActivity([]); setInvitations([]); setInviteUrl("");
+    setLoading(false); setError("");
+    setSelected(null); setDraft(null); setProjectId(""); setFilter(""); setView("team");
+    setWorkspaces(remaining); setWorkspace(remaining[0] || null);
+    tell("Empresa eliminada. Tu cuenta personal se conserva.");
+  }
+  const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
   if (loading && !workspace)
     return (
       <div className="auth-shell">
@@ -814,13 +878,17 @@ export default function Home() {
     );
   if (!workspace)
     return (
+      <>
+      <div className="no-company-actions"><button className="btn" onClick={() => setShowProfile(true)}>Mi perfil</button></div>
       <WorkspaceSetup
         onCreated={async () => {
-          const r = await supabase!.from("workspaces").select("id,name");
+          const r = await supabase!.from("workspaces").select("*");
           setWorkspaces(r.data || []);
           setWorkspace(r.data?.[0] || null);
         }}
       />
+      {profileEditor}
+      </>
     );
   return (
     <div className="app-shell">
@@ -841,10 +909,10 @@ export default function Home() {
           </span>
         </a>
         <div className="workspace-switch">
-          <span className="workspace-avatar">{workspace.name[0]}</span>
+          <Avatar name={workspace.name} photo={workspace.logo_url} company />
           <div>
             <strong>{workspace.name}</strong>
-            <span>Laboratorio de crecimiento</span>
+            <button className="company-shortcut" onClick={() => { setView("team"); setFilter(""); }}>Perfil de empresa</button>
           </div>
           {workspaces.length > 1 && (
             <select
@@ -884,29 +952,21 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="cycle">
-            <span className="small">CICLO ACTUAL</span>
-            <strong>Aprender. Decidir. Repetir.</strong>
-            <div className="cycle-line">
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
           <div className="profile">
-            <span className="avatar">{author(user?.id || "demo-user")[0]}</span>
+            <Avatar name={profile.name} photo={profile.avatar_url} />
             <div>
               <strong>
-                {demo ? "Sesión de ejemplo" : author(user?.id || null)}
+                {profile.name}
               </strong>
               <span>
                 {role === "owner"
-                  ? "Propietario"
+                  ? "Administrador"
                   : role === "editor"
                     ? "Editor"
                     : "Lector"}
               </span>
             </div>
+            <button aria-label="Editar mi perfil" title="Editar mi perfil" onClick={() => setShowProfile(true)}><UserRound size={17} /></button>
             <button
               aria-label="Salir"
               onClick={async () => {
@@ -927,6 +987,7 @@ export default function Home() {
       <div className="main-shell">
         <header className="topbar">
           <div>
+            <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => setShowProfile(true)}><UserRound size={17} /></button>
             <span>Empresa</span>
             <ChevronRight size={14} />
             <strong>{nav.find((n) => n.id === view)?.label}</strong>
@@ -961,7 +1022,7 @@ export default function Home() {
                   else {
                     const w = await supabase!
                       .from("workspaces")
-                      .select("id,name");
+                      .select("*");
                     setWorkspaces(w.data || []);
                     setWorkspace(w.data?.find((x) => x.id === r.data) || null);
                     setPendingInvite("");
@@ -1004,7 +1065,7 @@ export default function Home() {
               <h1>{nav.find((n) => n.id === view)?.label}</h1>
               <p>
                 {view === "map"
-                  ? "De la North Star a los Goals, oportunidades, ideas y experimentos de este proyecto."
+                  ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
                   : view === "experiments"
                     ? "Documenta qué vas a probar y cómo sabrás si funciona."
                     : view === "learning"
@@ -1012,7 +1073,7 @@ export default function Home() {
                       : view === "team"
                         ? "Personas y acceso a tu empresa."
                         : view === "projects"
-                          ? "Cada proyecto tiene su propio Growth Tree, experimentos y aprendizajes."
+                          ? "Cada proyecto tiene su propio GOI Tree, experimentos y aprendizajes."
                           : "Una guía sencilla para empezar a trabajar."}
               </p>
             </div>
@@ -1073,7 +1134,7 @@ export default function Home() {
               {currentProject && (
                 <span>
                   {currentProject.fields.description ||
-                    "Growth Tree, experimentos y aprendizajes independientes."}
+                    "GOI Tree, experimentos y aprendizajes independientes."}
                 </span>
               )}
             </div>
@@ -1081,7 +1142,7 @@ export default function Home() {
           {projectScoped && !currentProject && (
             <Empty
               title="Empieza creando un proyecto"
-              text="Cada proyecto tendrá su propio Growth Tree, experimentos y aprendizajes."
+              text="Cada proyecto tendrá su propio GOI Tree, experimentos y aprendizajes."
               action={editable ? () => create("project") : undefined}
             />
           )}
@@ -1155,7 +1216,7 @@ export default function Home() {
               )}
               <div className="section-heading">
                 <div>
-                  <h2>Growth Tree · {currentProject.title}</h2>
+                  <h2>GOI Tree · {currentProject.title}</h2>
                   <p>Goals · oportunidades · ideas · experimentos</p>
                 </div>
                 {editable && nsm && (
@@ -1339,7 +1400,7 @@ export default function Home() {
                         setView("map");
                       }}
                     >
-                      Abrir Growth Tree
+                      Abrir GOI Tree
                     </Action>
                     {editable && (
                       <Action onClick={() => setSelected(p)}>
@@ -1431,6 +1492,9 @@ export default function Home() {
           )}
           {view === "team" && (
             <>
+              <CompanySettings key={workspace.id} company={workspace} administrator={role === "owner"}
+                ready={demo || (profileReady && Object.prototype.hasOwnProperty.call(workspace, "website"))}
+                onSave={saveCompany} onDelete={deleteCompany} />
               <div className="panel">
                 <div className="section-heading">
                   <h2>Miembros de la empresa</h2>
@@ -1438,7 +1502,7 @@ export default function Home() {
                 </div>
                 {members.map((m) => (
                   <div className="member-row" key={m.user_id}>
-                    <span className="avatar">{m.name[0]}</span>
+                    <Avatar name={m.name} photo={m.avatar_url} />
                     <strong>{m.name}</strong>
                     {role === "owner" && m.role !== "owner" && !demo ? (
                       <>
@@ -1485,7 +1549,7 @@ export default function Home() {
                     ) : (
                       <span className="badge">
                         {m.role === "owner"
-                          ? "Propietario"
+                          ? "Administrador"
                           : m.role === "editor"
                             ? "Editor"
                             : "Lector"}
@@ -1587,7 +1651,7 @@ export default function Home() {
                     onCreated={async () => {
                       const r = await supabase!
                         .from("workspaces")
-                        .select("id,name");
+                        .select("*");
                       setWorkspaces(r.data || []);
                       setWorkspace(r.data?.[r.data.length - 1] || null);
                     }}
@@ -1605,6 +1669,7 @@ export default function Home() {
           </footer>
         </main>
       </div>
+      {profileEditor}
       <dialog
         ref={detail}
         className="detail-dialog"
@@ -2025,7 +2090,7 @@ function Auth({
         </p>
         <div className="auth-steps">
           <span>North Star</span>
-          <span>Growth Tree</span>
+          <span>GOI Tree</span>
           <span>Experimentos</span>
         </div>
       </div>
@@ -2272,7 +2337,7 @@ function Method() {
         <h2>Empieza por un proyecto</h2>
         <p>
           Crea un proyecto para cada producto o iniciativa. Después,
-          selecciónalo en Experimentos, Aprendizajes o Growth Tree. Cada
+          selecciónalo en Experimentos, Aprendizajes o GOI Tree. Cada
           proyecto conserva sus propias fichas y su propio árbol.
         </p>
       </section>
@@ -2304,7 +2369,8 @@ function Method() {
         </p>
       </section>
       <section className="panel">
-        <h2>Growth Tree: conectar las ideas con el crecimiento</h2>
+        <h2>GOI Tree: conectar las ideas con el crecimiento</h2>
+        <p>La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden.</p>
         <div className="method-chain">
           {[
             "North Star",
