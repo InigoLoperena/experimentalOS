@@ -1,16 +1,15 @@
-# Comprobación tras configurar Supabase
+# Comprobación después de actualizar Supabase
 
-Esta comprobación valida los servicios reales que no estaban disponibles durante la construcción:
-
-1. Registra dos cuentas con correos que controles y confirma ambos emails.
-2. Con la primera crea Empresa A; con la segunda crea Empresa B. Comprueba que no ven datos de la otra empresa.
-3. Desde A crea una North Star, un Goal, una Oportunidad, una Idea y un Experimento.
-4. Invita la segunda cuenta a A como lector. Comprueba que ve A, pero no puede crear o editar. Empresa B permanece privada.
-5. Intenta reutilizar la invitación desde una tercera cuenta: debe rechazarse.
-6. Cambia la segunda cuenta a editor y guarda un cambio. En Actividad debe figurar su identidad.
-7. Abre la misma ficha en dos sesiones. Guarda en una y después intenta guardar la versión antigua en la otra: debe aparecer el conflicto; actualiza y vuelve a editar.
-8. Intenta lanzar un experimento sin hipótesis o criterio de éxito: debe rechazarse. Comprueba también que el reparto de variantes suma 100%.
-9. Intenta cerrar sin resultado o aprendizaje: debe rechazarse.
-10. Retira el acceso de la segunda cuenta desde Equipo. Tras actualizar, no debe poder leer A, aunque seguirá usando B.
-11. Prueba recuperación de contraseña con el dominio Vercel configurado y comprueba que abre el formulario de nueva contraseña.
-12. Reinicia sesión y confirma que los registros siguen presentes. El modo demostración debe indicar claramente que sus datos son ficticios.
+1. Ejecuta `002_project_growth_tree.sql` sobre la instalación existente. No repitas `001_initial.sql`.
+2. Desactiva Confirm email y registra una cuenta nueva: debe entrar automáticamente. Recarga y comprueba que conserva la sesión; cierra sesión y entra con email y contraseña. Un email ya registrado debe producir un error al intentar registrarlo otra vez.
+3. Comprueba las seis secciones del menú: Experimentos, Proyectos, Aprendizajes, Equipo, Growth Tree y Cómo utilizar Experimental OS.
+4. Crea Proyecto A y Proyecto B dentro de una misma empresa. Cada uno debe permitir su propia North Star.
+5. En A crea Goal, sub-Goal, oportunidad e idea. Crea varios experimentos desde esa idea.
+6. Cambia el selector a B en Experimentos y Growth Tree: no deben aparecer los registros de A. Vuelve a A y comprueba que siguen allí.
+7. Destaca cinco oportunidades en cada proyecto. Una sexta debe rechazarse en ese proyecto, sin afectar al otro.
+8. La ficha de experimento solo debe mostrar los campos acordados; no debe mostrar Proyecto, Idea, estados, variantes, resultados o analista.
+9. Abre un experimento y documenta un aprendizaje. Debe aparecer en Aprendizajes de su proyecto y conservar la referencia al experimento.
+10. Invita otra cuenta como lector: debe poder leer, pero no guardar. Cambia su rol a editor y comprueba que la identidad del autor figura en la ficha.
+11. Edita la misma ficha en dos sesiones: la versión antigua debe mostrar un conflicto al guardar.
+12. Retira el acceso de un miembro: no debe seguir leyendo la empresa. Comprueba que el historial conserva su identidad.
+13. Prueba recuperar una contraseña con el dominio Vercel autorizado. Este flujo sigue utilizando email.

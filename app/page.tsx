@@ -2,13 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  Activity as ActivityIcon,
   ArrowUpRight,
   BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
-  Clock,
   Copy,
   FlaskConical,
   GitBranch,
@@ -23,14 +21,12 @@ import {
   Users,
   X,
   LayoutGrid,
-  BarChart3,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { defaultVariants, getVariants, Variant } from "@/lib/variants";
+import { experimentFields, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import {
   ancestors,
-  channels,
   Item,
   Member,
   Activity,
@@ -39,21 +35,10 @@ import {
   kinds,
   parents,
   progress,
-  rates,
   score,
-  states,
   validate,
 } from "@/lib/model";
-type View =
-  | "map"
-  | "experiments"
-  | "priority"
-  | "okr"
-  | "projects"
-  | "learning"
-  | "team"
-  | "activity"
-  | "method";
+type View = "experiments" | "projects" | "learning" | "team" | "map" | "method";
 type Workspace = { id: string; name: string };
 type Invitation = {
   id: string;
@@ -105,7 +90,11 @@ const schemas: Record<Kind, Field[]> = {
   ],
   goal: [
     ...numberFields,
-    { key: "stage", label: "Etapa del Product Hackers Canvas (editable)" },
+    {
+      key: "stage",
+      label: "Etapa del Product Hackers Canvas (editable)",
+      required: true,
+    },
   ],
   opportunity: [
     {
@@ -121,7 +110,11 @@ const schemas: Record<Kind, Field[]> = {
       required: true,
     },
     { key: "source", label: "Fuente / enlace de la evidencia" },
-    { key: "stage", label: "Etapa del Product Hackers Canvas (editable)" },
+    {
+      key: "stage",
+      label: "Etapa del Product Hackers Canvas (editable)",
+      required: true,
+    },
     {
       key: "focus",
       label: "Oportunidad prioritaria (máximo 5)",
@@ -129,9 +122,14 @@ const schemas: Record<Kind, Field[]> = {
     },
   ],
   idea: [
-    { key: "description", label: "Qué proponemos y por qué", type: "textarea" },
-    { key: "stage", label: "Etapa del Product Hackers Canvas" },
-    { key: "metric", label: "KPI al que contribuye" },
+    {
+      key: "description",
+      label: "Qué proponemos y por qué",
+      type: "textarea",
+      required: true,
+    },
+    { key: "stage", label: "Etapa del Product Hackers Canvas", required: true },
+    { key: "metric", label: "KPI al que contribuye", required: true },
     {
       key: "experimental_focus",
       label: "Foco experimental: quién, qué y por qué",
@@ -140,118 +138,29 @@ const schemas: Record<Kind, Field[]> = {
     { key: "evidence", label: "Evidencia para priorizar", type: "textarea" },
     ...iceFields,
   ],
-  experiment: [
-    { key: "e_id", label: "Código del experimento (E-ID)" },
-    {
-      key: "context",
-      label: "Contexto: por qué hacemos esto ahora",
-      type: "textarea",
-    },
-    { key: "champion_email", label: "Email del champion" },
-    { key: "stage", label: "Etapa del Product Hackers Canvas" },
-    {
-      key: "hypothesis",
-      label: "Hipótesis: si hacemos X, esperamos Y porque Z",
-      type: "textarea",
-    },
-    {
-      key: "method",
-      label: "Método",
-      type: "select",
-      options: [
-        "A/B aleatorizado",
-        "Test multivariante",
-        "Piloto",
-        "Antes / después",
-        "Entrevistas",
-        "Smoke test",
-        "Otro",
-      ],
-    },
-    { key: "control", label: "Control / situación actual", type: "textarea" },
-    {
-      key: "variant",
-      label: "Tratamiento / cambio propuesto",
-      type: "textarea",
-    },
-    { key: "metric", label: "Métrica principal" },
-    { key: "baseline", label: "Valor inicial", type: "number" },
-    { key: "target", label: "Objetivo", type: "number" },
-    { key: "unit", label: "Unidad" },
-    {
-      key: "success_criteria",
-      label: "Criterio de éxito acordado antes de lanzar",
-      type: "textarea",
-    },
-    {
-      key: "secondary_metrics",
-      label: "Métricas secundarias",
-      type: "textarea",
-    },
-    {
-      key: "guardrail",
-      label: "Métrica de protección y límite",
-      type: "textarea",
-    },
-    {
-      key: "audience",
-      label: "Audiencia y regla de asignación",
-      type: "textarea",
-    },
-    {
-      key: "traffic_plan",
-      label: "Asignación de tráfico y unidad de aleatorización",
-      type: "textarea",
-    },
-    {
-      key: "risks",
-      label: "Riesgos y cómo los detectaremos",
-      type: "textarea",
-    },
-    {
-      key: "mitigation",
-      label: "Medidas para mitigar los riesgos",
-      type: "textarea",
-    },
-    { key: "analysis_plan", label: "Plan de análisis", type: "textarea" },
-    { key: "decision_date", label: "Fecha límite de decisión", type: "date" },
-    { key: "win_plan", label: "Qué haremos si gana", type: "textarea" },
-    { key: "lose_plan", label: "Qué haremos si pierde", type: "textarea" },
+  experiment: experimentFields,
+  learning: [
+    { key: "context", label: "Contexto", type: "textarea" },
+    { key: "result", label: "Qué ocurrió / resultado", type: "textarea" },
     {
       key: "evidence",
-      label: "Evidencia que respalda la hipótesis",
+      label: "Evidencia o enlace al análisis",
       type: "textarea",
     },
-    { key: "sample_target", label: "Muestra prevista", type: "number" },
-    { key: "channel", label: "Canal", type: "select", options: channels },
-    { key: "status", label: "Estado", type: "select", options: states },
-    { key: "start", label: "Inicio", type: "date" },
-    { key: "end", label: "Fin previsto", type: "date" },
-    { key: "cost", label: "Coste", type: "number" },
     {
-      key: "currency",
-      label: "Moneda",
-      type: "select",
-      options: ["USD", "EUR", "ARS"],
-    },
-    ...iceFields,
-    { key: "source_url", label: "Enlace al análisis / campaña" },
-    { key: "external_id", label: "Identificador externo / flag" },
-    { key: "result", label: "Resultado y evidencia", type: "textarea" },
-    {
-      key: "conclusion",
-      label: "Conclusión y límites del análisis",
+      key: "learning",
+      label: "Qué aprendimos",
       type: "textarea",
+      required: true,
     },
-    { key: "learning", label: "Aprendizaje reutilizable", type: "textarea" },
-    { key: "next_steps", label: "Próximos pasos", type: "textarea" },
-    { key: "tags", label: "Etiquetas (separadas por comas)" },
     {
       key: "decision",
       label: "Decisión",
       type: "select",
       options: ["", "Escalar", "Iterar", "Descartar", "Inconcluso"],
     },
+    { key: "next_steps", label: "Qué haremos después", type: "textarea" },
+    { key: "tags", label: "Etiquetas (separadas por comas)" },
   ],
   objective: [
     { key: "description", label: "Qué queremos conseguir", type: "textarea" },
@@ -282,15 +191,12 @@ const schemas: Record<Kind, Field[]> = {
   ],
 };
 const nav: { id: View; label: string; icon: typeof Star }[] = [
-  { id: "map", label: "Mapa de crecimiento", icon: GitBranch },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
-  { id: "priority", label: "Priorización", icon: Layers },
-  { id: "okr", label: "Objetivos y KR", icon: Target },
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "learning", label: "Aprendizajes", icon: Lightbulb },
   { id: "team", label: "Equipo", icon: Users },
-  { id: "activity", label: "Actividad", icon: ActivityIcon },
-  { id: "method", label: "Método y fuentes", icon: BookOpen },
+  { id: "map", label: "Growth Tree", icon: GitBranch },
+  { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
 ];
 function IconFor({ kind }: { kind: Kind }) {
   const I =
@@ -351,7 +257,8 @@ function Action({
 }
 export default function Home() {
   const [view, setView] = useState<View>("map");
-  const [items, setItems] = useState<Item[]>([]);
+  const [allItems, setItems] = useState<Item[]>([]);
+  const [projectId, setProjectId] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -361,8 +268,6 @@ export default function Home() {
   const [loading, setLoading] = useState(!!supabase);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
-  const [status, setStatus] = useState("Todos");
-  const [channel, setChannel] = useState("Todos");
   const [selected, setSelected] = useState<Item | null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
@@ -371,8 +276,32 @@ export default function Home() {
   const [inviteUrl, setInviteUrl] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [error, setError] = useState("");
+  const [schemaReady, setSchemaReady] = useState(true);
   const [recovery, setRecovery] = useState(false);
   const [pendingInvite, setPendingInvite] = useState("");
+  const workspaceItems = allItems.filter(
+    (i) => i.workspace_id === workspace?.id,
+  );
+  const projects = workspaceItems.filter((i) => i.kind === "project");
+  const currentProject =
+    projects.find((p) => p.id === projectId) || projects[0] || null;
+  const items = workspaceItems.filter(
+    (i) => i.kind !== "project" && i.project_id === currentProject?.id,
+  );
+  const projectScoped = ["map", "experiments", "learning"].includes(view);
+  const availableKinds: Kind[] =
+    view === "projects"
+      ? ["project"]
+      : view === "learning"
+        ? ["learning"]
+        : view === "experiments"
+          ? ["experiment"]
+          : view === "map"
+            ? ["north_star", "goal", "opportunity", "idea", "experiment"]
+            : [];
+  const createKind = availableKinds.includes(newKind)
+    ? newKind
+    : availableKinds[0];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const role = demo
@@ -411,7 +340,7 @@ export default function Home() {
   useEffect(() => {
     if (demo) {
       setWorkspace({ id: "demo", name: "Greenhunt · ejemplo" });
-      setItems(structuredClone(demoItems));
+      setItems(structuredClone(demoItems).map(normalizeExperiment));
       setMembers(demoMembers);
       setActivity(demoActivity);
       setLoading(false);
@@ -475,7 +404,34 @@ export default function Home() {
     if (err) {
       setError(err.message);
     } else {
-      setItems(r[0].data || []);
+      const loaded = (r[0].data || []) as Item[];
+      const ready = loaded.length
+        ? loaded.every((item) =>
+            Object.prototype.hasOwnProperty.call(item, "project_id"),
+          )
+        : !(await supabase!.from("records").select("project_id").limit(0))
+            .error;
+      setSchemaReady(ready);
+      const defaultProject = loaded
+        .filter((item) => item.kind === "project")
+        .sort(
+          (a, b) =>
+            a.created_at.localeCompare(b.created_at) ||
+            a.id.localeCompare(b.id),
+        )[0];
+      setItems(
+        loaded.map((item) =>
+          normalizeExperiment(
+            ready
+              ? item
+              : {
+                  ...item,
+                  project_id:
+                    item.kind === "project" ? null : defaultProject?.id || null,
+                },
+          ),
+        ),
+      );
       setMembers(
         (r[1].data || []).map((m: any) => ({
           user_id: m.user_id,
@@ -503,9 +459,19 @@ export default function Home() {
   }, [selected]);
   function create(kind: Kind, parent_id: string | null = null) {
     if (!workspace) return;
+    if (!demo && !schemaReady) {
+      tell(
+        "La organización por proyectos requiere completar la actualización de Supabase indicada en el repositorio.",
+      );
+      return;
+    }
+    if (kind !== "project" && !currentProject) {
+      tell("Crea o selecciona un proyecto primero.");
+      return;
+    }
     if (kind === "north_star" && items.some((i) => i.kind === "north_star")) {
       tell(
-        "Edita la North Star existente: cada empresa tiene una métrica principal.",
+        "Edita la North Star existente: cada proyecto tiene una métrica principal.",
       );
       return;
     }
@@ -515,9 +481,35 @@ export default function Home() {
         .filter((f) => f.type === "select")
         .map((f) => [f.key, f.options?.[0] || ""]),
     );
+    const parent = items.find((item) => item.id === parent_id);
+    const goal = parent
+      ? ancestors(parent, items)
+          .slice()
+          .reverse()
+          .find((item) => item.kind === "goal")
+      : null;
+    const contextFields: Fields =
+      kind === "idea"
+        ? {
+            metric: goal?.fields.metric || "",
+            stage: parent?.fields.stage || goal?.fields.stage || "",
+            evidence: parent?.fields.evidence || "",
+          }
+        : kind === "experiment"
+          ? {
+              context: parent?.fields.description || "",
+              metric: parent?.fields.metric || "",
+            }
+          : kind === "learning"
+            ? {
+                context: parent?.fields.context || "",
+                tags: parent?.fields.tags || "",
+              }
+            : {};
     setDraft({
       id: crypto.randomUUID(),
       workspace_id: workspace.id,
+      project_id: kind === "project" ? null : currentProject!.id,
       kind,
       parent_id,
       related_id: null,
@@ -525,17 +517,12 @@ export default function Home() {
       owner_id: demo ? "demo-user" : user?.id || null,
       fields: {
         ...defaults,
+        ...contextFields,
         ...(kind === "experiment"
           ? {
-              status: "Backlog",
-              channel: channels[0],
-              method: "A/B aleatorizado",
-              currency: "USD",
               impact: 5,
               confidence: 5,
               ease: 5,
-              e_id: "EXP-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
-              variants: JSON.stringify(defaultVariants),
             }
           : kind === "idea"
             ? { impact: 5, confidence: 5, ease: 5 }
@@ -549,22 +536,21 @@ export default function Home() {
   }
   async function save() {
     if (!draft) return;
-    const problem =
-      validate(draft) ||
-      (draft.kind === "experiment" &&
-      ["En curso", "En análisis", "Finalizado"].includes(
-        String(draft.fields.status),
-      ) &&
-      !draft.owner_id
-        ? "Asigna un champion antes de lanzar."
-        : null);
+    if (!demo && !schemaReady) {
+      setError(
+        "Completa primero la actualización de Supabase indicada en el repositorio.",
+      );
+      return;
+    }
+    const record = normalizeExperiment(draft);
+    const problem = validate(record);
     if (problem) {
       setError(problem);
       return;
     }
     setSaving(true);
     setError("");
-    const exists = items.some((i) => i.id === draft.id);
+    const exists = allItems.some((i) => i.id === draft.id);
     if (
       draft.kind === "opportunity" &&
       draft.fields.focus &&
@@ -579,8 +565,8 @@ export default function Home() {
     if (demo) {
       setItems((prev) =>
         exists
-          ? prev.map((i) => (i.id === draft.id ? draft : i))
-          : [...prev, draft],
+          ? prev.map((i) => (i.id === record.id ? record : i))
+          : [...prev, record],
       );
       setActivity((prev) => [
         {
@@ -593,6 +579,10 @@ export default function Home() {
         },
         ...prev,
       ]);
+      if (record.kind === "project") {
+        setProjectId(record.id);
+        setView("map");
+      }
       setDraft(null);
       tell("Guardado en esta sesión de demostración");
       setSaving(false);
@@ -603,7 +593,8 @@ export default function Home() {
       owner_id: draft.owner_id,
       parent_id: draft.parent_id,
       related_id: draft.related_id,
-      fields: draft.fields,
+      fields: record.fields,
+      project_id: record.project_id,
     };
     const q = exists
       ? supabase!
@@ -629,6 +620,10 @@ export default function Home() {
         "Otra persona ha modificado este registro. Cierra el formulario y actualiza antes de editar.",
       );
     } else {
+      if (record.kind === "project") {
+        setProjectId(record.id);
+        setView("map");
+      }
       setDraft(null);
       tell("Cambios guardados");
       await load();
@@ -640,10 +635,11 @@ export default function Home() {
       [
         JSON.stringify(
           {
-            schema_version: 1,
+            schema_version: 2,
             exported_at: new Date().toISOString(),
             workspace,
-            records: items,
+            project: projectScoped ? currentProject : null,
+            records: projectScoped ? items : workspaceItems,
           },
           null,
           2,
@@ -659,24 +655,19 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
   const experiments = items.filter((i) => i.kind === "experiment");
-  const finished = experiments.filter((i) => i.fields.status === "Finalizado");
-  const active = experiments.filter((i) => i.fields.status === "En curso");
   const nsm = items.find((i) => i.kind === "north_star");
   const goals = items.filter((i) => i.kind === "goal");
-  const visibleExperiments = experiments.filter(
-    (i) =>
-      (status === "Todos" || i.fields.status === status) &&
-      (channel === "Todos" || i.fields.channel === channel) &&
-      [
-        i.title,
-        i.fields.hypothesis,
-        i.fields.channel,
-        i.fields.e_id,
-        i.fields.tags,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(filter.toLowerCase()),
+  const visibleExperiments = experiments.filter((i) =>
+    [
+      i.title,
+      i.fields.hypothesis,
+      i.fields.context,
+      i.fields.tags,
+      author(i.owner_id),
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(filter.toLowerCase()),
   );
   function itemCard(i: Item) {
     return (
@@ -711,15 +702,19 @@ export default function Home() {
         )}
         {i.kind === "experiment" && (
           <div className="row">
-            <Badge state={i.fields.status} />
-            <span className="small">{i.fields.channel}</span>
+            <span className="small">
+              {i.owner_id ? author(i.owner_id) : "Sin asignar"}
+            </span>
+            <span className="small">ICE {score(i.fields)}</span>
           </div>
         )}
       </button>
     );
   }
   function branch(i: Item) {
-    const children = items.filter((x) => x.parent_id === i.id);
+    const children = items
+      .filter((x) => x.parent_id === i.id && x.kind !== "learning")
+      .sort((a, b) => score(b.fields) - score(a.fields));
     return (
       <div className={"tree-branch " + i.kind} key={i.id}>
         {itemCard(i)}
@@ -727,13 +722,17 @@ export default function Home() {
           <details open={i.kind !== "idea"}>
             <summary>
               <ChevronRight size={14} />
-              {children.length}{" "}
-              {i.kind === "opportunity" ? "ideas" : "experimentos"}
+              {children.length} elementos
             </summary>
             <div className="branch-children">{children.map(branch)}</div>
           </details>
         )}
-        {editable && i.kind !== "experiment" && (
+        {editable && i.kind === "goal" && (
+          <button className="add-node" onClick={() => create("goal", i.id)}>
+            <Plus size={14} /> Añadir sub-Goal
+          </button>
+        )}
+        {editable && ["goal", "opportunity", "idea"].includes(i.kind) && (
           <button
             className="add-node"
             onClick={() =>
@@ -776,9 +775,9 @@ export default function Home() {
         context.registerTool(
           {
             name: "read_growth_workspace",
-            title: "Consultar el mapa de crecimiento",
+            title: "Consultar el Growth Tree del proyecto",
             description:
-              "Lee los registros visibles de la empresa actual, con North Star, GOI Tree, OKR y experimentos.",
+              "Lee los registros visibles del proyecto seleccionado, con North Star, Growth Tree, experimentos y aprendizajes.",
             inputSchema: {
               type: "object",
               properties: {},
@@ -792,7 +791,7 @@ export default function Home() {
                 Object.keys(input).length
               )
                 throw new Error("Se esperaba un objeto vacío");
-              return { workspace, records: items };
+              return { workspace, project: currentProject, records: items };
             },
           },
           { signal: lifecycle.signal },
@@ -800,7 +799,7 @@ export default function Home() {
       ).catch(() => {});
     } catch {}
     return () => lifecycle.abort();
-  }, [workspace, items]);
+  }, [workspace, items, currentProject]);
   if (loading && !workspace)
     return (
       <div className="auth-shell">
@@ -820,7 +819,13 @@ export default function Home() {
       />
     );
   if (!user && !demo)
-    return <Auth onDemo={() => setDemo(true)} onMessage={tell} />;
+    return (
+      <Auth
+        onDemo={() => setDemo(true)}
+        onMessage={tell}
+        onAuthenticated={setUser}
+      />
+    );
   if (!workspace)
     return (
       <WorkspaceSetup
@@ -882,8 +887,6 @@ export default function Home() {
               onClick={() => {
                 setView(id);
                 setFilter("");
-                setStatus("Todos");
-                setChannel("Todos");
               }}
             >
               <I size={18} />
@@ -1015,38 +1018,32 @@ export default function Home() {
               <h1>{nav.find((n) => n.id === view)?.label}</h1>
               <p>
                 {view === "map"
-                  ? "Conecta cada experimento con el valor que aportas a tus usuarios."
+                  ? "De la North Star a los Goals, oportunidades, ideas y experimentos de este proyecto."
                   : view === "experiments"
-                    ? "De una hipótesis a una decisión documentada."
-                    : view === "priority"
-                      ? "Elige qué probar primero. ICE = impacto × confianza × facilidad."
-                      : view === "okr"
-                        ? "Compromisos por periodo, conectados a tus Goals."
-                        : view === "learning"
-                          ? "Lo que sabemos y lo que haremos a continuación."
-                          : view === "team"
-                            ? "Personas, responsabilidades y acceso a tu empresa."
-                            : view === "projects"
-                              ? "Coordina el trabajo que hace posibles los experimentos."
-                              : view === "activity"
-                                ? "Historial de acciones atribuidas a cada miembro."
-                                : "Las fuentes y las decisiones que dan forma al sistema."}
+                    ? "Documenta qué vas a probar y cómo sabrás si funciona."
+                    : view === "learning"
+                      ? "Guarda lo que ocurrió, lo que aprendiste y qué harás después."
+                      : view === "team"
+                        ? "Personas y acceso a tu empresa."
+                        : view === "projects"
+                          ? "Cada proyecto tiene su propio Growth Tree, experimentos y aprendizajes."
+                          : "Una guía sencilla para empezar a trabajar."}
               </p>
             </div>
-            {editable && (
+            {editable && createKind && (!projectScoped || currentProject) && (
               <div className="create-control">
                 <select
                   aria-label="Tipo de nuevo registro"
-                  value={newKind}
+                  value={createKind}
                   onChange={(e) => setNewKind(e.target.value as Kind)}
                 >
-                  {Object.entries(kinds).map(([k, v]) => (
+                  {availableKinds.map((k) => (
                     <option key={k} value={k}>
-                      {v}
+                      {kinds[k]}
                     </option>
                   ))}
                 </select>
-                <Action className="primary" onClick={() => create(newKind)}>
+                <Action className="primary" onClick={() => create(createKind)}>
                   <Plus size={17} /> Crear
                 </Action>
               </div>
@@ -1057,19 +1054,64 @@ export default function Home() {
               {error}
             </div>
           )}
-          {view === "map" && (
+          {!demo && !schemaReady && (
+            <div className="notice" role="status">
+              La actualización por proyectos está pendiente de activar. Tus
+              datos siguen guardados. El administrador debe completar el paso de
+              Supabase indicado en el repositorio antes de crear o editar
+              fichas.
+            </div>
+          )}
+          {projectScoped && (
+            <div className="project-filter panel">
+              <label>
+                Proyecto
+                <select
+                  aria-label="Seleccionar proyecto"
+                  value={currentProject?.id || ""}
+                  onChange={(e) => {
+                    setProjectId(e.target.value);
+                    setFilter("");
+                    setSelected(null);
+                    setDraft(null);
+                  }}
+                >
+                  {!projects.length && <option value="">Sin proyectos</option>}
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {currentProject && (
+                <span>
+                  {currentProject.fields.description ||
+                    "Growth Tree, experimentos y aprendizajes independientes."}
+                </span>
+              )}
+            </div>
+          )}
+          {projectScoped && !currentProject && (
+            <Empty
+              title="Empieza creando un proyecto"
+              text="Cada proyecto tendrá su propio Growth Tree, experimentos y aprendizajes."
+              action={editable ? () => create("project") : undefined}
+            />
+          )}
+          {view === "map" && currentProject && (
             <>
               <div className="stats">
                 <Stat
-                  label="En ejecución"
-                  value={active.length}
-                  hint="experimentos activos"
+                  label="Experimentos"
+                  value={experiments.length}
+                  hint="fichas de experimentación"
                   icon={<FlaskConical size={18} />}
                 />
                 <Stat
-                  label="Cerrados"
-                  value={finished.length}
-                  hint="con decisión documentada"
+                  label="Con fecha de inicio"
+                  value={experiments.filter((e) => e.fields.start).length}
+                  hint="experimentos con fecha definida"
                   icon={<Check size={18} />}
                 />
                 <Stat
@@ -1121,13 +1163,13 @@ export default function Home() {
               ) : (
                 <Empty
                   title="Define tu North Star"
-                  text="Empieza por una métrica que refleje el valor que reciben tus usuarios."
+                  text="Define la métrica que representa el valor que este proyecto aporta a sus usuarios."
                   action={editable ? () => create("north_star") : undefined}
                 />
               )}
               <div className="section-heading">
                 <div>
-                  <h2>Tu GOI Tree</h2>
+                  <h2>Growth Tree · {currentProject.title}</h2>
                   <p>Goals · oportunidades · ideas · experimentos</p>
                 </div>
                 {editable && nsm && (
@@ -1137,22 +1179,35 @@ export default function Home() {
                 )}
               </div>
               <div className="goi-grid">
-                {goals.map((g) => (
-                  <section className="goal-column" key={g.id}>
-                    {itemCard(g)}
-                    <div className="goal-content">
-                      {items.filter((i) => i.parent_id === g.id).map(branch)}
-                      {editable && (
-                        <button
-                          className="add-node"
-                          onClick={() => create("opportunity", g.id)}
-                        >
-                          <Plus size={14} /> Añadir oportunidad
-                        </button>
-                      )}
-                    </div>
-                  </section>
-                ))}
+                {goals
+                  .filter((g) => g.parent_id === nsm?.id)
+                  .map((g) => (
+                    <section className="goal-column" key={g.id}>
+                      {itemCard(g)}
+                      <details open className="goal-content">
+                        <summary>
+                          <ChevronRight size={14} /> Oportunidades y sub-Goals
+                        </summary>
+                        {items.filter((i) => i.parent_id === g.id).map(branch)}
+                        {editable && (
+                          <button
+                            className="add-node"
+                            onClick={() => create("goal", g.id)}
+                          >
+                            <Plus size={14} /> Añadir sub-Goal
+                          </button>
+                        )}
+                        {editable && (
+                          <button
+                            className="add-node"
+                            onClick={() => create("opportunity", g.id)}
+                          >
+                            <Plus size={14} /> Añadir oportunidad
+                          </button>
+                        )}
+                      </details>
+                    </section>
+                  ))}
               </div>
               {nsm && !goals.length && (
                 <Empty
@@ -1160,6 +1215,37 @@ export default function Home() {
                   text="Añade Goals medibles que puedan mover tu North Star."
                 />
               )}
+              <div className="section-heading">
+                <div>
+                  <h2>Orden de ejecución</h2>
+                  <p>
+                    Prioriza las ideas y experimentos de este proyecto con ICE:
+                    impacto × confianza × facilidad.
+                  </p>
+                </div>
+              </div>
+              <IceGuide />
+              <div className="priority-list">
+                {items
+                  .filter((i) => ["idea", "experiment"].includes(i.kind))
+                  .sort((a, b) => score(b.fields) - score(a.fields))
+                  .map((i, index) => (
+                    <button
+                      key={i.id}
+                      className="priority-row"
+                      onClick={() => setSelected(i)}
+                    >
+                      <span className="rank">{index + 1}</span>
+                      <div>
+                        <span className={"kind " + i.kind}>
+                          {kinds[i.kind]}
+                        </span>
+                        <h3>{i.title}</h3>
+                      </div>
+                      <strong>ICE {score(i.fields)}</strong>
+                    </button>
+                  ))}
+              </div>
               <div className="map-legend">
                 <span>
                   <i className="legend-dot goal" /> Goal
@@ -1177,47 +1263,28 @@ export default function Home() {
               </div>
             </>
           )}
-          {view === "experiments" && (
+          {view === "experiments" && currentProject && (
             <>
               <div className="filterbar">
                 <label className="search">
                   <Search size={17} />
                   <input
                     aria-label="Buscar experimentos"
-                    placeholder="Buscar por nombre, hipótesis o canal…"
+                    placeholder="Buscar por nombre, champion, hipótesis o etiquetas…"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                   />
                 </label>
-                <select
-                  aria-label="Filtrar estado"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {["Todos", ...states].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Filtrar canal"
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                >
-                  {["Todos", ...channels].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
               </div>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
                       <th>Experimento</th>
-                      <th>Canal</th>
-                      <th>Estado</th>
-                      <th>Responsable</th>
+                      <th>Champion</th>
                       <th>ICE</th>
-                      <th>Fin previsto</th>
+                      <th>Fecha de inicio</th>
+                      <th>Etiquetas</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1234,15 +1301,14 @@ export default function Home() {
                             </span>
                           </button>
                         </td>
-                        <td>{e.fields.channel}</td>
                         <td>
-                          <Badge state={e.fields.status} />
+                          {e.owner_id ? author(e.owner_id) : "Sin asignar"}
                         </td>
-                        <td>{author(e.owner_id)}</td>
                         <td>
                           <strong>{score(e.fields)}</strong>
                         </td>
-                        <td>{e.fields.end || "—"}</td>
+                        <td>{e.fields.start || "—"}</td>
+                        <td>{e.fields.tags || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1251,169 +1317,62 @@ export default function Home() {
               {!visibleExperiments.length && (
                 <Empty
                   title="Sin experimentos en esta vista"
-                  text="Cambia los filtros o crea tu primer experimento."
+                  text="Cambia la búsqueda o crea tu primer experimento."
                 />
               )}
             </>
-          )}
-          {view === "priority" && (
-            <>
-              <div className="notice">
-                ICE sigue la fórmula de la hoja compartida: impacto × confianza
-                × facilidad. Consulta las escalas antes de puntuar. La evidencia
-                y el contexto guían la decisión.
-              </div>
-              <IceGuide />
-              <div className="priority-list">
-                {items
-                  .filter(
-                    (i) =>
-                      i.kind === "idea" ||
-                      (i.kind === "experiment" &&
-                        ["Backlog", "Diseñado"].includes(
-                          String(i.fields.status),
-                        )),
-                  )
-                  .sort((a, b) => score(b.fields) - score(a.fields))
-                  .map((i, n) => (
-                    <button
-                      key={i.id}
-                      className="priority-row"
-                      onClick={() => setSelected(i)}
-                    >
-                      <span className="rank">
-                        {String(n + 1).padStart(2, "0")}
-                      </span>
-                      <div>
-                        <span className={"kind " + i.kind}>
-                          {kinds[i.kind]}
-                        </span>
-                        <h3>{i.title}</h3>
-                        <p>
-                          {ancestors(i, items)
-                            .slice(0, -1)
-                            .map((x) => x.title)
-                            .join(" / ")}
-                        </p>
-                      </div>
-                      <div className="ice-values">
-                        <span>
-                          Impacto<strong>{i.fields.impact || 0}</strong>
-                        </span>
-                        <span>
-                          Confianza<strong>{i.fields.confidence || 0}</strong>
-                        </span>
-                        <span>
-                          Facilidad<strong>{i.fields.ease || 0}</strong>
-                        </span>
-                        <span className="total">
-                          ICE<strong>{score(i.fields)}</strong>
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </>
-          )}
-          {view === "okr" && (
-            <div className="okr-list">
-              {items
-                .filter((i) => i.kind === "objective")
-                .map((o) => (
-                  <section key={o.id} className="panel">
-                    <div className="section-heading">
-                      <button
-                        className="plain-heading"
-                        onClick={() => setSelected(o)}
-                      >
-                        <span className="eyebrow">
-                          OBJETIVO · {o.fields.period || "Sin periodo"}
-                        </span>
-                        <h2>{o.title}</h2>
-                        <p>{o.fields.description}</p>
-                      </button>
-                      {editable && (
-                        <Action onClick={() => create("kr", o.id)}>
-                          <Plus size={16} /> Key Result
-                        </Action>
-                      )}
-                    </div>
-                    {items
-                      .filter((i) => i.parent_id === o.id)
-                      .map((kr) => (
-                        <button
-                          className="kr-row"
-                          key={kr.id}
-                          onClick={() => setSelected(kr)}
-                        >
-                          <div>
-                            <span className="kind kr">KEY RESULT</span>
-                            <h3>{kr.title}</h3>
-                            <p>
-                              {goals.find((g) => g.id === kr.related_id)
-                                ?.title || "Vincula este KR a un Goal"}
-                            </p>
-                          </div>
-                          <div className="kr-progress">
-                            <strong>
-                              {kr.fields.current ?? "—"} /{" "}
-                              {kr.fields.target ?? "—"} {kr.fields.unit}
-                            </strong>
-                            <Meter value={progress(kr.fields)} />
-                            <span>{progress(kr.fields)}%</span>
-                          </div>
-                        </button>
-                      ))}
-                  </section>
-                ))}
-              {!items.some((i) => i.kind === "objective") && (
-                <Empty
-                  title="Define un objetivo del periodo"
-                  text="Añade resultados clave medibles y vincúlalos a tus Goals."
-                  action={editable ? () => create("objective") : undefined}
-                />
-              )}
-            </div>
           )}
           {view === "projects" && (
             <div className="cards-grid">
-              {items
-                .filter((i) => i.kind === "project")
-                .map((p) => (
+              {projects.map((p) => (
+                <section className="project-card panel" key={p.id}>
                   <button
-                    className="project-card panel"
-                    key={p.id}
-                    onClick={() => setSelected(p)}
+                    className="plain-heading"
+                    onClick={() => {
+                      setProjectId(p.id);
+                      setView("map");
+                      setFilter("");
+                    }}
                   >
-                    <div className="row">
-                      <Layers size={20} />
-                      <Badge state={p.fields.status} />
-                    </div>
+                    <span className="eyebrow">PROYECTO</span>
                     <h2>{p.title}</h2>
                     <p>{p.fields.description}</p>
-                    <div className="project-foot">
-                      <span>
-                        {
-                          experiments.filter(
-                            (e) => e.fields.project_id === p.id,
-                          ).length
-                        }{" "}
-                        experimentos vinculados
-                      </span>
-                      <span>{author(p.owner_id)}</span>
-                    </div>
                   </button>
-                ))}
-              {!items.some((i) => i.kind === "project") && (
+                  <p className="small">
+                    {
+                      workspaceItems.filter(
+                        (e) => e.kind === "experiment" && e.project_id === p.id,
+                      ).length
+                    }{" "}
+                    experimentos · {author(p.owner_id)}
+                  </p>
+                  <div className="row">
+                    <Action
+                      onClick={() => {
+                        setProjectId(p.id);
+                        setView("map");
+                      }}
+                    >
+                      Abrir Growth Tree
+                    </Action>
+                    {editable && (
+                      <Action onClick={() => setSelected(p)}>
+                        Editar proyecto
+                      </Action>
+                    )}
+                  </div>
+                </section>
+              ))}
+              {!projects.length && (
                 <Empty
-                  title="Agrupa el trabajo en proyectos"
-                  text="Un proyecto puede coordinar varios experimentos y contribuir a un Goal."
+                  title="Crea tu primer proyecto"
+                  text="Organiza cada producto o iniciativa con su propio árbol y experimentos."
                   action={editable ? () => create("project") : undefined}
                 />
               )}
             </div>
           )}
-          {view === "learning" && (
+          {view === "learning" && currentProject && (
             <div className="learning-list">
               <label className="search">
                 <Search size={17} />
@@ -1424,50 +1383,62 @@ export default function Home() {
                   onChange={(e) => setFilter(e.target.value)}
                 />
               </label>
-              {finished
-                .filter((e) =>
-                  [e.title, e.fields.learning, e.fields.context, e.fields.tags]
-                    .join(" ")
-                    .toLowerCase()
-                    .includes(filter.toLowerCase()),
+              {items
+                .filter(
+                  (i) =>
+                    i.kind === "learning" &&
+                    [
+                      i.title,
+                      i.fields.learning,
+                      i.fields.result,
+                      i.fields.context,
+                      i.fields.tags,
+                    ]
+                      .join(" ")
+                      .toLowerCase()
+                      .includes(filter.toLowerCase()),
                 )
-                .map((e) => (
-                  <article className="learning-card panel" key={e.id}>
-                    <div className="row">
-                      <span className="kind experiment">
-                        {e.fields.channel}
-                      </span>
-                      <Badge state={e.fields.decision} />
-                    </div>
+                .map((item) => (
+                  <article className="learning-card panel" key={item.id}>
                     <button
                       className="plain-heading"
-                      onClick={() => setSelected(e)}
+                      onClick={() => setSelected(item)}
                     >
-                      <h2>{e.title}</h2>
+                      <span className="eyebrow">APRENDIZAJE</span>
+                      <h2>{item.title}</h2>
                     </button>
+                    {item.parent_id && (
+                      <p className="small">
+                        Experimento:{" "}
+                        {items.find((e) => e.id === item.parent_id)?.title}
+                      </p>
+                    )}
                     <div className="learning-grid">
                       <div>
                         <span className="eyebrow">RESULTADO</span>
-                        <p>{e.fields.result}</p>
+                        <p>{item.fields.result || "Pendiente de documentar"}</p>
                       </div>
                       <div>
                         <span className="eyebrow">APRENDIZAJE</span>
-                        <p>{e.fields.learning}</p>
+                        <p>{item.fields.learning}</p>
                       </div>
                       <div>
-                        <span className="eyebrow">DECISIÓN</span>
-                        <p>{e.fields.decision}</p>
-                        <span className="small">{author(e.owner_id)}</span>
-                        <p>{e.fields.next_steps}</p>
-                        <span className="small">{e.fields.tags}</span>
+                        <span className="eyebrow">SIGUIENTE PASO</span>
+                        <p>
+                          {item.fields.next_steps ||
+                            item.fields.decision ||
+                            "Por definir"}
+                        </p>
+                        <span className="small">{item.fields.tags}</span>
                       </div>
                     </div>
                   </article>
                 ))}
-              {!finished.length && (
+              {!items.some((i) => i.kind === "learning") && (
                 <Empty
-                  title="Cada experimento deja un aprendizaje"
-                  text="Al cerrar un experimento, documenta el resultado y la siguiente decisión."
+                  title="Documenta lo que has aprendido"
+                  text="Guarda el resultado, la evidencia, la conclusión y el siguiente paso en una ficha separada del experimento."
+                  action={editable ? () => create("learning") : undefined}
                 />
               )}
             </div>
@@ -1639,56 +1610,6 @@ export default function Home() {
               )}
             </>
           )}
-          {view === "activity" && (
-            <div className="panel activity-list">
-              {activity.map((a) => (
-                <div key={a.id} className="activity-row">
-                  <div className="activity-dot">
-                    <ActivityIcon size={16} />
-                  </div>
-                  <div>
-                    <strong>{a.actor_name || author(a.actor_id)}</strong>
-                    <p>
-                      {a.action === "insert"
-                        ? "Creó"
-                        : a.action === "update"
-                          ? "Actualizó"
-                          : a.action === "join"
-                            ? "Se unió a la empresa"
-                            : a.action === "role"
-                              ? "Cambió un rol"
-                              : "Acción"}{" "}
-                      ·{" "}
-                      <button
-                        onClick={() => {
-                          const i = items.find((x) => x.id === a.record_id);
-                          if (i) setSelected(i);
-                        }}
-                      >
-                        {a.title}
-                      </button>
-                    </p>
-                  </div>
-                  <time>
-                    {new Date(a.created_at).toLocaleString("es", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })}
-                  </time>
-                </div>
-              ))}
-              {!activity.length && (
-                <Empty
-                  title="Aún no hay acciones"
-                  text="Los cambios realizados en el espacio quedarán registrados aquí."
-                />
-              )}
-              <span className="small">
-                Se muestran las 100 acciones más recientes. El historial se
-                registra en la base de datos.
-              </span>
-            </div>
-          )}
           {view === "method" && <Method />}
           <footer className="footer">
             <span>Experimental OS · V1</span>
@@ -1733,11 +1654,11 @@ export default function Home() {
                 {selected.kind === "experiment" ? "Champion" : "Responsable"}:{" "}
                 {selected.owner_id ? author(selected.owner_id) : "Sin asignar"}
               </span>
-              {selected.fields.status && (
+              {selected.kind !== "experiment" && selected.fields.status && (
                 <Badge state={selected.fields.status} />
               )}
             </div>
-            {editable && (
+            {editable && (demo || schemaReady) && (
               <Action
                 className="primary"
                 onClick={() => {
@@ -1749,66 +1670,15 @@ export default function Home() {
                 Editar ficha
               </Action>
             )}
-            {selected.kind === "experiment" && (
-              <>
-                <p className="small">
-                  Análisis:{" "}
-                  {selected.fields.analyst_id
-                    ? author(String(selected.fields.analyst_id))
-                    : "Sin asignar"}
-                </p>
-                <VariantResults variants={getVariants(selected.fields)} />
-                <div className="alignment">
-                  <span className="eyebrow">ALINEACIÓN</span>
-                  <p>
-                    {
-                      ancestors(selected, items).find((i) => i.kind === "goal")
-                        ?.title
-                    }
-                  </p>
-                  <p>
-                    {String(selected.fields.kr_ids || "")
-                      .split(",")
-                      .filter(Boolean)
-                      .map((id) => items.find((i) => i.id === id)?.title)
-                      .join(" · ") || "Sin KR vinculado"}
-                  </p>
-                  <p>
-                    {
-                      items.find((i) => i.id === selected.fields.project_id)
-                        ?.title
-                    }
-                  </p>
-                </div>
-                {rates(selected.fields) && (
-                  <div className="results-card">
-                    <h3>Comparación descriptiva</h3>
-                    <div className="results-grid">
-                      <span>
-                        A
-                        <strong>{rates(selected.fields)!.a.toFixed(1)}%</strong>
-                      </span>
-                      <span>
-                        B
-                        <strong>{rates(selected.fields)!.b.toFixed(1)}%</strong>
-                      </span>
-                      <span>
-                        Variación relativa
-                        <strong>
-                          {rates(selected.fields)!.lift === null
-                            ? "—"
-                            : rates(selected.fields)!.lift!.toFixed(1) + "%"}
-                        </strong>
-                      </span>
-                    </div>
-                    <p>
-                      Estas tasas no prueban significancia ni causalidad.
-                      Adjunta el análisis y sus límites antes de tomar una
-                      decisión.
-                    </p>
-                  </div>
-                )}
-              </>
+            {selected.kind === "experiment" && editable && (
+              <Action
+                onClick={() => {
+                  create("learning", selected.id);
+                  setSelected(null);
+                }}
+              >
+                Documentar aprendizaje
+              </Action>
             )}
             <dl className="field-details">
               {schemas[selected.kind]
@@ -1859,7 +1729,7 @@ export default function Home() {
             <div className="dialog-head">
               <div>
                 <span className="eyebrow">
-                  {items.some((i) => i.id === draft.id) ? "EDITAR" : "CREAR"}{" "}
+                  {allItems.some((i) => i.id === draft.id) ? "EDITAR" : "CREAR"}{" "}
                   {kinds[draft.kind].toUpperCase()}
                 </span>
                 <h2>{draft.title || "Nueva ficha"}</h2>
@@ -1901,11 +1771,13 @@ export default function Home() {
                   ))}
                 </select>
               </label>
-              {parents[draft.kind] && (
+              {draft.kind !== "experiment" && parents[draft.kind] && (
                 <label>
-                  {kinds[parents[draft.kind]!]} al que pertenece
+                  {draft.kind === "goal"
+                    ? "North Star o Goal padre"
+                    : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
-                    required
+                    required={draft.kind !== "learning"}
                     value={draft.parent_id || ""}
                     onChange={(e) =>
                       setDraft({ ...draft, parent_id: e.target.value || null })
@@ -1913,7 +1785,13 @@ export default function Home() {
                   >
                     <option value="">Seleccionar…</option>
                     {items
-                      .filter((i) => i.kind === parents[draft.kind])
+                      .filter(
+                        (i) =>
+                          (i.kind === parents[draft.kind] ||
+                            (draft.kind === "goal" && i.kind === "goal")) &&
+                          i.id !== draft.id &&
+                          !ancestors(i, items).some((a) => a.id === draft.id),
+                      )
                       .map((i) => (
                         <option key={i.id} value={i.id}>
                           {i.title}
@@ -1922,7 +1800,7 @@ export default function Home() {
                   </select>
                 </label>
               )}
-              {["kr", "project"].includes(draft.kind) && (
+              {draft.kind === "kr" && (
                 <label>
                   Goal vinculado
                   <select
@@ -1932,11 +1810,13 @@ export default function Home() {
                     }
                   >
                     <option value="">Sin vincular</option>
-                    {goals.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.title}
-                      </option>
-                    ))}
+                    {goals
+                      .filter((g) => g.parent_id === nsm?.id)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
                   </select>
                 </label>
               )}
@@ -2015,16 +1895,7 @@ export default function Home() {
                           min={
                             ["impact", "confidence", "ease"].includes(f.key)
                               ? 1
-                              : [
-                                    "cost",
-                                    "sample_target",
-                                    "control_n",
-                                    "control_success",
-                                    "variant_n",
-                                    "variant_success",
-                                  ].includes(f.key)
-                                ? 0
-                                : undefined
+                              : undefined
                           }
                           max={
                             ["impact", "confidence", "ease"].includes(f.key)
@@ -2049,104 +1920,6 @@ export default function Home() {
                   )}
                 </label>
               ))}
-              {draft.kind === "experiment" && (
-                <>
-                  <VariantEditor
-                    variants={getVariants(draft.fields)}
-                    onChange={(variants) =>
-                      setDraft({
-                        ...draft,
-                        fields: {
-                          ...draft.fields,
-                          variants: JSON.stringify(variants),
-                        },
-                      })
-                    }
-                  />
-                  <label>
-                    Responsable del análisis
-                    <select
-                      value={String(draft.fields.analyst_id || "")}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          fields: {
-                            ...draft.fields,
-                            analyst_id: e.target.value,
-                          },
-                        })
-                      }
-                    >
-                      <option value="">Seleccionar…</option>
-                      {members.map((m) => (
-                        <option key={m.user_id} value={m.user_id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Proyecto
-                    <select
-                      value={String(draft.fields.project_id || "")}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          fields: {
-                            ...draft.fields,
-                            project_id: e.target.value,
-                          },
-                        })
-                      }
-                    >
-                      <option value="">Sin proyecto</option>
-                      {items
-                        .filter((i) => i.kind === "project")
-                        .map((i) => (
-                          <option key={i.id} value={i.id}>
-                            {i.title}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <fieldset className="full">
-                    <legend>Key Results a los que contribuye</legend>
-                    {items
-                      .filter((i) => i.kind === "kr")
-                      .map((kr) => (
-                        <label className="check-label" key={kr.id}>
-                          <input
-                            type="checkbox"
-                            checked={String(draft.fields.kr_ids || "")
-                              .split(",")
-                              .includes(kr.id)}
-                            onChange={(e) => {
-                              const ids = String(draft.fields.kr_ids || "")
-                                .split(",")
-                                .filter(Boolean);
-                              setDraft({
-                                ...draft,
-                                fields: {
-                                  ...draft.fields,
-                                  kr_ids: (e.target.checked
-                                    ? [...ids, kr.id]
-                                    : ids.filter((id) => id !== kr.id)
-                                  ).join(","),
-                                },
-                              });
-                            }}
-                          />
-                          {kr.title}
-                        </label>
-                      ))}
-                    {!items.some((i) => i.kind === "kr") && (
-                      <span className="small">
-                        Crea primero un objetivo y sus Key Results.
-                      </span>
-                    )}
-                  </fieldset>
-                </>
-              )}
               {error && (
                 <div role="alert" className="error full">
                   {error}
@@ -2225,9 +1998,11 @@ function Empty({
 function Auth({
   onDemo,
   onMessage,
+  onAuthenticated,
 }: {
   onDemo: () => void;
   onMessage: (s: string) => void;
+  onAuthenticated: (user: User) => void;
 }) {
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState<
@@ -2262,7 +2037,7 @@ function Auth({
         </p>
         <div className="auth-steps">
           <span>North Star</span>
-          <span>GOI Tree</span>
+          <span>Growth Tree</span>
           <span>Experimentos</span>
         </div>
       </div>
@@ -2282,39 +2057,49 @@ function Auth({
             e.preventDefault();
             setBusy(true);
             setError("");
-            let result;
-            if (mode === "signup")
-              result = await supabase!.auth.signUp({
-                email,
-                password,
-                options: {
-                  data: { name },
-                  emailRedirectTo: window.location.href,
-                },
-              });
-            else if (mode === "reset")
-              result = await supabase!.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + "/?recovery=1",
-              });
-            else if (mode === "new-password")
-              result = await supabase!.auth.updateUser({ password });
-            else
-              result = await supabase!.auth.signInWithPassword({
-                email,
-                password,
-              });
-            if (result.error) setError(result.error.message);
-            else if (mode === "signup")
-              setMessage(
-                "Cuenta creada. Si se requiere confirmación, revisa tu email.",
+            setMessage("");
+            try {
+              if (mode === "signup") {
+                const { data, error: signupError } =
+                  await supabase!.auth.signUp({
+                    email: email.trim(),
+                    password,
+                    options: { data: { name: name.trim() } },
+                  });
+                if (signupError) setError(signupError.message);
+                else if (data.session) onAuthenticated(data.session.user);
+                else
+                  setError(
+                    "No se ha podido iniciar sesión tras el registro. Contacta con el administrador para completar el acceso.",
+                  );
+                return;
+              }
+              let result;
+              if (mode === "reset")
+                result = await supabase!.auth.resetPasswordForEmail(email, {
+                  redirectTo: window.location.origin + "/?recovery=1",
+                });
+              else if (mode === "new-password")
+                result = await supabase!.auth.updateUser({ password });
+              else
+                result = await supabase!.auth.signInWithPassword({
+                  email,
+                  password,
+                });
+              if (result.error) setError(result.error.message);
+              else if (mode === "reset")
+                setMessage("Revisa tu email para recuperar el acceso.");
+              else if (mode === "new-password") {
+                onMessage("Contraseña actualizada");
+                setMode("login");
+              }
+            } catch {
+              setError(
+                "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.",
               );
-            else if (mode === "reset")
-              setMessage("Revisa tu email para recuperar el acceso.");
-            else if (mode === "new-password") {
-              onMessage("Contraseña actualizada");
-              setMode("login");
+            } finally {
+              setBusy(false);
             }
-            setBusy(false);
           }}
         >
           {mode === "signup" && (
@@ -2496,8 +2281,42 @@ function Method() {
   return (
     <div className="method-content">
       <section className="panel">
-        <span className="eyebrow">MARCO PRINCIPAL</span>
-        <h2>Un árbol que conecta estrategia y aprendizaje</h2>
+        <h2>Empieza por un proyecto</h2>
+        <p>
+          Crea un proyecto para cada producto o iniciativa. Después,
+          selecciónalo en Experimentos, Aprendizajes o Growth Tree. Cada
+          proyecto conserva sus propias fichas y su propio árbol.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Experimentos: probar una hipótesis</h2>
+        <p>
+          Un experimento comprueba si un cambio produce el efecto que esperamos.
+          Antes de probarlo, escribe qué cambiarás, a quién afecta, qué métrica
+          observarás y qué resultado considerarás un éxito.
+        </p>
+        <p>
+          Asigna un champion, documenta el reparto de tráfico, los riesgos y la
+          fecha de inicio. Usa impacto, confianza y facilidad para decidir qué
+          probar primero. La aplicación documenta el experimento; la prueba se
+          ejecuta en tu producto o herramienta habitual.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Aprendizajes: conservar lo que descubrimos</h2>
+        <p>
+          Después de la prueba, abre el experimento y pulsa «Documentar
+          aprendizaje». Escribe qué ocurrió, adjunta la evidencia, explica qué
+          aprendiste y decide qué harás después. Si el resultado no es
+          concluyente, deja constancia de ello.
+        </p>
+        <p>
+          Los aprendizajes se guardan por separado, dentro del mismo proyecto.
+          Usa etiquetas para encontrarlos y reutilizarlos.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Growth Tree: conectar las ideas con el crecimiento</h2>
         <div className="method-chain">
           {[
             "North Star",
@@ -2505,265 +2324,45 @@ function Method() {
             "Oportunidades",
             "Ideas",
             "Experimentos",
-          ].map((s, i) => (
-            <span key={s}>
-              <small>0{i + 1}</small>
-              {s}
+          ].map((label, index) => (
+            <span key={label}>
+              <small>0{index + 1}</small>
+              {label}
             </span>
           ))}
         </div>
         <p>
-          La North Star expresa valor entregado al usuario. Los Goals son
-          métricas de entrada; las oportunidades nacen de evidencia. Una idea
-          puede generar varias hipótesis y experimentos. Mantén como máximo
-          cinco oportunidades prioritarias.
+          La North Star mide el valor que recibe el usuario. Los Goals son
+          métricas de entrada que pueden moverla; puedes dividirlos en
+          sub-Goals. Las oportunidades describen problemas reales o mejoras que
+          todavía no se están aprovechando.
         </p>
         <p>
-          Los OKR se registran como compromisos por periodo: sus KR se vinculan
-          a Goals y los experimentos pueden contribuir a varios KR. Los
-          proyectos coordinan la ejecución.
+          Documenta las oportunidades y destaca un máximo de cinco por proyecto.
+          Añade ideas concretas, relacionadas con una métrica y una etapa del
+          Product Hackers Canvas. Priorízalas con ICE. Una idea puede dar lugar
+          a varios experimentos, cada uno con su propia hipótesis.
+        </p>
+        <p>
+          Usa nombres claros y descriptivos. Abre o pliega las ramas para
+          recorrer el árbol sin perder el contexto.
         </p>
         <a
           href="https://producthackers.com/es/blog/que-es-goi-tree/"
           target="_blank"
           rel="noreferrer"
         >
-          Fuente: GOI Tree · Product Hackers <ArrowUpRight size={14} />
+          Cómo funciona GOI Tree · Product Hackers <ArrowUpRight size={14} />
         </a>
         <a
           href="https://producthackers.com/es/blog/guia-north-star-metric/"
           target="_blank"
           rel="noreferrer"
         >
-          Fuente: guía North Star Metric · Product Hackers{" "}
-          <ArrowUpRight size={14} />
+          Guía North Star Metric · Product Hackers <ArrowUpRight size={14} />
         </a>
       </section>
-      <section className="panel">
-        <h2>El ciclo de un experimento</h2>
-        <div className="method-chain">
-          {["Backlog", "Diseñado", "En curso", "En análisis", "Finalizado"].map(
-            (s, i) => (
-              <span key={s}>
-                <small>0{i + 1}</small>
-                {s}
-              </span>
-            ),
-          )}
-        </div>
-        <p>
-          Antes de lanzar, acuerda hipótesis, métrica, criterio de éxito,
-          método, fechas y responsable. Al cerrar, registra evidencia,
-          conclusión, aprendizaje y decisión. Un resultado inconcluso también es
-          aprendizaje.
-        </p>
-        <p>
-          En esta V1, los resultados se registran manualmente. Puedes enlazar
-          informes de PostHog, Amplitude, campañas de Ads o email. El sistema
-          organiza los experimentos; no ejecuta el reparto A/B ni importa datos
-          automáticamente.
-        </p>
-      </section>
-      <section className="panel">
-        <h2>Alcance de la adaptación</h2>
-        <p>
-          El modelo GOI y la definición de North Star proceden de los dos
-          artículos accesibles. El vínculo con OKR y los estados y las reglas de
-          cierre son decisiones de implementación de esta V1. No representan una
-          reproducción verificada del libro completo.
-        </p>
-        <p>
-          Los documentos compartidos aportan el Experiment Brief y la ficha de
-          conocimiento: champion, diseño, métricas, riesgos, análisis, contexto,
-          aprendizaje, próximos pasos y etiquetas. La hoja aporta las fichas de
-          proyecto, el foco experimental, la fórmula ICE (I × C × E), sus
-          escalas y el registro por variantes A, B, C o más.
-        </p>
-        <ul>
-          <li>
-            <a
-              href="https://docs.google.com/document/d/15p9nczRCVR5-o0S0Dr1zaAOcJoLsz35B4tLvD71FY24/edit"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Plantilla de aprendizajes
-            </a>
-          </li>
-          <li>
-            <a
-              href="https://docs.google.com/document/d/1k6y4MrZMCLMdAy9ldtbpFoJeXS5YuMJJxsyQT6hJ76g/edit"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Experiment Brief
-            </a>
-          </li>
-          <li>
-            <a
-              href="https://docs.google.com/spreadsheets/d/1PEyxWM5RNL4rRzcIz8ehBPCAJGVwwGZgEjXpWpFf62o/edit?gid=1171375705"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Growth Plan Template
-            </a>
-          </li>
-        </ul>
-      </section>
     </div>
-  );
-}
-function VariantEditor({
-  variants,
-  onChange,
-}: {
-  variants: Variant[];
-  onChange: (v: Variant[]) => void;
-}) {
-  function update(index: number, k: keyof Variant, value: string | number) {
-    onChange(variants.map((v, i) => (i === index ? { ...v, [k]: value } : v)));
-  }
-  return (
-    <fieldset className="full variant-editor">
-      <legend>Variantes y resultados por variante</legend>
-      <p className="small">
-        Para pruebas aleatorizadas, el reparto debe sumar 100%. Las conversiones
-        describen métricas binarias; para otras métricas registra el resultado
-        textual.
-      </p>
-      {variants.map((v, i) => (
-        <section className="variant-block" key={i}>
-          <div className="row">
-            <strong>Variante {i + 1}</strong>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={"Eliminar variante " + v.name}
-              onClick={() => onChange(variants.filter((_, n) => n !== i))}
-            >
-              <X size={15} />
-            </button>
-          </div>
-          <div className="variant-fields">
-            <label>
-              Nombre
-              <input
-                value={v.name}
-                onChange={(e) => update(i, "name", e.target.value)}
-              />
-            </label>
-            <label>
-              Tráfico (%)
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="any"
-                value={v.traffic}
-                onChange={(e) => update(i, "traffic", Number(e.target.value))}
-              />
-            </label>
-            <label className="full">
-              Descripción
-              <textarea
-                value={v.description}
-                onChange={(e) => update(i, "description", e.target.value)}
-              />
-            </label>
-            <label>
-              Usuarios expuestos
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={v.exposed}
-                onChange={(e) => update(i, "exposed", Number(e.target.value))}
-              />
-            </label>
-            <label>
-              Conversiones
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={v.conversions}
-                onChange={(e) =>
-                  update(i, "conversions", Number(e.target.value))
-                }
-              />
-            </label>
-            <label>
-              Resultado
-              <input
-                value={v.result}
-                onChange={(e) => update(i, "result", e.target.value)}
-              />
-            </label>
-            <label>
-              Evaluación
-              <select
-                value={v.success}
-                onChange={(e) => update(i, "success", e.target.value)}
-              >
-                {["", "Cumple", "No cumple", "Inconcluso"].map((s) => (
-                  <option key={s} value={s}>
-                    {s || "Pendiente"}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </section>
-      ))}
-      <button
-        className="btn"
-        type="button"
-        onClick={() =>
-          onChange([
-            ...variants,
-            {
-              name: String.fromCharCode(65 + variants.length),
-              description: "",
-              traffic: 0,
-              exposed: 0,
-              conversions: 0,
-              result: "",
-              success: "",
-            },
-          ])
-        }
-      >
-        <Plus size={15} /> Añadir variante
-      </button>
-    </fieldset>
-  );
-}
-function VariantResults({ variants }: { variants: Variant[] }) {
-  if (!variants.length) return null;
-  return (
-    <section className="results-card">
-      <h3>Resultados por variante</h3>
-      {variants.map((v, i) => (
-        <div className="variant-result" key={i}>
-          <strong>{v.name}</strong>
-          <span>
-            {v.traffic}% de tráfico · {v.exposed} expuestos · {v.conversions}{" "}
-            conversiones
-          </span>
-          <span>
-            {v.exposed
-              ? ((100 * v.conversions) / v.exposed).toFixed(1) +
-                "% de conversión"
-              : "Sin datos de conversión"}
-          </span>
-          <p>{v.result}</p>
-          <Badge state={v.success || "Pendiente"} />
-        </div>
-      ))}
-      <p>
-        La comparación es descriptiva. El análisis estadístico y sus límites
-        deben documentarse antes de decidir.
-      </p>
-    </section>
   );
 }
 function IceGuide() {

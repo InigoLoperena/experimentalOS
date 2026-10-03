@@ -1,10 +1,11 @@
-import { variantError } from "./variants";
+import { cleanExperimentFields } from "./experiments";
 export type Kind =
   | "north_star"
   | "goal"
   | "opportunity"
   | "idea"
   | "experiment"
+  | "learning"
   | "objective"
   | "kr"
   | "project";
@@ -12,6 +13,7 @@ export type Fields = Record<string, string | number | boolean | undefined>;
 export type Item = {
   id: string;
   workspace_id: string;
+  project_id: string | null;
   kind: Kind;
   parent_id: string | null;
   related_id: string | null;
@@ -45,6 +47,7 @@ export const kinds: Record<Kind, string> = {
   opportunity: "Oportunidad",
   idea: "Idea",
   experiment: "Experimento",
+  learning: "Aprendizaje",
   objective: "Objetivo OKR",
   kr: "Key Result",
   project: "Proyecto",
@@ -55,28 +58,11 @@ export const parents: Record<Kind, Kind | null> = {
   opportunity: "goal",
   idea: "opportunity",
   experiment: "idea",
+  learning: "experiment",
   objective: null,
   kr: "objective",
   project: null,
 };
-export const states = [
-  "Backlog",
-  "Diseñado",
-  "En curso",
-  "En análisis",
-  "Finalizado",
-  "Archivado",
-];
-export const channels = [
-  "Producto / Web",
-  "App móvil",
-  "Meta Ads",
-  "Google Ads",
-  "Email",
-  "SEO",
-  "Ventas",
-  "Otro",
-];
 export function score(f: Fields) {
   return (
     Number(f.impact || 0) * Number(f.confidence || 0) * Number(f.ease || 0)
@@ -94,73 +80,30 @@ export function validate(
   item: Pick<Item, "kind" | "title" | "parent_id" | "fields">,
 ): string | null {
   if (!item.title.trim()) return "Escribe un nombre.";
-  if (parents[item.kind] && !item.parent_id)
+  if (
+    !["experiment", "learning"].includes(item.kind) &&
+    parents[item.kind] &&
+    !item.parent_id
+  )
     return "Selecciona el elemento padre.";
-  const f = item.fields;
-  if (item.kind === "experiment") {
-    const err = variantError(f);
-    if (err) return err;
-  }
+  const f =
+    item.kind === "experiment"
+      ? cleanExperimentFields(item.fields)
+      : item.fields;
   for (const k of ["impact", "confidence", "ease"])
     if (
       f[k] !== undefined &&
       (!Number.isInteger(Number(f[k])) || Number(f[k]) < 1 || Number(f[k]) > 10)
     )
       return "Las puntuaciones ICE deben ser enteros entre 1 y 10.";
-  if (f.start && f.end && String(f.end) < String(f.start))
+  if (
+    item.kind !== "experiment" &&
+    f.start &&
+    f.end &&
+    String(f.end) < String(f.start)
+  )
     return "La fecha final debe ser posterior al inicio.";
-  for (const k of [
-    "cost",
-    "sample_target",
-    "control_n",
-    "control_success",
-    "variant_n",
-    "variant_success",
-  ])
-    if (f[k] !== undefined && Number(f[k]) < 0)
-      return "Los costes y las muestras no pueden ser negativos.";
-  if (
-    item.kind === "experiment" &&
-    ["En curso", "En análisis", "Finalizado"].includes(String(f.status))
-  ) {
-    for (const k of [
-      "hypothesis",
-      "metric",
-      "success_criteria",
-      "method",
-      "start",
-      "end",
-    ])
-      if (!String(f[k] || "").trim())
-        return "Antes de lanzar, completa hipótesis, métrica, criterio de éxito, método y fechas.";
-    if (f.baseline === undefined || f.target === undefined)
-      return "Define el valor inicial y el objetivo antes de lanzar.";
-  }
-  if (
-    item.kind === "experiment" &&
-    f.status === "Finalizado" &&
-    (!f.conclusion || !f.learning || !f.decision || !f.result)
-  )
-    return "Para finalizar, documenta resultado, conclusión, aprendizaje y decisión.";
-  if (
-    f.control_success !== undefined &&
-    Number(f.control_success) > Number(f.control_n || 0)
-  )
-    return "Las conversiones A no pueden superar la muestra A.";
-  if (
-    f.variant_success !== undefined &&
-    Number(f.variant_success) > Number(f.variant_n || 0)
-  )
-    return "Las conversiones B no pueden superar la muestra B.";
   return null;
-}
-export function rates(f: Fields) {
-  const a = Number(f.control_n || 0),
-    b = Number(f.variant_n || 0);
-  if (!a || !b) return null;
-  const ra = Number(f.control_success || 0) / a,
-    rb = Number(f.variant_success || 0) / b;
-  return { a: ra * 100, b: rb * 100, lift: ra ? (rb / ra - 1) * 100 : null };
 }
 export function ancestors(item: Item, items: Item[]): Item[] {
   const list: Item[] = [];

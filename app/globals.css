@@ -221,6 +221,37 @@ nav button:hover {
   border-radius: 4px;
   font-size: 12px;
 }
+nav button {
+  text-align: left;
+}
+nav button svg {
+  flex-shrink: 0;
+}
+.project-filter {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.project-filter label {
+  display: grid;
+  gap: 8px;
+  min-width: 240px;
+}
+.project-filter > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 650px) {
+  .project-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .project-filter label {
+    min-width: 0;
+  }
+}
 .sidebar-bottom {
   margin-top: auto;
   padding-top: 24px;
