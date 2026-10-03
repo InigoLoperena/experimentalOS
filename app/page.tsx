@@ -168,26 +168,12 @@ const schemas: Record<Kind, Field[]> = {
   ],
   kr: [...numberFields, { key: "period", label: "Periodo" }],
   project: [
-    { key: "description", label: "Alcance del proyecto", type: "textarea" },
-    { key: "client", label: "Cliente / empresa" },
-    { key: "growth_manager", label: "Growth Manager" },
-    { key: "contact_name", label: "Persona de contacto" },
-    { key: "contact_email", label: "Email de contacto" },
-    { key: "contact_phone", label: "Teléfono de contacto" },
     { key: "site_url", label: "Web del proyecto" },
-    { key: "funnel_focus", label: "Foco del funnel" },
-    { key: "north_star", label: "North Star de referencia" },
+    { key: "north_star", label: "North Star Metric" },
     { key: "analytics_url", label: "Enlace a Analytics" },
-    { key: "tasks_url", label: "Enlace a tareas" },
-    { key: "meeting_notes_url", label: "Enlace a notas de reuniones" },
-    {
-      key: "status",
-      label: "Estado",
-      type: "select",
-      options: ["Planificado", "En curso", "Finalizado", "Archivado"],
-    },
-    { key: "start", label: "Inicio", type: "date" },
-    { key: "end", label: "Fin previsto", type: "date" },
+    { key: "tasks_url", label: "Otro enlace 1" },
+    { key: "meeting_notes_url", label: "Otro enlace 2" },
+    { key: "other_url", label: "Otro enlace 3" },
   ],
 };
 const nav: { id: View; label: string; icon: typeof Star }[] = [
@@ -1755,22 +1741,24 @@ export default function Home() {
                   }
                 />
               </label>
-              <label>
-                {draft.kind === "experiment" ? "Champion" : "Responsable"}
-                <select
-                  value={draft.owner_id || ""}
-                  onChange={(e) =>
-                    setDraft({ ...draft, owner_id: e.target.value || null })
-                  }
-                >
-                  <option value="">Sin asignar</option>
-                  {members.map((m) => (
-                    <option key={m.user_id} value={m.user_id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {draft.kind !== "project" && (
+                <label>
+                  {draft.kind === "experiment" ? "Champion" : "Responsable"}
+                  <select
+                    value={draft.owner_id || ""}
+                    onChange={(e) =>
+                      setDraft({ ...draft, owner_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">Sin asignar</option>
+                    {members.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {draft.kind !== "experiment" && parents[draft.kind] && (
                 <label>
                   {draft.kind === "goal"
@@ -2368,54 +2356,14 @@ function Method() {
 function IceGuide() {
   return (
     <details className="ice-guide">
-      <summary>Escalas ICE de la plantilla compartida</summary>
+      <summary>Escalas ICE (1–10)</summary>
       <div className="ice-guide-grid">
-        <section>
-          <h3>Impacto</h3>
-          <p>
-            Incremento esperado en la métrica de entrada al aplicar la idea al
-            100%.
-          </p>
-          <ol>
-            <li>Impacto marginal</li>
-            <li>+3%</li>
-            <li>+5%</li>
-            <li>+10%</li>
-            <li>+20%</li>
-            <li>+33%</li>
-            <li>+50%</li>
-            <li>+100%</li>
-            <li>+1000%</li>
-            <li>Impacto extraordinario</li>
-          </ol>
-        </section>
-        <section>
-          <h3>Confianza</h3>
-          <p>Asocia la puntuación a la evidencia disponible.</p>
-          <ol>
-            <li>Disruptivo, sin precedente</li>
-            <li>Disruptivo, sin precedente</li>
-            <li>Sin datos</li>
-            <li>Analítica y referencias externas</li>
-            <li>Analítica y mapa de calor</li>
-            <li>Analítica y grabaciones</li>
-            <li>Analítica y feedback</li>
-            <li>Analítica y un test exitoso</li>
-            <li>Analítica y 3–4 tests exitosos</li>
-            <li>Máxima convicción</li>
-          </ol>
-        </section>
-        <section>
-          <h3>Facilidad</h3>
-          <p>
-            Horas estimadas para probar la idea. Menos horas, más puntuación.
-          </p>
-          <ol>
-            {[560, 320, 120, 80, 40, 24, 16, 8, 4, 2].map((h) => (
-              <li key={h}>{h} horas</li>
-            ))}
-          </ol>
-        </section>
+        {["Impacto", "Confianza", "Facilidad"].map((name) => (
+          <section key={name}>
+            <h3>{name}</h3>
+            <p>Del 1 al 10.</p>
+          </section>
+        ))}
       </div>
     </details>
   );
