@@ -34,7 +34,7 @@ import { TeamAccess } from "./team-access";
 import { BackupDialog, type BackupFormat } from "./backup-dialog";
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
-import { openInternalSpace } from "@/lib/internal-space";
+import { getPublicPreview, openTeamSpace } from "@/lib/internal-space";
 import { attachmentBucket, supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
 import {
@@ -51,7 +51,7 @@ import {
   validate,
 } from "@/lib/model";
 type View = "experiments" | "projects" | "learning" | "team" | "map" | "method";
-type Workspace = { id: string };
+type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
   token: string;
@@ -261,6 +261,9 @@ export default function Home() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [publicMode, setPublicMode] = useState(false);
+  const [authRequested, setAuthRequested] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [profile, setProfile] = useState<PersonalProfile>({ name: "Miembro" });
   const [profileReady, setProfileReady] = useState(!supabase);
   const [showProfile, setShowProfile] = useState(false);
@@ -308,9 +311,11 @@ export default function Home() {
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const loadVersion = useRef(0);
-  const role = demo
-    ? "owner"
-    : members.find((m) => m.user_id === user?.id)?.role;
+  const role = publicMode
+    ? "viewer"
+    : demo
+      ? "owner"
+      : members.find((m) => m.user_id === user?.id)?.role;
   const editable = role === "owner" || role === "editor";
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -320,6 +325,10 @@ export default function Home() {
   const tell = (s: string) => {
     setToast(s);
     window.setTimeout(() => setToast(""), 5000);
+  };
+  const requestAuth = (mode: "login" | "signup" = "signup") => {
+    setAuthMode(mode);
+    setAuthRequested(true);
   };
   const author = (id: string | null) =>
     members.find((m) => m.user_id === id)?.name || "Miembro";
@@ -343,7 +352,8 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (demo) {
-      setWorkspace({ id: "demo" });
+      setPublicMode(false);
+      setWorkspace({ id: "demo", name: "Demostración" });
       setProfile({ name: demoMembers[0].name, avatar_url: null });
       setProfileReady(true);
       setDemoAttachments({});
@@ -354,20 +364,47 @@ export default function Home() {
       return;
     }
     if (!user) {
-      setWorkspace(null);
-      setItems([]);
-      setMembers([]);
-      setActivity([]);
-      setProfile({ name: "Miembro" });
-      setProfileReady(false);
-      setShowProfile(false);
-      return;
+      if (!supabase) return;
+      let alive = true;
+      setLoading(true);
+      void getPublicPreview(supabase).then((preview) => {
+        if (!alive) return;
+        if (preview?.workspace) {
+          setPublicMode(true);
+          setWorkspace(preview.workspace);
+          setItems((preview.records || []).map(normalizeExperiment));
+          setMembers(preview.members || []);
+          setActivity(preview.activity || []);
+          setInvitations([]);
+          setProfile({ name: "Vista pública", avatar_url: null });
+          setProfileReady(true);
+          setSchemaReady(true);
+          setError("");
+        } else {
+          setPublicMode(false);
+          setWorkspace(null);
+          setItems([]);
+          setMembers([]);
+          setActivity([]);
+          setProfile({ name: "Miembro" });
+          setProfileReady(false);
+        }
+      }).catch((err) => {
+        if (!alive) return;
+        setPublicMode(false);
+        setWorkspace(null);
+        setError(err instanceof Error ? err.message : "No se ha podido abrir la vista pública.");
+      }).finally(() => {
+        if (alive) setLoading(false);
+      });
+      return () => { alive = false; };
     }
+    setPublicMode(false);
     let alive = true;
     (async () => {
       setLoading(true);
       try {
-        const space = await openInternalSpace(supabase!);
+        const space = await openTeamSpace(supabase!);
         if (alive) { setWorkspace(space); setError(""); }
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "No se ha podido abrir el equipo.");
@@ -397,6 +434,23 @@ export default function Home() {
   }, [user?.id, demo]);
   async function load(w = workspace) {
     if (!w || demo) return;
+    if (publicMode) {
+      setLoading(true);
+      try {
+        const preview = await getPublicPreview(supabase!);
+        if (preview?.workspace) {
+          setWorkspace(preview.workspace);
+          setItems((preview.records || []).map(normalizeExperiment));
+          setMembers(preview.members || []);
+          setActivity(preview.activity || []);
+          setError("");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se ha podido actualizar la vista pública.");
+      }
+      setLoading(false);
+      return;
+    }
     const version = ++loadVersion.current;
     setLoading(true);
     const r = await Promise.all([
@@ -959,23 +1013,24 @@ export default function Home() {
         }}
       />
     );
-  if (!user && !demo)
+  if (!user && !demo && (!publicMode || authRequested))
     return (
       <Auth
-        onDemo={() => setDemo(true)}
+        initialMode={authMode}
+        onDemo={() => { setAuthRequested(false); setDemo(true); }}
         onMessage={tell}
-        onAuthenticated={setUser}
+        onAuthenticated={(nextUser) => { setAuthRequested(false); setUser(nextUser); }}
       />
     );
   if (!workspace)
     return (
       <>
       <div className="account-actions">
-        <button className="btn" onClick={() => setShowProfile(true)}>Mi perfil</button>
+        <button className="btn" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}>Mi perfil</button>
         <button className="btn" onClick={() => void supabase!.auth.signOut()}>Salir</button>
       </div>
       <TeamAccess error={error} onAccepted={async () => {
-        setWorkspace(await openInternalSpace(supabase!));
+        setWorkspace(await openTeamSpace(supabase!));
         setPendingInvite(""); setError("");
       }} />
       {profileEditor}
@@ -1028,7 +1083,7 @@ export default function Home() {
                     : "Lector"}
               </span>
             </div>
-            <button aria-label="Editar mi perfil" title="Editar mi perfil" onClick={() => setShowProfile(true)}><UserRound size={17} /></button>
+            <button aria-label="Editar mi perfil" title="Editar mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
             <button
               aria-label="Salir"
               onClick={async () => {
@@ -1049,15 +1104,17 @@ export default function Home() {
       <div className="main-shell">
         <header className="topbar">
           <div>
-            <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => setShowProfile(true)}><UserRound size={17} /></button>
+            <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
             <span>Equipo interno</span>
             <ChevronRight size={14} />
             <strong>{nav.find((n) => n.id === view)?.label}</strong>
           </div>
           <div>
-            <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>
+            {publicMode
+              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio</span></button>
+              : <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>}
             <span className="top-status">
-              {demo ? "Datos de ejemplo" : "Espacio compartido"}
+              {publicMode ? "Vista pública · solo lectura" : demo ? "Datos de ejemplo" : "Espacio privado"}
             </span>
             <button
               className="icon-button"
@@ -1083,8 +1140,7 @@ export default function Home() {
                   });
                   if (r.error) tell(r.error.message);
                   else {
-                    try { setWorkspace(await openInternalSpace(supabase!)); }
-                    catch (err) { tell(err instanceof Error ? err.message : "No se ha podido abrir el equipo."); return; }
+                    if (r.data) setWorkspace({ id: r.data as string });
                     setPendingInvite("");
                     window.history.replaceState(
                       {},
@@ -1096,6 +1152,14 @@ export default function Home() {
               >
                 Aceptar invitación
               </Action>
+            </div>
+          )}
+          {publicMode && (
+            <div className="demo-banner">
+              <span>
+                <strong>Vista pública.</strong> Estás viendo los proyectos y experimentos reales publicados por Imagine Builder en modo solo lectura.
+              </span>
+              <button onClick={() => requestAuth("signup")}>Crear mi propio espacio</button>
             </div>
           )}
           {demo && (
@@ -1705,8 +1769,8 @@ export default function Home() {
           {view === "method" && <Method />}
           <footer className="footer">
             <span>Experimental Operative System · Imagine Builder</span>
-            <button onClick={() => setShowBackup(true)}>
-              Exportar copia completa
+            <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
+              {publicMode ? "Crear mi propio espacio" : "Exportar copia completa"}
             </button>
           </footer>
         </main>
@@ -1992,10 +2056,12 @@ function Empty({
   );
 }
 function Auth({
+  initialMode = "login",
   onDemo,
   onMessage,
   onAuthenticated,
 }: {
+  initialMode?: "login" | "signup";
   onDemo: () => void;
   onMessage: (s: string) => void;
   onAuthenticated: (user: User) => void;
@@ -2003,7 +2069,7 @@ function Auth({
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState<
     "login" | "signup" | "reset" | "new-password"
-  >("login");
+  >(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");

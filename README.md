@@ -51,7 +51,7 @@ Las copias contienen información interna: guárdalas en un lugar seguro. Conser
 
 Consulta [ACTUALIZAR-SUPABASE.md](ACTUALIZAR-SUPABASE.md).
 
-1. Ejecuta únicamente `supabase/migrations/002_project_growth_tree.sql` en SQL Editor de tu proyecto Supabase. **No vuelvas a ejecutar `001_initial.sql`.**
+1. Ejecuta las migraciones pendientes en orden. Si tu instalación ya llega hasta la 005, aplica únicamente `supabase/migrations/006_public_preview_and_teams.sql`. **No vuelvas a ejecutar `001_initial.sql`.**
 2. Desactiva **Confirm email** en Authentication → Sign In / Providers → Email y guarda. Al registrarse, Supabase devuelve la sesión y la aplicación abre el acceso automáticamente.
 3. GitHub/Vercel despliegan el código; la migración de Supabase se ejecuta por separado.
 
@@ -64,7 +64,7 @@ Si el código se despliega antes de ejecutar la migración, la aplicación muest
 ## Instalar desde cero
 
 1. Crea un proyecto Supabase nuevo. No ejecutes este esquema sobre una base de otra aplicación.
-2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql`, `supabase/migrations/003_profiles_and_company.sql`, `supabase/migrations/004_record_attachments.sql` y `supabase/migrations/005_internal_team.sql`.
+2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql`, `supabase/migrations/003_profiles_and_company.sql`, `supabase/migrations/004_record_attachments.sql`, `supabase/migrations/005_internal_team.sql` y `supabase/migrations/006_public_preview_and_teams.sql`.
 3. Configura estas variables con Project URL y la clave pública anon/publishable:
 
 ```dotenv
@@ -80,6 +80,14 @@ Nunca uses `service_role`, una clave secreta o credenciales de PostgreSQL en var
 7. Crea tu cuenta: el único equipo interno se inicializa automáticamente y quedas como administrador. Crea tu primer proyecto e invita al resto de personas desde Equipo. Después configura su North Star y construye su GOI Tree.
 
 Los cambios de variables `NEXT_PUBLIC_*` requieren un nuevo despliegue.
+
+## Vista pública y espacios privados
+
+Sin iniciar sesión, el enlace principal muestra en modo solo lectura el equipo original publicado por Imagine Builder, incluidos sus proyectos, experimentos, aprendizajes, GOI Tree y equipo. Las acciones que requieren una cuenta llevan al registro.
+
+Al registrarse, cada persona entra en un espacio privado independiente y vacío: no hereda ni puede consultar los datos internos publicados. Puede crear sus propios proyectos, experimentos y aprendizajes, y el creador de cada equipo es administrador. Las invitaciones añaden miembros al equipo correspondiente respetando sus roles. Esta separación se aplica también en Supabase mediante RLS y RPCs controlados.
+
+La migración `006_public_preview_and_teams.sql` conserva el equipo y los datos existentes como vista pública, y habilita equipos privados nuevos sin duplicar ni mover esos registros.
 
 ## Perfiles y administración
 
