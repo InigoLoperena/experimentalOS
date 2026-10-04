@@ -503,6 +503,37 @@ nav button svg {
 .topbar strong {
   font-weight: 500;
 }
+.topbar > div:first-child {
+  min-width: 0;
+}
+.topbar strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.topbar > div:last-child {
+  flex-shrink: 0;
+}
+.topbar .export-trigger span {
+  color: inherit;
+}
+.backup-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+.backup-content {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.backup-content > label:not(.check-label) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.backup-progress {
+  color: var(--lime);
+}
 .top-status {
   font-size: 12px;
 }
@@ -1713,6 +1744,12 @@ legend {
   }
   .topbar strong {
     font-size: 12px;
+  }
+  .topbar .top-status {
+    display: none;
+  }
+  .topbar .export-trigger {
+    padding: 7px 10px;
   }
   .topbar > div:first-child > span {
     display: none;

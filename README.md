@@ -29,9 +29,21 @@ Para documentar lo descubierto, abre el experimento y pulsa **Documentar aprendi
 
 Las fichas de experimentos, aprendizajes, North Star, Goals, oportunidades e ideas admiten imágenes JPG, PNG, WebP y GIF, PDF, DOCX y enlaces http/https. Las imágenes muestran miniaturas; los PDF tienen vista previa y los DOCX se pueden abrir o descargar. Máximo 10 MB por archivo. Guarda una ficha nueva para añadir sus adjuntos; los adjuntos de una ficha existente se guardan inmediatamente y pueden retirarse con confirmación.
 
-Los archivos se guardan en un espacio privado de Supabase Storage, con enlaces temporales para visualizar y descargar. Los miembros del equipo pueden leerlos, y solo administradores y editores pueden añadirlos o retirarlos. Los adjuntos heredan el proyecto de la ficha, registran quién los añadió y no alteran los campos de los experimentos. La exportación JSON incluye sus metadatos y rutas; los archivos originales permanecen en Storage.
+Los archivos se guardan en un espacio privado de Supabase Storage, con enlaces temporales para visualizar y descargar. Los miembros del equipo pueden leerlos, y solo administradores y editores pueden añadirlos o retirarlos. Los adjuntos heredan el proyecto de la ficha, registran quién los añadió y no alteran los campos de los experimentos.
 
 Ejecuta `supabase/migrations/004_record_attachments.sql` siguiendo [ACTIVAR-ADJUNTOS.md](ACTIVAR-ADJUNTOS.md). La actualización crea el espacio y las políticas de acceso automáticamente. La aplicación reintenta limpiar archivos pendientes al recargar o iniciar sesión.
+
+## Copias de seguridad
+
+Pulsa **Exportar** en la barra superior o **Exportar copia completa** en el pie del menú. Elige **CSV** para Excel/Sheets, **PDF** para consultar o imprimir, o **JSON** para conservar los datos estructurados. Después pulsa **Descargar copia**.
+
+La copia incluye todos los proyectos, todas las fichas y sus campos, responsables, relaciones del GOI Tree, aprendizajes, perfiles del equipo, metadatos de adjuntos y el historial completo. No aplica el proyecto seleccionado ni los filtros de pantalla. Lee todas las páginas de datos de Supabase, también cuando hay más de 1.000 registros. Si falla una consulta o descarga, muestra un error y no genera una copia parcial.
+
+Activa **Incluir archivos adjuntos originales** para descargar un ZIP con el documento elegido, `datos-completos.json` y las imágenes, PDF y DOCX originales. Los enlaces externos se conservan como enlaces. Sin esta opción, el CSV/PDF/JSON conserva los metadatos de los archivos y sus rutas, pero no sus originales.
+
+El CSV usa UTF-8 y punto y coma; sus columnas `campo_…` permiten consultar los campos, y `datos_json` conserva cada registro completo con sus valores originales. El PDF agrupa las fichas por proyecto e incluye los identificadores y las relaciones del árbol. Los símbolos no disponibles en la fuente del PDF aparecen como códigos Unicode; CSV y JSON conservan el texto original.
+
+Las copias contienen información interna: guárdalas en un lugar seguro. Conservan los datos exportados, pero no contraseñas, cuentas de Supabase Auth ni una restauración automática. Los lectores también pueden exportar los datos que tienen permiso para consultar. Esta función no requiere una nueva migración SQL.
 
 ## Actualizar una instalación existente
 

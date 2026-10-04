@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Download,
   FlaskConical,
   GitBranch,
   Layers,
@@ -30,8 +31,11 @@ import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings"
 import { RecordAttachments } from "./record-attachments";
 import { BrandIdentity } from "./brand-identity";
 import { TeamAccess } from "./team-access";
+import { BackupDialog, type BackupFormat } from "./backup-dialog";
+import type { Backup } from "@/lib/backup";
+import { fetchBackup } from "@/lib/backup-service";
 import { openInternalSpace } from "@/lib/internal-space";
-import { supportsAttachments, type Attachment } from "@/lib/attachments";
+import { attachmentBucket, supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
 import {
   ancestors,
@@ -260,6 +264,7 @@ export default function Home() {
   const [profile, setProfile] = useState<PersonalProfile>({ name: "Miembro" });
   const [profileReady, setProfileReady] = useState(!supabase);
   const [showProfile, setShowProfile] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
   const [demo, setDemo] = useState(!supabase);
   const [loading, setLoading] = useState(!!supabase);
   const [toast, setToast] = useState("");
@@ -652,38 +657,29 @@ export default function Home() {
     }
     setSaving(false);
   }
-  async function exportData() {
-    const exportRecords = projectScoped ? items : workspaceItems;
-    let exportedAttachments: Attachment[] = [];
-    if (demo) exportedAttachments = exportRecords.flatMap(record => demoAttachments[record.id] || []).map(({ preview_url, ...attachment }) => attachment);
-    else if (exportRecords.length) {
-      const attached = await supabase!.from("record_attachments").select("*").eq("workspace_id", workspace!.id).in("record_id", exportRecords.map(record => record.id));
-      if (attached.error && !["42P01", "PGRST205"].includes(attached.error.code)) { tell("No se han podido exportar los adjuntos: " + attached.error.message); return; }
-      exportedAttachments = attached.data || [];
-    }
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            schema_version: 3,
-            exported_at: new Date().toISOString(),
-            workspace,
-            project: projectScoped ? currentProject : null,
-            records: exportRecords,
-            attachments: exportedAttachments,
-          },
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "experimental-os-export.json";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function exportData(format: BackupFormat, originals: boolean, progress: (message: string) => void) {
+    if (!workspace) throw new Error("Abre el equipo antes de exportar.");
+    const snapshot: Backup = demo ? {
+      schema_version: 4, exported_at: new Date().toISOString(), workspace_id: workspace.id,
+      records: structuredClone(workspaceItems), members: structuredClone(members), audit: structuredClone(activity) as unknown as Record<string, unknown>[],
+      attachments: workspaceItems.flatMap(record => demoAttachments[record.id] || []).map(({ preview_url, ...attachment }) => attachment),
+      notes: ["Demostración: datos ficticios de esta sesión."],
+    } : await fetchBackup(supabase!, workspace.id);
+    const { downloadBackup } = await import("@/lib/backup-download");
+    await downloadBackup(snapshot, format, originals, async attachment => {
+      if (demo) {
+        const original = Object.values(demoAttachments).flat().find(a => a.id === attachment.id);
+        if (!original?.preview_url) throw new Error("No se conserva el archivo original «" + attachment.name + "» en esta sesión.");
+        const response = await fetch(original.preview_url);
+        if (!response.ok) throw new Error("No se ha podido descargar «" + attachment.name + "».");
+        return new Uint8Array(await response.arrayBuffer());
+      }
+      if (!attachment.storage_path) throw new Error("Falta la ruta del archivo «" + attachment.name + "».");
+      const downloaded = await supabase!.storage.from(attachmentBucket).download(attachment.storage_path);
+      if (downloaded.error || !downloaded.data) throw new Error("No se ha podido descargar «" + attachment.name + "». " + (downloaded.error?.message || ""));
+      return new Uint8Array(await downloaded.data.arrayBuffer());
+    }, progress);
+    tell("Copia completa descargada");
   }
   const experiments = items.filter((i) => i.kind === "experiment");
   const nsm = items.find((i) => i.kind === "north_star");
@@ -955,6 +951,7 @@ export default function Home() {
             <strong>{nav.find((n) => n.id === view)?.label}</strong>
           </div>
           <div>
+            <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>
             <span className="top-status">
               {demo ? "Datos de ejemplo" : "Espacio compartido"}
             </span>
@@ -1604,13 +1601,14 @@ export default function Home() {
           {view === "method" && <Method />}
           <footer className="footer">
             <span>Experimental Operative System · Imagine Builder</span>
-            <button onClick={() => void exportData()}>
-              Exportar registros JSON
+            <button onClick={() => setShowBackup(true)}>
+              Exportar copia completa
             </button>
           </footer>
         </main>
       </div>
       {profileEditor}
+      {showBackup && <BackupDialog onClose={() => setShowBackup(false)} onExport={exportData} />}
       <dialog
         ref={detail}
         className="detail-dialog"
