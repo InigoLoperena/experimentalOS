@@ -9,6 +9,11 @@ export const experimentFields: {
   { key: "hypothesis", label: "Hipótesis", type: "textarea" },
   { key: "metric", label: "Métrica principal" },
   { key: "success_criteria", label: "Criterio de éxito", type: "textarea" },
+  { key: "start", label: "Fecha de inicio", type: "date" },
+  { key: "tags", label: "Etiquetas (separadas por comas)" },
+  { key: "impact", label: "Impacto (1–10)", type: "number" },
+  { key: "confidence", label: "Confianza (1–10)", type: "number" },
+  { key: "ease", label: "Facilidad (1–10)", type: "number" },
   {
     key: "secondary_metrics",
     label: "Métricas secundarias que pueden verse afectadas",
@@ -17,12 +22,14 @@ export const experimentFields: {
   { key: "audience", label: "Audiencia", type: "textarea" },
   { key: "traffic_plan", label: "Asignación de tráfico", type: "textarea" },
   { key: "risks", label: "Riesgos", type: "textarea" },
-  { key: "start", label: "Fecha de inicio", type: "date" },
-  { key: "impact", label: "Impacto (1–10)", type: "number" },
-  { key: "confidence", label: "Confianza (1–10)", type: "number" },
-  { key: "ease", label: "Facilidad (1–10)", type: "number" },
-  { key: "tags", label: "Etiquetas (separadas por comas)" },
 ];
+const iceKeys = new Set(["impact", "confidence", "ease"]);
+const additionalKeys = new Set(["secondary_metrics", "audience", "traffic_plan", "risks"]);
+export const experimentSections = {
+  primary: experimentFields.filter(f => !iceKeys.has(f.key) && !additionalKeys.has(f.key)),
+  ice: experimentFields.filter(f => iceKeys.has(f.key)),
+  additional: experimentFields.filter(f => additionalKeys.has(f.key)),
+};
 
 // El nombre y el responsable se guardan en title y owner_id, respectivamente.
 export function cleanExperimentFields(fields: Fields): Fields {

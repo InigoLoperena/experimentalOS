@@ -12,6 +12,19 @@ export type Attachment = {
 export function supportsAttachments(kind: Kind) {
   return ["experiment", "learning", "north_star", "goal", "opportunity", "idea"].includes(kind);
 }
+export function linkSlots(attachments: Attachment[]) {
+  const slots: (Attachment | undefined)[] = Array(3).fill(undefined);
+  const remaining: Attachment[] = [];
+  for (const link of attachments.filter(a => a.kind === "link")) {
+    const match = /^Link ([123])$/.exec(link.name);
+    const index = match ? Number(match[1]) - 1 : -1;
+    if (index >= 0 && !slots[index]) slots[index] = link;
+    else remaining.push(link);
+  }
+  // Once fixed slots exist, keep empty slots empty and legacy links visible separately.
+  if (!slots.some(Boolean)) for (let index = 0; index < 3; index++) slots[index] = remaining.shift();
+  return { slots, extra: remaining };
+}
 export function attachmentFileType(file: Pick<File, "name" | "size" | "type">) {
   if (!file.size || file.size > attachmentLimit) throw new Error("Cada archivo debe pesar entre 1 byte y 10 MB.");
   if (!file.name.trim() || file.name.length > 250) throw new Error("El nombre del archivo es demasiado largo.");

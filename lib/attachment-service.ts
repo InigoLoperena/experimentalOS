@@ -26,9 +26,9 @@ export async function addFileAttachment(recordId: string, workspaceId: string, f
   }
   return inserted.data as Attachment;
 }
-export async function addLinkAttachment(recordId: string, workspaceId: string, label: string, value: string) {
+export async function addLinkAttachment(recordId: string, workspaceId: string, label: string, value: string, client = supabase!) {
   const url = attachmentLink(value);
-  const r = await supabase!.from("record_attachments").insert({ record_id: recordId, workspace_id: workspaceId,
+  const r = await client.from("record_attachments").insert({ record_id: recordId, workspace_id: workspaceId,
     name: label.trim() || new URL(url).hostname, kind: "link", url }).select().single();
   if (r.error) throw failure(r.error);
   return r.data as Attachment;
@@ -42,6 +42,21 @@ export async function removeAttachment(attachment: Attachment) {
   if (r.error) throw failure(r.error);
   if (!r.data?.length) throw new Error("No tienes permiso para retirar este adjunto. Actualiza la ficha.");
   await cleanupAttachments();
+}
+// Insert the replacement before retiring the original; failed writes keep the old link.
+// This uses the existing insert/delete policies without adding UPDATE privileges.
+export async function saveLinkSlot(record: Pick<import("./model").Item, "id" | "workspace_id">, slot: number, value: string, previous?: Attachment, client = supabase!) {
+  const url = value.trim() ? attachmentLink(value) : "";
+  if ((previous?.url === url && previous.name === `Link ${slot + 1}`) || (!previous && !url)) return previous;
+  const next = url ? await addLinkAttachment(record.id, record.workspace_id, `Link ${slot + 1}`, url, client) : undefined;
+  if (previous) {
+    const removed = await client.from("record_attachments").delete().eq("id", previous.id).eq("record_id", record.id).eq("kind", "link").select("id");
+    if (removed.error || !removed.data?.length) {
+      if (next) await client.from("record_attachments").delete().eq("id", next.id).eq("record_id", record.id);
+      throw new Error(removed.error?.message || "El enlace ha cambiado o no tienes permiso para editarlo. Actualiza la ficha.");
+    }
+  }
+  return next;
 }
 export async function signedAttachmentUrl(path: string) {
   const r = await supabase!.storage.from(attachmentBucket).createSignedUrl(path, 300);

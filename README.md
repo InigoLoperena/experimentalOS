@@ -17,7 +17,7 @@ El árbol es desplegable. Los Goals son métricas de entrada que pueden influir 
 
 ## Ficha de experimento
 
-Incluye nombre, responsable, contexto, hipótesis, métrica principal, criterio de éxito, métricas secundarias que pueden verse afectadas, audiencia, asignación de tráfico, riesgos, fecha de inicio, impacto, confianza, facilidad y etiquetas. Las pruebas y materiales se añaden aparte en **Archivos y enlaces**.
+Incluye nombre, responsable, contexto, hipótesis, métrica principal, criterio de éxito, fecha de inicio y etiquetas; después, **ICE** (impacto, confianza y facilidad) y **Enlaces** con Link 1, Link 2 y Link 3. Al final aparecen métricas secundarias que pueden verse afectadas, audiencia, asignación de tráfico y riesgos, junto a **Archivos**. El formulario y la ficha de consulta siguen el mismo orden.
 
 El proyecto se toma del selector de la vista; no es otro campo del formulario. Si el experimento se crea desde una idea del árbol, su vínculo se conserva automáticamente. También se pueden crear experimentos independientes desde su lista.
 
@@ -25,9 +25,11 @@ No incluye estados, canal, variantes, muestras, conversiones, resultados, analis
 
 Para documentar lo descubierto, abre el experimento y pulsa **Documentar aprendizaje**. El aprendizaje se guarda en una ficha separada dentro del mismo proyecto; también puede crearse directamente en Aprendizajes.
 
-## Archivos y enlaces
+## Archivos y Enlaces
 
-Las fichas de experimentos, aprendizajes, North Star, Goals, oportunidades e ideas admiten imágenes JPG, PNG, WebP y GIF, PDF, DOCX y enlaces http/https. Las imágenes muestran miniaturas; los PDF tienen vista previa y los DOCX se pueden abrir o descargar. Máximo 10 MB por archivo. Guarda una ficha nueva para añadir sus adjuntos; los adjuntos de una ficha existente se guardan inmediatamente y pueden retirarse con confirmación.
+Las fichas de experimentos, aprendizajes, North Star, Goals, oportunidades e ideas tienen dos secciones separadas. **Archivos** admite imágenes JPG, PNG, WebP y GIF, PDF y DOCX. Las imágenes muestran miniaturas; los PDF tienen vista previa y los DOCX se pueden abrir o descargar. Máximo 10 MB por archivo. Guarda una ficha nueva para añadir sus archivos y enlaces; se abre automáticamente tras guardarla. Los archivos se guardan inmediatamente y pueden retirarse con confirmación.
+
+**Enlaces** tiene tres apartados: Link 1, Link 2 y Link 3. Introduce URLs http/https y pulsa **Guardar enlaces**. Puedes modificarlos o vaciar un apartado para retirar el enlace. En los experimentos, la sección aparece inmediatamente después de ICE. Los enlaces anteriores se conservan: se muestran en los tres apartados y, si hay más, en «Otros enlaces existentes». Los archivos y enlaces siguen incluidos en las copias de seguridad y mantienen sus permisos de acceso.
 
 Los archivos se guardan en un espacio privado de Supabase Storage, con enlaces temporales para visualizar y descargar. Los miembros del equipo pueden leerlos, y solo administradores y editores pueden añadirlos o retirarlos. Los adjuntos heredan el proyecto de la ficha, registran quién los añadió y no alteran los campos de los experimentos.
 

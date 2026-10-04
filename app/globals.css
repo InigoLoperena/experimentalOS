@@ -391,6 +391,19 @@ nav button svg {
   gap: 8px;
   margin-bottom: 14px;
 }
+.experiment-ice {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.experiment-ice-title {
+  margin: 10px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.record-links a {
+  overflow-wrap: anywhere;
+}
 .attachment-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));

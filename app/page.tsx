@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   ArrowUpRight,
@@ -25,7 +25,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { experimentFields, normalizeExperiment } from "@/lib/experiments";
+import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -836,6 +836,110 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
+  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].map((f) => (
+                <Fragment key={f.key}>
+                {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
+                <label
+                  key={f.key}
+                  className={
+                    f.type === "textarea"
+                      ? "full"
+                      : f.type === "checkbox"
+                        ? "check-label full"
+                        : ""
+                  }
+                >
+                  {f.type === "checkbox" ? (
+                    <>
+                      <input
+                        type="checkbox"
+                        checked={!!draft.fields[f.key]}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            fields: {
+                              ...draft.fields,
+                              [f.key]: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      {f.label}
+                    </>
+                  ) : (
+                    <>
+                      {f.label}
+                      {f.type === "textarea" ? (
+                        <textarea
+                          required={f.required}
+                          rows={3}
+                          value={String(draft.fields[f.key] ?? "")}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              fields: {
+                                ...draft.fields,
+                                [f.key]: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      ) : f.type === "select" ? (
+                        <select
+                          value={String(
+                            draft.fields[f.key] ?? f.options?.[0] ?? "",
+                          )}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              fields: {
+                                ...draft.fields,
+                                [f.key]: e.target.value,
+                              },
+                            })
+                          }
+                        >
+                          {f.options?.map((s) => (
+                            <option key={s} value={s}>
+                              {s || "Pendiente"}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.type || "text"}
+                          required={f.required}
+                          step={f.type === "number" ? "any" : undefined}
+                          min={
+                            ["impact", "confidence", "ease"].includes(f.key)
+                              ? 1
+                              : undefined
+                          }
+                          max={
+                            ["impact", "confidence", "ease"].includes(f.key)
+                              ? 10
+                              : undefined
+                          }
+                          value={String(draft.fields[f.key] ?? "")}
+                          onChange={(e) => {
+                            const fields = { ...draft.fields };
+                            if (f.type === "number" && e.target.value === "")
+                              delete fields[f.key];
+                            else
+                              fields[f.key] =
+                                f.type === "number"
+                                  ? Number(e.target.value)
+                                  : e.target.value;
+                            setDraft({ ...draft, fields });
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                </label>
+                {draft.kind === "experiment" && f.key === "ease" && <div className="full">{links}</div>}
+                </Fragment>
+              ));
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
   if (loading && !workspace)
     return (
@@ -1673,29 +1777,17 @@ export default function Home() {
                 Documentar aprendizaje
               </Action>
             )}
-            <dl className="field-details">
-              {schemas[selected.kind]
-                .filter(
-                  (f) =>
-                    selected.fields[f.key] !== undefined &&
-                    selected.fields[f.key] !== "",
-                )
-                .map((f) => (
-                  <div key={f.key}>
-                    <dt>{f.label}</dt>
-                    <dd>
-                      {typeof selected.fields[f.key] === "boolean"
-                        ? selected.fields[f.key]
-                          ? "Sí"
-                          : "No"
-                        : String(selected.fields[f.key])}
-                    </dd>
-                  </div>
-                ))}
-            </dl>
-            {supportsAttachments(selected.kind) && <RecordAttachments key={selected.id}
+            {supportsAttachments(selected.kind) ? <RecordAttachments key={selected.id}
               record={selected} editable={editable} demo={demo} values={demoAttachments[selected.id] || []}
-              onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy} />}
+              onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
+              {({ links, files }) => selected.kind === "experiment" ? <>
+                <FieldDetails record={selected} fields={experimentSections.primary} />
+                <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
+                {links}
+                <FieldDetails record={selected} fields={experimentSections.additional} />
+                {files}
+              </> : <><FieldDetails record={selected} fields={schemas[selected.kind]} />{links}{files}</>}
+            </RecordAttachments> : <FieldDetails record={selected} fields={schemas[selected.kind]} />}
             <div className="detail-audit">
               Creado por{" "}
               {selected.created_by_name || author(selected.created_by)} ·{" "}
@@ -1818,112 +1910,12 @@ export default function Home() {
                   </select>
                 </label>
               )}
-              {schemas[draft.kind].map((f) => (
-                <label
-                  key={f.key}
-                  className={
-                    f.type === "textarea"
-                      ? "full"
-                      : f.type === "checkbox"
-                        ? "check-label full"
-                        : ""
-                  }
-                >
-                  {f.type === "checkbox" ? (
-                    <>
-                      <input
-                        type="checkbox"
-                        checked={!!draft.fields[f.key]}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            fields: {
-                              ...draft.fields,
-                              [f.key]: e.target.checked,
-                            },
-                          })
-                        }
-                      />
-                      {f.label}
-                    </>
-                  ) : (
-                    <>
-                      {f.label}
-                      {f.type === "textarea" ? (
-                        <textarea
-                          required={f.required}
-                          rows={3}
-                          value={String(draft.fields[f.key] ?? "")}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              fields: {
-                                ...draft.fields,
-                                [f.key]: e.target.value,
-                              },
-                            })
-                          }
-                        />
-                      ) : f.type === "select" ? (
-                        <select
-                          value={String(
-                            draft.fields[f.key] ?? f.options?.[0] ?? "",
-                          )}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              fields: {
-                                ...draft.fields,
-                                [f.key]: e.target.value,
-                              },
-                            })
-                          }
-                        >
-                          {f.options?.map((s) => (
-                            <option key={s} value={s}>
-                              {s || "Pendiente"}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={f.type || "text"}
-                          required={f.required}
-                          step={f.type === "number" ? "any" : undefined}
-                          min={
-                            ["impact", "confidence", "ease"].includes(f.key)
-                              ? 1
-                              : undefined
-                          }
-                          max={
-                            ["impact", "confidence", "ease"].includes(f.key)
-                              ? 10
-                              : undefined
-                          }
-                          value={String(draft.fields[f.key] ?? "")}
-                          onChange={(e) => {
-                            const fields = { ...draft.fields };
-                            if (f.type === "number" && e.target.value === "")
-                              delete fields[f.key];
-                            else
-                              fields[f.key] =
-                                f.type === "number"
-                                  ? Number(e.target.value)
-                                  : e.target.value;
-                            setDraft({ ...draft, fields });
-                          }}
-                        />
-                      )}
-                    </>
-                  )}
-                </label>
-              ))}
-              {supportsAttachments(draft.kind) && <div className="full">
-                {allItems.some(item => item.id === draft.id) ? <RecordAttachments key={draft.id}
-                  record={draft} editable={editable && !saving} demo={demo} values={demoAttachments[draft.id] || []}
-                  onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy} />
-                  : <p className="small">Guarda la ficha para adjuntar imágenes, PDF, DOCX o enlaces. Se abrirá la ficha para añadirlos.</p>}
-              </div>}
+              {supportsAttachments(draft.kind) ? <RecordAttachments key={draft.id}
+                record={draft} editable={editable && !saving} demo={demo} values={demoAttachments[draft.id] || []}
+                persisted={allItems.some(item => item.id === draft.id)}
+                onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy}>
+                {({ links, files }) => <>{draftFields(links)}{draft.kind !== "experiment" && <div className="full">{links}</div>}<div className="full">{files}</div></>}
+              </RecordAttachments> : draftFields()}
               {error && (
                 <div role="alert" className="error full">
                   {error}
@@ -2327,4 +2319,10 @@ function PasswordRecovery({ onDone }: { onDone: () => void }) {
       </div>
     </div>
   );
+}
+
+function FieldDetails({ record, fields }: { record: Item; fields: Field[] }) {
+  return <dl className="field-details">{fields.filter(f => record.fields[f.key] !== undefined && record.fields[f.key] !== "").map(f => <div key={f.key}>
+    <dt>{f.label}</dt><dd>{typeof record.fields[f.key] === "boolean" ? record.fields[f.key] ? "Sí" : "No" : String(record.fields[f.key])}</dd>
+  </div>)}</dl>;
 }
