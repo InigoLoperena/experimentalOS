@@ -343,8 +343,11 @@ export default function Home() {
     }
     let active = true;
     setInviteChecked(false);
-    void supabase.rpc("get_invitation_preview", { invite_token: pendingInvite })
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_invitation_preview", {
+          invite_token: pendingInvite,
+        });
         if (!active) return;
         if (error) {
           setInvitationPreview(null);
@@ -353,10 +356,10 @@ export default function Home() {
           setInvitationPreview((data || null) as InvitationPreview | null);
           setError("");
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setInviteChecked(true);
-      });
+      }
+    })();
     return () => { active = false; };
   }, [pendingInvite]);
   const tell = (s: string) => {
