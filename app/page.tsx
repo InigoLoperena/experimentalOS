@@ -277,6 +277,7 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [attachmentsBusy, setAttachmentsBusy] = useState(false);
   const [demoAttachments, setDemoAttachments] = useState<Record<string, Attachment[]>>({});
+  const [publicAttachments, setPublicAttachments] = useState<Attachment[]>([]);
   const [newKind, setNewKind] = useState<Kind>("experiment");
   const [inviteRole, setInviteRole] = useState("editor");
   const [inviteUrl, setInviteUrl] = useState("");
@@ -375,6 +376,7 @@ export default function Home() {
           setItems((preview.records || []).map(normalizeExperiment));
           setMembers(preview.members || []);
           setActivity(preview.activity || []);
+          setPublicAttachments(preview.attachments || []);
           setInvitations([]);
           setProfile({ name: "Vista pública", avatar_url: null });
           setProfileReady(true);
@@ -386,6 +388,7 @@ export default function Home() {
           setItems([]);
           setMembers([]);
           setActivity([]);
+          setPublicAttachments([]);
           setProfile({ name: "Miembro" });
           setProfileReady(false);
         }
@@ -443,6 +446,7 @@ export default function Home() {
           setItems((preview.records || []).map(normalizeExperiment));
           setMembers(preview.members || []);
           setActivity(preview.activity || []);
+          setPublicAttachments(preview.attachments || []);
           setError("");
         }
       } catch (err) {
@@ -1842,7 +1846,7 @@ export default function Home() {
               </Action>
             )}
             {supportsAttachments(selected.kind) ? <RecordAttachments key={selected.id}
-              record={selected} editable={editable} demo={demo} values={demoAttachments[selected.id] || []}
+              record={selected} editable={editable} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
@@ -1975,7 +1979,7 @@ export default function Home() {
                 </label>
               )}
               {supportsAttachments(draft.kind) ? <RecordAttachments key={draft.id}
-                record={draft} editable={editable && !saving} demo={demo} values={demoAttachments[draft.id] || []}
+                record={draft} editable={editable && !saving} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === draft.id) : (demoAttachments[draft.id] || [])}
                 persisted={allItems.some(item => item.id === draft.id)}
                 onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy}>
                 {({ links, files }) => <>{draftFields(links)}{draft.kind !== "experiment" && <div className="full">{links}</div>}<div className="full">{files}</div></>}

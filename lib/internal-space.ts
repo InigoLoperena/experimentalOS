@@ -1,12 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Activity, Item, Member } from "./model";
+import type { Attachment } from "./attachments";
 
 export type PublicPreview = {
   workspace: { id: string; name?: string } | null;
   records: Item[];
   members: Member[];
   activity: Activity[];
-  attachments: Record<string, unknown>[];
+  attachments: Attachment[];
 };
 
 const missingRpc = (code?: string) => ["PGRST202", "42883"].includes(code || "");

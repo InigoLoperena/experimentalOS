@@ -37,30 +37,34 @@ function AttachmentPreview({ attachment, demo }: { attachment: Attachment; demo:
   </>;
 }
 
-export function RecordAttachments({ record, editable, demo, values, onDemoChange, onBusy, persisted = true, children }: {
-  record: Item; editable: boolean; demo: boolean; values: Attachment[];
+export function RecordAttachments({ record, editable, demo, prefetched = false, values, onDemoChange, onBusy, persisted = true, children }: {
+  record: Item; editable: boolean; demo: boolean; prefetched?: boolean; values: Attachment[];
   onDemoChange: (values: Attachment[]) => void; onBusy: (busy: boolean) => void;
   persisted?: boolean; children?: (sections: { files: ReactNode; links: ReactNode }) => ReactNode;
 }) {
-  const [attachments, setAttachments] = useState<Attachment[]>(demo ? values : []);
-  const [urls, setUrls] = useState<string[]>(() => linkSlots(demo ? values : []).slots.map(a => a?.url || ""));
+  const [attachments, setAttachments] = useState<Attachment[]>(demo || prefetched ? values : []);
+  const [urls, setUrls] = useState<string[]>(() => linkSlots(demo || prefetched ? values : []).slots.map(a => a?.url || ""));
   const [linksSaved, setLinksSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(!demo && persisted);
+  const [loading, setLoading] = useState(!demo && !prefetched && persisted);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
     let active = true;
-    if (!demo && persisted) {
+    if (prefetched) {
+      setAttachments(values);
+      setUrls(linkSlots(values).slots.map(a => a?.url || ""));
+      setLoading(false);
+    } else if (!demo && persisted) {
       setLoading(true);
       void loadAttachments(record.id).then(next => { if (active) { setAttachments(next); setUrls(linkSlots(next).slots.map(a => a?.url || "")); setError(""); } })
         .catch(err => { if (active) setError(err.message); })
         .finally(() => { if (active) setLoading(false); });
     }
     return () => { active = false; alive.current = false; };
-  }, [record.id, demo, persisted, retry]);
+  }, [record.id, demo, prefetched, persisted, retry, values]);
   const update = (next: Attachment[]) => { setAttachments(next); if (demo) onDemoChange(next); };
   async function operation(action: () => Promise<void>) {
     if (busy) return;
