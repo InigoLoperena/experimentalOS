@@ -1,5 +1,7 @@
 # Activar los perfiles y la gestión de la empresa
 
+**Esta guía corresponde a una versión anterior.** La aplicación actual mantiene los perfiles personales y la gestión de usuarios en Equipo, y retira los perfiles de empresa. Después de la 003 y la 004, sigue [ACTIVAR-EQUIPO-INTERNO.md](ACTIVAR-EQUIPO-INTERNO.md) para aplicar la 005.
+
 El código se actualiza automáticamente mediante GitHub y Vercel. Para guardar nombres, fotos y datos de la empresa, hace falta esta actualización de tu base de datos, una sola vez.
 
 1. Abre tu proyecto en [Supabase](https://supabase.com/dashboard).

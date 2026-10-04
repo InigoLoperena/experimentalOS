@@ -3,18 +3,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 export type PersonalProfile = { name: string; avatar_url?: string | null };
-export type CompanyProfile = {
-  id: string;
-  name: string;
-  website?: string | null;
-  logo_url?: string | null;
-};
-
-export function Avatar({ name, photo, company = false }: {
-  name: string; photo?: string | null; company?: boolean;
+export function Avatar({ name, photo }: {
+  name: string; photo?: string | null;
 }) {
-  return <span className={company ? "workspace-avatar" : "avatar"}>
-    {photo ? <img src={photo} alt={company ? `Logo de ${name}` : `Foto de ${name}`} /> : name.trim().charAt(0).toUpperCase() || "?"}
+  return <span className="avatar">
+    {photo ? <img src={photo} alt={`Foto de ${name}`} /> : name.trim().charAt(0).toUpperCase() || "?"}
   </span>;
 }
 
@@ -54,7 +47,7 @@ function PhotoField({ label, name, value, onChange, disabled, onBusy }: {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   return <div className="photo-field full">
-    <Avatar name={name} photo={value} company={label === "Logo"} />
+    <Avatar name={name} photo={value} />
     <label htmlFor={id}>{label}
       <input id={id} type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled || processing}
         onChange={async e => {
@@ -114,64 +107,4 @@ export function ProfileDialog({ profile, ready, onSave, onClose }: {
       </div>
     </form>
   </dialog>;
-}
-
-export function CompanySettings({ company, administrator, onSave, onDelete }: {
-  company: CompanyProfile; administrator: boolean;
-  onSave: (company: CompanyProfile) => Promise<void>; onDelete: (confirmation: string) => Promise<void>;
-}) {
-  const [name, setName] = useState(company.name);
-  const [website, setWebsite] = useState(company.website || "");
-  const [logo, setLogo] = useState(company.logo_url || "");
-  const [confirmation, setConfirmation] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    setName(company.name); setWebsite(company.website || ""); setLogo(company.logo_url || ""); setConfirmation("");
-  }, [company.name, company.website, company.logo_url]);
-  const disabled = busy;
-  return <section className="panel company-settings">
-    <h2>Perfil de la empresa</h2>
-    {!administrator ? <div className="company-summary">
-      <Avatar name={company.name} photo={company.logo_url} company />
-      <strong>{company.name}</strong>
-      {company.website && <a href={company.website} target="_blank" rel="noreferrer">{company.website}</a>}
-      <p className="small">El administrador de la empresa puede editar este perfil y gestionar sus miembros.</p>
-    </div> : <>
-      <form onSubmit={async e => {
-        e.preventDefault(); if (disabled || uploading) return;
-        setBusy(true); setError("");
-        try { await onSave({ ...company, name: name.trim(), website: website.trim() || null, logo_url: logo || null }); }
-        catch (err) { setError(err instanceof Error ? err.message : "No se ha podido guardar la empresa."); }
-        finally { setBusy(false); }
-      }}>
-        <div className="form-body">
-          <label>Nombre de la empresa<input required maxLength={120} value={name} disabled={disabled} onChange={e => setName(e.target.value)} /></label>
-          <label>Web de la empresa<input type="url" maxLength={2000} placeholder="https://" value={website} disabled={disabled} onChange={e => setWebsite(e.target.value)} /></label>
-          <PhotoField label="Logo" name={name} value={logo} onChange={setLogo} disabled={disabled} onBusy={setUploading} />
-        </div>
-        <button type="submit" className="btn primary" disabled={disabled || uploading}>{busy ? "Guardando…" : "Guardar empresa"}</button>
-      </form>
-      <details className="company-danger">
-        <summary>Eliminar empresa</summary>
-        <p>Se eliminarán definitivamente esta empresa, sus proyectos, GOI Trees, experimentos, aprendizajes, invitaciones e historial. Las cuentas personales y las demás empresas se conservan.</p>
-        <form onSubmit={async e => {
-          e.preventDefault(); if (disabled || uploading || confirmation !== company.name) return;
-          setBusy(true); setError("");
-          try { await onDelete(confirmation); }
-          catch (err) { setError(err instanceof Error ? err.message : "No se ha podido eliminar la empresa."); }
-          finally { setBusy(false); }
-        }}>
-          <label>Escribe «{company.name}» para confirmar
-            <input required value={confirmation} autoComplete="off" disabled={disabled} onChange={e => setConfirmation(e.target.value)} />
-          </label>
-          <button type="submit" className="btn danger" disabled={disabled || uploading || confirmation !== company.name}>Eliminar empresa definitivamente</button>
-        </form>
-      </details>
-    </>}
-    {error && <div className="error" role="alert"><p>{error}</p>
-      {error.includes("actualización de Supabase") && <a href="https://github.com/InigoLoperena/experimentalOS/blob/main/ACTUALIZAR-PERFILES.md" target="_blank" rel="noreferrer">Ver cómo activar la gestión de la empresa</a>}
-    </div>}
-  </section>;
 }

@@ -26,9 +26,11 @@ import {
 import { supabase } from "@/lib/supabase";
 import { experimentFields, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
-import { Avatar, CompanySettings, ProfileDialog, type CompanyProfile, type PersonalProfile } from "./profile-settings";
+import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
 import { BrandIdentity } from "./brand-identity";
+import { TeamAccess } from "./team-access";
+import { openInternalSpace } from "@/lib/internal-space";
 import { supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
 import {
@@ -45,7 +47,7 @@ import {
   validate,
 } from "@/lib/model";
 type View = "experiments" | "projects" | "learning" | "team" | "map" | "method";
-type Workspace = CompanyProfile;
+type Workspace = { id: string };
 type Invitation = {
   id: string;
   token: string;
@@ -253,7 +255,6 @@ export default function Home() {
   const [projectId, setProjectId] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<PersonalProfile>({ name: "Miembro" });
@@ -337,7 +338,7 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (demo) {
-      setWorkspace({ id: "demo", name: "Greenhunt · ejemplo", website: null, logo_url: null });
+      setWorkspace({ id: "demo" });
       setProfile({ name: demoMembers[0].name, avatar_url: null });
       setProfileReady(true);
       setDemoAttachments({});
@@ -352,7 +353,6 @@ export default function Home() {
       setItems([]);
       setMembers([]);
       setActivity([]);
-      setWorkspaces([]);
       setProfile({ name: "Miembro" });
       setProfileReady(false);
       setShowProfile(false);
@@ -361,19 +361,13 @@ export default function Home() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const r = await supabase!
-        .from("workspaces")
-        .select("*")
-        .order("created_at");
-      if (!alive) return;
-      if (r.error) setError(r.error.message);
-      else {
-        setWorkspaces(r.data || []);
-        setWorkspace(
-          (prev) =>
-            r.data?.find((w) => w.id === prev?.id) || r.data?.[0] || null,
-        );
+      try {
+        const space = await openInternalSpace(supabase!);
+        if (alive) { setWorkspace(space); setError(""); }
+      } catch (err) {
+        if (alive) setError(err instanceof Error ? err.message : "No se ha podido abrir el equipo.");
       }
+      if (!alive) return;
       setLoading(false);
     })();
     return () => {
@@ -420,21 +414,15 @@ export default function Home() {
         .from("invitations")
         .select("id,token,role,expires_at,used_by")
         .eq("workspace_id", w.id),
-      supabase!.from("workspaces").select("*").eq("id", w.id).single(),
     ]);
     if (version !== loadVersion.current) return;
-    // Los permisos de la empresa no dependen de la carga de sus registros.
+    // Los permisos del equipo no dependen de la carga de sus registros.
     if (!r[1].error) setMembers(
       (r[1].data || []).map((m: any) => ({
         user_id: m.user_id, role: m.role,
         name: m.profiles?.name || "Miembro", avatar_url: m.profiles?.avatar_url || null,
       })),
     );
-    if (!r[4].error && r[4].data) {
-      const refreshed = r[4].data as Workspace;
-      setWorkspace(refreshed);
-      setWorkspaces(prev => prev.map(company => company.id === w.id ? refreshed : company));
-    }
     const err = r.find((x) => x.error)?.error;
     if (err) {
       setError(err.message);
@@ -852,39 +840,6 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  async function saveCompany(next: CompanyProfile) {
-    if (!workspace || role !== "owner") throw new Error("Solo el administrador puede editar esta empresa.");
-    if (!demo) {
-      const r = await supabase!.rpc("update_workspace_profile", { w: workspace.id, company_name: next.name, company_website: next.website, company_logo: next.logo_url });
-      if (r.error) throw new Error(
-        ["PGRST202", "42883", "42703"].includes(r.error.code)
-          ? "Falta activar la actualización de Supabase para guardar los datos de la empresa. Sigue los pasos del enlace y vuelve a intentarlo."
-          : r.error.message,
-      );
-    }
-    setWorkspace(next);
-    setWorkspaces(prev => prev.map(w => w.id === next.id ? next : w));
-    tell("Empresa actualizada");
-  }
-  async function deleteCompany(confirmation: string) {
-    if (!workspace || role !== "owner") throw new Error("Solo el administrador puede eliminar esta empresa.");
-    if (demo) throw new Error("La empresa de ejemplo no se puede eliminar. Esta acción se habilita en tu empresa real.");
-    const r = await supabase!.rpc("delete_workspace", { w: workspace.id, confirmation_name: confirmation });
-    if (r.error) throw new Error(
-      ["PGRST202", "42883", "42703"].includes(r.error.code)
-        ? "Falta activar la actualización de Supabase para eliminar la empresa. Sigue los pasos del enlace y vuelve a intentarlo."
-        : r.error.message,
-    );
-    ++loadVersion.current;
-    let cleanupPending = false;
-    try { await cleanupAttachments(); } catch { cleanupPending = true; }
-    const remaining = workspaces.filter(w => w.id !== workspace.id);
-    setItems([]); setMembers([]); setActivity([]); setInvitations([]); setInviteUrl("");
-    setLoading(false); setError("");
-    setSelected(null); setDraft(null); setProjectId(""); setFilter(""); setView("team");
-    setWorkspaces(remaining); setWorkspace(remaining[0] || null);
-    tell(cleanupPending ? "Empresa eliminada. La limpieza de sus archivos se reintentará al recargar." : "Empresa eliminada. Tu cuenta personal se conserva.");
-  }
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
   if (loading && !workspace)
     return (
@@ -915,14 +870,14 @@ export default function Home() {
   if (!workspace)
     return (
       <>
-      <div className="no-company-actions"><button className="btn" onClick={() => setShowProfile(true)}>Mi perfil</button></div>
-      <WorkspaceSetup
-        onCreated={async () => {
-          const r = await supabase!.from("workspaces").select("*");
-          setWorkspaces(r.data || []);
-          setWorkspace(r.data?.[0] || null);
-        }}
-      />
+      <div className="account-actions">
+        <button className="btn" onClick={() => setShowProfile(true)}>Mi perfil</button>
+        <button className="btn" onClick={() => void supabase!.auth.signOut()}>Salir</button>
+      </div>
+      <TeamAccess error={error} onAccepted={async () => {
+        setWorkspace(await openInternalSpace(supabase!));
+        setPendingInvite(""); setError("");
+      }} />
       {profileEditor}
       </>
     );
@@ -939,30 +894,6 @@ export default function Home() {
         >
           <BrandIdentity />
         </a>
-        <div className="workspace-switch">
-          <Avatar name={workspace.name} photo={workspace.logo_url} company />
-          <div>
-            <strong>{workspace.name}</strong>
-            <button className="company-shortcut" onClick={() => { setView("team"); setFilter(""); }}>Perfil de empresa</button>
-          </div>
-          {workspaces.length > 1 && (
-            <select
-              aria-label="Empresa"
-              value={workspace.id}
-              onChange={(e) =>
-                setWorkspace(
-                  workspaces.find((w) => w.id === e.target.value) || null,
-                )
-              }
-            >
-              {workspaces.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav>
           {nav.map(({ id, label, icon: I }) => (
@@ -1019,7 +950,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => setShowProfile(true)}><UserRound size={17} /></button>
-            <span>Empresa</span>
+            <span>Equipo interno</span>
             <ChevronRight size={14} />
             <strong>{nav.find((n) => n.id === view)?.label}</strong>
           </div>
@@ -1043,7 +974,7 @@ export default function Home() {
         <main>
           {pendingInvite && !demo && (
             <div className="notice row">
-              <span>Tienes una invitación para unirte a una empresa.</span>
+              <span>Tienes una invitación para acceder al equipo.</span>
               <Action
                 onClick={async () => {
                   const r = await supabase!.rpc("join_workspace", {
@@ -1051,11 +982,8 @@ export default function Home() {
                   });
                   if (r.error) tell(r.error.message);
                   else {
-                    const w = await supabase!
-                      .from("workspaces")
-                      .select("*");
-                    setWorkspaces(w.data || []);
-                    setWorkspace(w.data?.find((x) => x.id === r.data) || null);
+                    try { setWorkspace(await openInternalSpace(supabase!)); }
+                    catch (err) { tell(err instanceof Error ? err.message : "No se ha podido abrir el equipo."); return; }
                     setPendingInvite("");
                     window.history.replaceState(
                       {},
@@ -1084,7 +1012,7 @@ export default function Home() {
                     );
                 }}
               >
-                {supabase ? "Acceder a mi empresa" : "Cómo activar mi empresa"}
+                {supabase ? "Acceder al sistema" : "Cómo activar el sistema"}
               </button>
             </div>
           )}
@@ -1102,7 +1030,7 @@ export default function Home() {
                     : view === "learning"
                       ? "Guarda lo que ocurrió, lo que aprendiste y qué harás después."
                       : view === "team"
-                        ? "Personas y acceso a tu empresa."
+                        ? "Gestiona las personas y sus permisos en el sistema."
                         : view === "projects"
                           ? "Cada proyecto tiene su propio GOI Tree, experimentos y aprendizajes."
                           : "Una guía sencilla para empezar a trabajar."}
@@ -1523,11 +1451,9 @@ export default function Home() {
           )}
           {view === "team" && (
             <>
-              <CompanySettings key={workspace.id} company={workspace} administrator={role === "owner"}
-                onSave={saveCompany} onDelete={deleteCompany} />
               <div className="panel">
                 <div className="section-heading">
-                  <h2>Miembros de la empresa</h2>
+                  <h2>Miembros del equipo</h2>
                   <span>{members.length} personas</span>
                 </div>
                 {members.map((m) => (
@@ -1561,7 +1487,7 @@ export default function Home() {
                               !window.confirm(
                                 "¿Retirar el acceso de " +
                                   m.name +
-                                  " a esta empresa? Sus acciones permanecerán en el historial.",
+                                  " al sistema? Sus acciones permanecerán en el historial.",
                               )
                             )
                               return;
@@ -1671,21 +1597,6 @@ export default function Home() {
                         </button>
                       </div>
                     ))}
-                </div>
-              )}
-              {!demo && (
-                <div className="panel">
-                  <h2>Unirse a otra empresa</h2>
-                  <WorkspaceSetup
-                    inline
-                    onCreated={async () => {
-                      const r = await supabase!
-                        .from("workspaces")
-                        .select("*");
-                      setWorkspaces(r.data || []);
-                      setWorkspace(r.data?.[r.data.length - 1] || null);
-                    }}
-                  />
                 </div>
               )}
             </>
@@ -2124,7 +2035,7 @@ function Auth({
           un experimento.
         </h1>
         <p>
-          Una empresa alineada. Un árbol de oportunidades.
+          Un equipo alineado. Un árbol de oportunidades.
           <br />
           Un lugar para aprender juntos.
         </p>
@@ -2144,7 +2055,7 @@ function Auth({
               ? "Recupera tu acceso"
               : mode === "new-password"
                 ? "Nueva contraseña"
-                : "Entra en tu empresa"}
+                : "Entra en Experimental OS"}
         </h2>
         <form
           onSubmit={async (e) => {
@@ -2272,100 +2183,6 @@ function Auth({
           Explorar la demostración
         </button>
       </div>
-    </div>
-  );
-}
-function WorkspaceSetup({
-  onCreated,
-  inline = false,
-}: {
-  onCreated: () => void;
-  inline?: boolean;
-}) {
-  const [name, setName] = useState("");
-  const [token, setToken] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get("invite") || "");
-  }, []);
-  const form = (
-    <div className="setup-form">
-      {!inline && (
-        <>
-          <BrandIdentity />
-          <h1>Tu empresa experimental</h1>
-          <p>Crea un espacio privado o únete mediante una invitación.</p>
-        </>
-      )}
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          const r = await supabase!.rpc("create_workspace", {
-            workspace_name: name,
-          });
-          if (r.error) setError(r.error.message);
-          else onCreated();
-          setBusy(false);
-        }}
-      >
-        <label>
-          Nombre de la empresa
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Mi empresa"
-          />
-        </label>
-        <button className="btn primary" disabled={busy}>
-          Crear empresa
-        </button>
-      </form>
-      <hr />
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          let t = token;
-          try {
-            if (token.includes("://"))
-              t = new URL(token).searchParams.get("invite") || "";
-          } catch {}
-          const r = await supabase!.rpc("join_workspace", { invite_token: t });
-          if (r.error) setError(r.error.message);
-          else {
-            window.history.replaceState({}, "", window.location.pathname);
-            onCreated();
-          }
-          setBusy(false);
-        }}
-      >
-        <label>
-          Enlace o código de invitación
-          <input
-            required
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-        </label>
-        <button className="btn" disabled={busy}>
-          Unirme a la empresa
-        </button>
-      </form>
-      {error && (
-        <div role="alert" className="error">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-  return inline ? (
-    form
-  ) : (
-    <div className="auth-shell">
-      <div className="auth-card">{form}</div>
     </div>
   );
 }
