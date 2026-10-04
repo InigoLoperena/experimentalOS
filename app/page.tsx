@@ -59,6 +59,11 @@ type Invitation = {
   expires_at: string;
   used_by: string | null;
 };
+type InvitationPreview = {
+  team_name: string;
+  role: "editor" | "viewer";
+  expires_at: string;
+};
 type Field = {
   key: string;
   label: string;
@@ -286,6 +291,10 @@ export default function Home() {
   const [schemaReady, setSchemaReady] = useState(true);
   const [recovery, setRecovery] = useState(false);
   const [pendingInvite, setPendingInvite] = useState("");
+  const [invitationPreview, setInvitationPreview] = useState<InvitationPreview | null>(null);
+  const [inviteChecked, setInviteChecked] = useState(false);
+  const [teamNameDraft, setTeamNameDraft] = useState("");
+  const preferredWorkspace = useRef<string | null>(null);
   const workspaceItems = allItems.filter(
     (i) => i.workspace_id === workspace?.id,
   );
@@ -323,6 +332,33 @@ export default function Home() {
     if (params.has("recovery")) setRecovery(true);
     setPendingInvite(params.get("invite") || "");
   }, []);
+  useEffect(() => {
+    setTeamNameDraft(workspace?.name || "");
+  }, [workspace?.id, workspace?.name]);
+  useEffect(() => {
+    if (!supabase || !pendingInvite) {
+      setInvitationPreview(null);
+      setInviteChecked(!pendingInvite);
+      return;
+    }
+    let active = true;
+    setInviteChecked(false);
+    void supabase.rpc("get_invitation_preview", { invite_token: pendingInvite })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setInvitationPreview(null);
+          setError(error.message);
+        } else {
+          setInvitationPreview((data || null) as InvitationPreview | null);
+          setError("");
+        }
+      })
+      .finally(() => {
+        if (active) setInviteChecked(true);
+      });
+    return () => { active = false; };
+  }, [pendingInvite]);
   const tell = (s: string) => {
     setToast(s);
     window.setTimeout(() => setToast(""), 5000);
@@ -366,6 +402,15 @@ export default function Home() {
     }
     if (!user) {
       if (!supabase) return;
+      if (pendingInvite) {
+        setPublicMode(false);
+        setWorkspace(null);
+        setItems([]);
+        setMembers([]);
+        setActivity([]);
+        setLoading(false);
+        return;
+      }
       let alive = true;
       setLoading(true);
       void getPublicPreview(supabase).then((preview) => {
@@ -402,23 +447,46 @@ export default function Home() {
       });
       return () => { alive = false; };
     }
+
     setPublicMode(false);
     let alive = true;
     (async () => {
       setLoading(true);
       try {
+        if (pendingInvite) {
+          const joined = await supabase!.rpc("join_workspace", { invite_token: pendingInvite });
+          if (joined.error) throw new Error(joined.error.message);
+          if (!joined.data) throw new Error("La invitación ya no es válida.");
+          preferredWorkspace.current = joined.data as string;
+          if (alive) {
+            setWorkspace({ id: joined.data as string, name: invitationPreview?.team_name });
+            setPendingInvite("");
+            setInvitationPreview(null);
+            window.history.replaceState({}, "", window.location.pathname);
+            tell("Te has unido al equipo");
+          }
+          return;
+        }
+
+        if (preferredWorkspace.current) {
+          const id = preferredWorkspace.current;
+          preferredWorkspace.current = null;
+          if (alive) setWorkspace((current) => current?.id === id ? current : { id });
+          return;
+        }
+
         const space = await openTeamSpace(supabase!);
         if (alive) { setWorkspace(space); setError(""); }
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "No se ha podido abrir el equipo.");
+      } finally {
+        if (alive) setLoading(false);
       }
-      if (!alive) return;
-      setLoading(false);
     })();
     return () => {
       alive = false;
     };
-  }, [user?.id, demo]);
+  }, [user?.id, demo, pendingInvite]);
   useEffect(() => {
     if (!user || demo) return;
     let alive = true;
@@ -477,6 +545,11 @@ export default function Home() {
         .from("invitations")
         .select("id,token,role,expires_at,used_by")
         .eq("workspace_id", w.id),
+      supabase!
+        .from("workspaces")
+        .select("id,name")
+        .eq("id", w.id)
+        .single(),
     ]);
     if (version !== loadVersion.current) return;
     // Los permisos del equipo no dependen de la carga de sus registros.
@@ -520,6 +593,7 @@ export default function Home() {
       );
       setActivity(r[2].data || []);
       setInvitations(r[3].data || []);
+      if (r[4].data) setWorkspace({ id: r[4].data.id, name: r[4].data.name });
       setError("");
     }
     setLoading(false);
@@ -999,6 +1073,41 @@ export default function Home() {
                 </Fragment>
               ));
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
+  if (pendingInvite && !user && !demo && !inviteChecked)
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <BrandIdentity />
+          <h1>Comprobando invitación…</h1>
+        </div>
+      </div>
+    );
+  if (pendingInvite && !user && !demo && inviteChecked && invitationPreview)
+    return (
+      <Auth
+        initialMode="signup"
+        invitation={invitationPreview}
+        onDemo={() => {}}
+        onMessage={tell}
+        onAuthenticated={(nextUser) => setUser(nextUser)}
+      />
+    );
+  if (pendingInvite && !user && !demo && inviteChecked && !invitationPreview)
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <BrandIdentity />
+          <span className="eyebrow">INVITACIÓN</span>
+          <h1>Esta invitación ya no es válida</h1>
+          <p>Puede haber caducado, haber sido utilizada o haber sido revocada.</p>
+          <button className="btn primary" onClick={() => {
+            setPendingInvite("");
+            setError("");
+            window.history.replaceState({}, "", window.location.pathname);
+          }}>Ir a Experimental OS</button>
+        </div>
+      </div>
+    );
   if (loading && !workspace)
     return (
       <div className="auth-shell">
@@ -1134,30 +1243,6 @@ export default function Home() {
           </div>
         </header>
         <main>
-          {pendingInvite && !demo && (
-            <div className="notice row">
-              <span>Tienes una invitación para acceder al equipo.</span>
-              <Action
-                onClick={async () => {
-                  const r = await supabase!.rpc("join_workspace", {
-                    invite_token: pendingInvite,
-                  });
-                  if (r.error) tell(r.error.message);
-                  else {
-                    if (r.data) setWorkspace({ id: r.data as string });
-                    setPendingInvite("");
-                    window.history.replaceState(
-                      {},
-                      "",
-                      window.location.pathname,
-                    );
-                  }
-                }}
-              >
-                Aceptar invitación
-              </Action>
-            </div>
-          )}
           {publicMode && (
             <div className="demo-banner">
               <span>
@@ -1622,6 +1707,40 @@ export default function Home() {
             <>
               <div className="panel">
                 <div className="section-heading">
+                  <div>
+                    <h2>Nombre del equipo</h2>
+                    <p>Este nombre se muestra en los enlaces de invitación.</p>
+                  </div>
+                </div>
+                {role === "owner" && !demo ? (
+                  <div className="row">
+                    <input
+                      aria-label="Nombre del equipo"
+                      value={teamNameDraft}
+                      maxLength={120}
+                      onChange={(e) => setTeamNameDraft(e.target.value)}
+                    />
+                    <Action
+                      disabled={!teamNameDraft.trim() || teamNameDraft.trim() === (workspace.name || "").trim()}
+                      onClick={async () => {
+                        const nextName = teamNameDraft.trim();
+                        const r = await supabase!.rpc("rename_team", { w: workspace.id, team_name: nextName });
+                        if (r.error) tell(r.error.message);
+                        else {
+                          setWorkspace({ ...workspace, name: nextName });
+                          tell("Nombre del equipo actualizado");
+                        }
+                      }}
+                    >
+                      Guardar nombre
+                    </Action>
+                  </div>
+                ) : (
+                  <strong>{workspace.name || "Equipo de experimentación"}</strong>
+                )}
+              </div>
+              <div className="panel">
+                <div className="section-heading">
                   <h2>Miembros del equipo</h2>
                   <span>{members.length} personas</span>
                 </div>
@@ -1687,8 +1806,9 @@ export default function Home() {
                 <div className="panel invite-panel">
                   <h2>Invitar a una persona</h2>
                   <p>
-                    El enlace es de un solo uso y caduca en 7 días. La persona
-                    crea su propia cuenta antes de unirse.
+                    El enlace es de un solo uso y caduca en 7 días. Al abrirlo,
+                    la persona verá que está invitada a <strong>{workspace.name || "este equipo"}</strong>,
+                    podrá crear su cuenta y entrará directamente en el equipo.
                   </p>
                   <div className="row">
                     <select
@@ -2061,11 +2181,13 @@ function Empty({
 }
 function Auth({
   initialMode = "login",
+  invitation,
   onDemo,
   onMessage,
   onAuthenticated,
 }: {
   initialMode?: "login" | "signup";
+  invitation?: InvitationPreview | null;
   onDemo: () => void;
   onMessage: (s: string) => void;
   onAuthenticated: (user: User) => void;
@@ -2108,6 +2230,15 @@ function Auth({
       <div className="auth-card">
         <div className="auth-mobile-brand"><BrandIdentity /></div>
         <span className="eyebrow">EXPERIMENTAL OPERATIVE SYSTEM</span>
+        {invitation && (
+          <div className="notice">
+            <strong>Estás invitado a unirte al equipo {invitation.team_name}</strong>
+            <p>
+              Acceso como {invitation.role === "editor" ? "Editor" : "Lector"}.
+              Crea tu cuenta o inicia sesión y entrarás directamente en el equipo.
+            </p>
+          </div>
+        )}
         <h2>
           {mode === "signup"
             ? "Crea tu cuenta"
@@ -2133,10 +2264,17 @@ function Auth({
                   });
                 if (signupError) setError(signupError.message);
                 else if (data.session) onAuthenticated(data.session.user);
-                else
-                  setError(
-                    "No se ha podido iniciar sesión tras el registro. Contacta con el administrador para completar el acceso.",
-                  );
+                else {
+                  const signedIn = await supabase!.auth.signInWithPassword({
+                    email: email.trim(),
+                    password,
+                  });
+                  if (signedIn.error || !signedIn.data.session)
+                    setError(
+                      "La cuenta se ha creado, pero el inicio de sesión automático no está disponible. Revisa la configuración de confirmación de email.",
+                    );
+                  else onAuthenticated(signedIn.data.session.user);
+                }
                 return;
               }
               let result;
@@ -2219,12 +2357,12 @@ function Auth({
             {busy
               ? "Un momento…"
               : mode === "signup"
-                ? "Crear cuenta"
+                ? invitation ? "Crear cuenta y unirme" : "Crear cuenta"
                 : mode === "reset"
                   ? "Enviar enlace"
                   : mode === "new-password"
                     ? "Actualizar contraseña"
-                    : "Entrar"}
+                    : invitation ? "Entrar y unirme" : "Entrar"}
           </button>
         </form>
         <div className="auth-links">

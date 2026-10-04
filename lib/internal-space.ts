@@ -35,3 +35,21 @@ export async function getPublicPreview(client: SupabaseClient): Promise<PublicPr
   if (!data || typeof data !== "object") return null;
   return data as PublicPreview;
 }
+
+
+export type InvitationPreview = {
+  team_name: string;
+  role: "editor" | "viewer";
+  expires_at: string;
+};
+
+export async function getInvitationPreview(
+  client: SupabaseClient,
+  inviteToken: string,
+): Promise<InvitationPreview | null> {
+  const { data, error } = await client.rpc("get_invitation_preview", {
+    invite_token: inviteToken,
+  });
+  if (error) throw new Error(error.message);
+  return (data || null) as InvitationPreview | null;
+}
