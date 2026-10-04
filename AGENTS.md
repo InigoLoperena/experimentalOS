@@ -15,5 +15,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - For this project the user has authorized updating `main` with requested changes after validation. Respect any later instruction to use branches or reviews instead. Never force-push over concurrent work.
 - Preserve the six requested navigation sections and the simplified experiment fields. Keep experiments, GOI Trees and learnings scoped to projects.
 - Use «Responsable» for record ownership. Attachments are stored separately from experiment fields and must remain private to the company; readers may view them but only owners/editors may modify them.
+- Preserve the Imagine Builder logo and the full «Experimental Operative System» title. Use the logo's charcoal gray, lime green, red and blue brand palette; do not restore the old star beside the product name.
 - Run appropriate validation before publishing code and report the resulting GitHub commit.
 - Supabase migrations and authentication settings are separate from a Vercel code deployment. Do not claim they were applied unless verified. Give clear instructions for any remaining setup.

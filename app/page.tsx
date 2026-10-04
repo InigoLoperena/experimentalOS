@@ -28,6 +28,7 @@ import { experimentFields, normalizeExperiment } from "@/lib/experiments";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, CompanySettings, ProfileDialog, type CompanyProfile, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
+import { BrandIdentity } from "./brand-identity";
 import { supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
 import {
@@ -889,7 +890,7 @@ export default function Home() {
     return (
       <div className="auth-shell">
         <div className="auth-card">
-          <Star className="brand-star" />
+          <BrandIdentity />
           <h1>Cargando tu espacio…</h1>
         </div>
       </div>
@@ -936,12 +937,7 @@ export default function Home() {
             setView("map");
           }}
         >
-          <span className="brand-symbol">
-            <Star size={19} />
-          </span>
-          <span>
-            experimental<span className="brand-os">OS</span>
-          </span>
+          <BrandIdentity />
         </a>
         <div className="workspace-switch">
           <Avatar name={workspace.name} photo={workspace.logo_url} company />
@@ -1696,7 +1692,7 @@ export default function Home() {
           )}
           {view === "method" && <Method />}
           <footer className="footer">
-            <span>Experimental OS · V1</span>
+            <span>Experimental Operative System · Imagine Builder</span>
             <button onClick={() => void exportData()}>
               Exportar registros JSON
             </button>
@@ -2121,9 +2117,7 @@ function Auth({
   return (
     <div className="auth-shell">
       <div className="auth-intro">
-        <span className="brand-symbol">
-          <Star />
-        </span>
+        <BrandIdentity />
         <h1>
           Cada idea merece
           <br />
@@ -2141,7 +2135,8 @@ function Auth({
         </div>
       </div>
       <div className="auth-card">
-        <span className="eyebrow">EXPERIMENTAL OS</span>
+        <div className="auth-mobile-brand"><BrandIdentity /></div>
+        <span className="eyebrow">EXPERIMENTAL OPERATIVE SYSTEM</span>
         <h2>
           {mode === "signup"
             ? "Crea tu cuenta"
@@ -2298,9 +2293,7 @@ function WorkspaceSetup({
     <div className="setup-form">
       {!inline && (
         <>
-          <span className="brand-symbol">
-            <Star />
-          </span>
+          <BrandIdentity />
           <h1>Tu empresa experimental</h1>
           <p>Crea un espacio privado o únete mediante una invitación.</p>
         </>
@@ -2488,6 +2481,7 @@ function PasswordRecovery({ onDone }: { onDone: () => void }) {
   return (
     <div className="auth-shell">
       <div className="auth-card">
+        <BrandIdentity />
         <h2>Establece tu nueva contraseña</h2>
         <form
           onSubmit={async (e) => {
