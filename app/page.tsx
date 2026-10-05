@@ -282,9 +282,9 @@ function projectLogo(value: unknown, title?: string) {
   const projectLogos: Record<string, string> = {
     greenhunt: "/project-logos/greenhunt.png",
     "greenhunt store": "/project-logos/greenhunt.png",
-    booklinks: "/project-logos/booklinks.png",
-    greenroute: "/project-logos/greenroute.png",
-    smartjunk: "/project-logos/smartjunk.png",
+    booklinks: "/project-logos/booklinks.PNG",
+    greenroute: "/project-logos/greenroute.PNG",
+    smartjunk: "/project-logos/smartjunk.PNG",
   };
   if (projectLogos[key]) return projectLogos[key];
   const domain = projectDomain(value);
