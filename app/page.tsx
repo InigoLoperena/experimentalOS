@@ -185,6 +185,11 @@ const schemas: Record<Kind, Field[]> = {
   ],
   kr: [...numberFields, { key: "period", label: "Periodo" }],
   project: [
+    {
+      key: "description",
+      label: "Propuesta de valor / descripción breve",
+      type: "textarea",
+    },
     { key: "site_url", label: "Web del proyecto" },
     { key: "north_star", label: "North Star Metric" },
     { key: "analytics_url", label: "Enlace a Analytics" },
@@ -256,6 +261,34 @@ function Action({
     >
       {children}
     </button>
+  );
+}
+function projectUrl(value: unknown) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+function projectDomain(value: unknown) {
+  const url = projectUrl(value);
+  if (!url) return "";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return String(value || "");
+  }
+}
+function projectLogo(value: unknown) {
+  const domain = projectDomain(value);
+  return domain
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
+    : "";
+}
+function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "normal" | "small" }) {
+  const logo = projectLogo(project.fields.site_url);
+  return (
+    <span className={"project-logo " + (size === "small" ? "small" : "")} aria-hidden="true">
+      {logo ? <img src={logo} alt="" /> : <LayoutGrid size={size === "small" ? 20 : 26} />}
+    </span>
   );
 }
 export default function Home() {
@@ -1348,10 +1381,27 @@ export default function Home() {
                 </select>
               </label>
               {currentProject && (
-                <span>
-                  {currentProject.fields.description ||
-                    "GOI Tree, experimentos y aprendizajes independientes."}
-                </span>
+                <div className="selected-project">
+                  <ProjectLogo project={currentProject} size="small" />
+                  <div className="selected-project-copy">
+                    <strong>{currentProject.title}</strong>
+                    <p>
+                      {currentProject.fields.description ||
+                        "GOI Tree, experimentos y aprendizajes independientes."}
+                    </p>
+                    {projectUrl(currentProject.fields.site_url) && (
+                      <a
+                        className="project-link"
+                        href={projectUrl(currentProject.fields.site_url)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {projectDomain(currentProject.fields.site_url)}
+                        <ArrowUpRight size={14} />
+                      </a>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -1589,25 +1639,41 @@ export default function Home() {
             <div className="cards-grid">
               {projects.map((p) => (
                 <section className="project-card panel" key={p.id}>
-                  <button
-                    className="plain-heading"
-                    onClick={() => {
-                      setProjectId(p.id);
-                      setView("map");
-                      setFilter("");
-                    }}
-                  >
-                    <span className="eyebrow">PROYECTO</span>
-                    <h2>{p.title}</h2>
-                    <p>{p.fields.description}</p>
-                  </button>
+                  <div className="project-card-head">
+                    <ProjectLogo project={p} />
+                    <button
+                      className="plain-heading project-card-heading"
+                      onClick={() => {
+                        setProjectId(p.id);
+                        setView("map");
+                        setFilter("");
+                      }}
+                    >
+                      <span className="eyebrow">PROYECTO</span>
+                      <h2>{p.title}</h2>
+                      <p className="project-description">
+                        {p.fields.description || "Añade una breve propuesta de valor del proyecto."}
+                      </p>
+                    </button>
+                  </div>
+                  {projectUrl(p.fields.site_url) && (
+                    <a
+                      className="project-link project-card-link"
+                      href={projectUrl(p.fields.site_url)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {projectDomain(p.fields.site_url)}
+                      <ArrowUpRight size={14} />
+                    </a>
+                  )}
                   <p className="small">
                     {
                       workspaceItems.filter(
                         (e) => e.kind === "experiment" && e.project_id === p.id,
                       ).length
                     }{" "}
-                    experimentos · {author(p.owner_id)}
+                    experimentos
                   </p>
                   <div className="row">
                     <Action
