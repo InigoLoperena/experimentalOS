@@ -283,6 +283,23 @@ function projectLogo(value: unknown) {
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
     : "";
 }
+const defaultProjectDescriptions: Record<string, string> = {
+  greenhunt:
+    "Marketplace de economía circular para descubrir y compartir objetos reutilizables, ventas y oportunidades locales. Conecta oferta y demanda para dar una segunda vida a objetos que aún tienen valor.",
+  greenroute:
+    "Plataforma para optimizar rutas y operaciones de recogida, reduciendo kilómetros, tiempo y costes. Ayuda a los equipos de campo a planificar y ejecutar rutas más eficientes.",
+  smartjunk:
+    "Marketplace de recogida de muebles y objetos donde particulares publican solicitudes y recolectores o empresas pujan por realizarlas. Centraliza la contratación, coordinación y gestión de cada recogida.",
+  booklinks:
+    "Plataforma para crear y compartir colecciones de enlaces organizadas de forma simple y accesible. Convierte recursos dispersos en listados útiles y fáciles de consultar.",
+};
+function projectDescription(project: Item) {
+  return (
+    String(project.fields.description || "").trim() ||
+    defaultProjectDescriptions[project.title.trim().toLowerCase()] ||
+    "Añade una breve propuesta de valor para explicar en dos líneas qué hace este proyecto y por qué resulta útil."
+  );
+}
 function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "normal" | "small" }) {
   const logo = projectLogo(project.fields.site_url);
   return (
@@ -1386,8 +1403,7 @@ export default function Home() {
                   <div className="selected-project-copy">
                     <strong>{currentProject.title}</strong>
                     <p>
-                      {currentProject.fields.description ||
-                        "GOI Tree, experimentos y aprendizajes independientes."}
+                      {projectDescription(currentProject)}
                     </p>
                     {projectUrl(currentProject.fields.site_url) && (
                       <a
@@ -1652,7 +1668,7 @@ export default function Home() {
                       <span className="eyebrow">PROYECTO</span>
                       <h2>{p.title}</h2>
                       <p className="project-description">
-                        {p.fields.description || "Añade una breve propuesta de valor del proyecto."}
+                        {projectDescription(p)}
                       </p>
                     </button>
                   </div>
