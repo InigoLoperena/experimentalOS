@@ -277,7 +277,10 @@ function projectDomain(value: unknown) {
     return String(value || "");
   }
 }
-function projectLogo(value: unknown) {
+function projectLogo(value: unknown, title?: string) {
+  if (String(title || "").trim().toLowerCase() === "greenhunt store") {
+    return "/greenhunt-store-logo.png";
+  }
   const domain = projectDomain(value);
   return domain
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
@@ -301,7 +304,7 @@ function projectDescription(project: Item) {
   );
 }
 function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "normal" | "small" }) {
-  const logo = projectLogo(project.fields.site_url);
+  const logo = projectLogo(project.fields.site_url, project.title);
   return (
     <span className={"project-logo " + (size === "small" ? "small" : "")} aria-hidden="true">
       {logo ? <img src={logo} alt="" /> : <LayoutGrid size={size === "small" ? 20 : 26} />}
