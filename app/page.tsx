@@ -278,9 +278,15 @@ function projectDomain(value: unknown) {
   }
 }
 function projectLogo(value: unknown, title?: string) {
-  if (String(title || "").trim().toLowerCase() === "greenhunt store") {
-    return "/greenhunt-store-logo.png";
-  }
+  const key = String(title || "").trim().toLowerCase();
+  const projectLogos: Record<string, string> = {
+    greenhunt: "/project-logos/greenhunt.png",
+    "greenhunt store": "/project-logos/greenhunt.png",
+    booklinks: "/project-logos/booklinks.png",
+    greenroute: "/project-logos/greenroute.png",
+    smartjunk: "/project-logos/smartjunk.png",
+  };
+  if (projectLogos[key]) return projectLogos[key];
   const domain = projectDomain(value);
   return domain
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
