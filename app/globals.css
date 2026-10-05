@@ -285,9 +285,64 @@ nav button svg {
   gap: 8px;
   min-width: 240px;
 }
-.project-filter > span {
+.selected-project {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+.selected-project-copy {
+  min-width: 0;
+}
+.selected-project-copy strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.selected-project-copy p {
   color: var(--muted);
   font-size: 14px;
+  margin: 0 0 6px;
+  line-height: 1.45;
+}
+.project-logo {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  overflow: hidden;
+  color: var(--muted);
+}
+.project-logo.small {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  border-radius: 10px;
+}
+.project-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+.project-logo.small img {
+  padding: 6px;
+}
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--green);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.project-link:hover {
+  text-decoration: underline;
 }
 @media (max-width: 650px) {
   .project-filter {
@@ -297,6 +352,9 @@ nav button svg {
   }
   .project-filter label {
     min-width: 0;
+  }
+  .selected-project {
+    align-items: flex-start;
   }
 }
 .sidebar-bottom {
@@ -1185,11 +1243,27 @@ tbody tr:hover {
 .project-card {
   text-align: left;
 }
+.project-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.project-card-heading {
+  flex: 1;
+  min-width: 0;
+}
 .project-card h2 {
-  margin: 20px 0 9px;
+  margin: 5px 0 9px;
 }
 .project-card p {
   font-size: 14px;
+}
+.project-description {
+  line-height: 1.5;
+  min-height: 42px;
+}
+.project-card-link {
+  margin: 14px 0 4px 80px;
 }
 .project-foot {
   border-top: 1px solid var(--border);
