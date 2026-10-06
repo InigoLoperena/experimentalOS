@@ -32,6 +32,7 @@ import { RecordAttachments } from "./record-attachments";
 import { BrandIdentity } from "./brand-identity";
 import { TeamAccess } from "./team-access";
 import { BackupDialog, type BackupFormat } from "./backup-dialog";
+import { PostHogResults } from "./posthog-results";
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
 import { getPublicPreview, openTeamSpace } from "@/lib/internal-space";
@@ -193,6 +194,8 @@ const schemas: Record<Kind, Field[]> = {
     { key: "site_url", label: "Web del proyecto" },
     { key: "north_star", label: "North Star Metric" },
     { key: "analytics_url", label: "Enlace a Analytics" },
+    { key: "posthog_project_id", label: "ID del proyecto en PostHog" },
+    { key: "posthog_host", label: "Host de PostHog (ej. https://us.posthog.com)" },
     { key: "tasks_url", label: "Otro enlace 1" },
     { key: "meeting_notes_url", label: "Otro enlace 2" },
     { key: "other_url", label: "Otro enlace 3" },
@@ -2064,6 +2067,7 @@ export default function Home() {
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
+                <PostHogResults experiment={selected} project={currentProject} />
                 <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
                 {links}
                 <FieldDetails record={selected} fields={experimentSections.additional} />
