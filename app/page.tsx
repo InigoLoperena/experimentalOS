@@ -33,6 +33,7 @@ import { BrandIdentity } from "./brand-identity";
 import { TeamAccess } from "./team-access";
 import { BackupDialog, type BackupFormat } from "./backup-dialog";
 import { PostHogResults } from "./posthog-results";
+import { PostHogProjectPanel } from "./posthog-project-panel";
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
 import { getPublicPreview, openTeamSpace } from "@/lib/internal-space";
@@ -1717,6 +1718,14 @@ export default function Home() {
                         Editar proyecto
                       </Action>
                     )}
+                    <PostHogProjectPanel
+                      project={p}
+                      experiments={workspaceItems.filter((e) => e.kind === "experiment" && e.project_id === p.id)}
+                      workspaceId={workspace.id}
+                      userId={user?.id || null}
+                      editable={editable && !demo && !publicMode}
+                      onSynced={() => load()}
+                    />
                   </div>
                 </section>
               ))}
