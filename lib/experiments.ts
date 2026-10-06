@@ -11,6 +11,7 @@ export const experimentFields: {
   { key: "success_criteria", label: "Criterio de éxito", type: "textarea" },
   { key: "start", label: "Fecha de inicio", type: "date" },
   { key: "tags", label: "Etiquetas (separadas por comas)" },
+  { key: "posthog_experiment_id", label: "ID del experimento en PostHog" },
   { key: "impact", label: "Impacto (1–10)", type: "number" },
   { key: "confidence", label: "Confianza (1–10)", type: "number" },
   { key: "ease", label: "Facilidad (1–10)", type: "number" },
