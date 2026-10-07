@@ -912,7 +912,28 @@ export default function Home() {
     tell("Copia completa descargada");
   }
   const experiments = items.filter((i) => i.kind === "experiment");
-  const nsm = items.find((i) => i.kind === "north_star");
+  const storedNsm = items.find((i) => i.kind === "north_star");
+  const projectNorthStar = String(currentProject?.fields.north_star || "").trim();
+  const nsm = storedNsm || (currentProject && projectNorthStar ? {
+    id: `project-north-star-${currentProject.id}`,
+    workspace_id: currentProject.workspace_id,
+    project_id: currentProject.id,
+    kind: "north_star" as Kind,
+    parent_id: null,
+    related_id: null,
+    title: projectNorthStar,
+    owner_id: currentProject.owner_id,
+    fields: {
+      definition: projectNorthStar,
+      metric: projectNorthStar,
+      source: currentProject.fields.analytics_url || currentProject.fields.posthog_host || "",
+      frequency: "",
+    },
+    created_at: currentProject.created_at,
+    updated_at: currentProject.updated_at,
+    created_by: currentProject.created_by,
+    updated_by: currentProject.updated_by,
+  } as Item : undefined);
   const goals = items.filter((i) => i.kind === "goal");
   const visibleExperiments = experiments.filter((i) =>
     [
@@ -1506,7 +1527,7 @@ export default function Home() {
                 />
               </div>
               {nsm ? (
-                <button className="north-star" onClick={() => setSelected(nsm)}>
+                <button className="north-star" onClick={() => storedNsm ? setSelected(storedNsm) : setSelected(currentProject)}>
                   <div className="north-icon">
                     <Star size={28} />
                   </div>
