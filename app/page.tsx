@@ -998,7 +998,7 @@ export default function Home() {
         )}
         {editable && i.kind === "goal" && (
           <button className="add-node" onClick={() => create("goal", i.id)}>
-            <Plus size={14} /> Añadir sub-Goal
+            <Plus size={14} /> Añadir subobjetivo
           </button>
         )}
         {editable && ["goal", "opportunity", "idea"].includes(i.kind) && (
@@ -1409,7 +1409,7 @@ export default function Home() {
               </p>
             </div>
             {editable && createKind && (!projectScoped || currentProject) && (
-              view === "map" ? (
+              ["map", "goals", "opportunities", "ideas"].includes(view) ? (
                 <div className="create-control create-menu-wrap">
                   <Action className="primary" onClick={() => setShowCreateMenu(v => !v)}>
                     <Plus size={17} /> Crear
@@ -1568,23 +1568,23 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <h2>GOI Tree · {currentProject.title}</h2>
-                  <p>Goals · oportunidades · ideas · experimentos</p>
+                  <p>Objetivos · oportunidades · ideas · experimentos</p>
                 </div>
                 {editable && nsm && (
-                  <Action onClick={() => create("goal", nsm.id)}>
-                    <Plus size={16} /> Nuevo Goal
+                  <Action onClick={() => create("goal")}>
+                    <Plus size={16} /> Nuevo Objetivo
                   </Action>
                 )}
               </div>
               <div className="goi-grid">
                 {goals
-                  .filter((g) => g.parent_id === nsm?.id)
+                  .filter((g) => !g.parent_id || (storedNsm && g.parent_id === storedNsm.id))
                   .map((g) => (
                     <section className="goal-column" key={g.id}>
                       {itemCard(g)}
                       <details open className="goal-content">
                         <summary>
-                          <ChevronRight size={14} /> Oportunidades y sub-Goals
+                          <ChevronRight size={14} /> Oportunidades y subobjetivos
                         </summary>
                         {items.filter((i) => i.parent_id === g.id).map(branch)}
                         {editable && (
