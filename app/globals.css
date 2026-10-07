@@ -2232,3 +2232,13 @@ nav button,
 .posthog-experiment-list a{display:inline-flex;align-items:center;gap:5px;font-size:13px}
 .posthog-sync-state{font-size:12px;font-weight:700;white-space:nowrap}
 @media(max-width:700px){.posthog-project-stats{grid-template-columns:1fr}.posthog-experiment-list article{grid-template-columns:1fr}.posthog-project-modal{padding:18px}}
+
+
+/* GOI Tree navigation and creation */
+.nav-subsections{display:grid;gap:2px;margin:-2px 0 5px 31px;padding-left:10px;border-left:1px solid var(--border,#e5e7eb)}
+.nav-subsections button{font-size:12px;padding:7px 10px;min-height:auto;text-align:left;opacity:.82}
+.nav-subsections button.active{opacity:1;font-weight:700}
+.create-menu-wrap{position:relative}
+.create-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:190px;padding:7px;background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;box-shadow:0 14px 40px rgba(15,23,42,.14);display:grid;gap:3px}
+.create-menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer}
+.create-menu button:hover{background:var(--surface-raised,#f8fafc)}
