@@ -609,6 +609,20 @@ nav button svg {
 .top-status {
   font-size: 12px;
 }
+.top-status.public-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 2px solid var(--blue);
+  border-radius: 9px;
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+}
 .icon-button {
   display: inline-grid;
   place-items: center;
@@ -716,6 +730,50 @@ main {
   border-color: var(--lime);
   background: var(--surface-raised);
 }
+.public-view-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(440px, 42vw);
+  min-height: 88px;
+  padding: 11px 13px;
+  border: 1px solid #425b7a;
+  border-left: 4px solid var(--blue);
+  border-radius: 9px;
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  box-shadow: 0 2px 8px #00000018;
+}
+.public-view-banner > div {
+  min-width: 0;
+}
+.public-view-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+  color: var(--blue-text);
+}
+.public-view-banner p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--blue-text);
+}
+.public-view-banner button {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid #55769d;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--blue-text);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.public-view-banner button:hover {
+  background: #ffffff12;
+}
 @media (max-width: 1100px) {
   .page-heading {
     align-items: flex-start;
@@ -724,7 +782,8 @@ main {
     flex-direction: column;
     align-items: flex-end;
   }
-  .experimental-book-banner {
+  .experimental-book-banner,
+  .public-view-banner {
     width: min(390px, 52vw);
   }
 }
@@ -736,7 +795,8 @@ main {
     width: 100%;
     align-items: stretch;
   }
-  .experimental-book-banner {
+  .experimental-book-banner,
+  .public-view-banner {
     width: 100%;
   }
   .create-control {
