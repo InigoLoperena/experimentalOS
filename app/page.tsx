@@ -110,23 +110,12 @@ const schemas: Record<Kind, Field[]> = {
   goal: [],
   opportunity: [
     {
-      key: "opportunity_type",
-      label: "Tipo",
-      type: "select",
-      options: ["Problema", "Oportunidad"],
-    },
-    {
       key: "evidence",
-      label: "Evidencia del problema o la oportunidad",
+      label: "Evidencia de la oportunidad",
       type: "textarea",
       required: true,
     },
     { key: "source", label: "Fuente / enlace de la evidencia" },
-    {
-      key: "stage",
-      label: "Etapa del Product Hackers Canvas (editable)",
-      required: true,
-    },
     {
       key: "focus",
       label: "Oportunidad prioritaria (máximo 5)",
@@ -140,7 +129,6 @@ const schemas: Record<Kind, Field[]> = {
       type: "textarea",
       required: true,
     },
-    { key: "stage", label: "Etapa del Product Hackers Canvas", required: true },
     { key: "metric", label: "KPI al que contribuye", required: true },
     {
       key: "experimental_focus",
@@ -740,7 +728,6 @@ export default function Home() {
       kind === "idea"
         ? {
             metric: goal?.fields.metric || "",
-            stage: parent?.fields.stage || goal?.fields.stage || "",
             evidence: parent?.fields.evidence || "",
           }
         : kind === "experiment"
@@ -2651,9 +2638,9 @@ function Method() {
         </p>
         <p>
           Documenta las oportunidades y destaca un máximo de cinco por proyecto.
-          Añade ideas concretas, relacionadas con una métrica y una etapa del
-          Product Hackers Canvas. Priorízalas con ICE. Una idea puede dar lugar
-          a varios experimentos, cada uno con su propia hipótesis.
+          Añade ideas concretas relacionadas con una métrica y priorízalas con
+          ICE. Una idea puede dar lugar a varios experimentos, cada uno con su
+          propia hipótesis.
         </p>
         <p>
           Usa nombres claros y descriptivos. Abre o pliega las ramas para
