@@ -368,9 +368,15 @@ export default function Home() {
         ? ["learning"]
         : view === "experiments"
           ? ["experiment"]
-          : view === "map"
-            ? ["north_star", "goal", "opportunity", "idea", "experiment"]
-            : [];
+          : view === "goals"
+            ? ["goal"]
+            : view === "opportunities"
+              ? ["opportunity"]
+              : view === "ideas"
+                ? ["idea"]
+                : view === "map"
+                  ? ["north_star", "goal", "opportunity", "idea", "experiment"]
+                  : [];
   const createKind = availableKinds[0];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
@@ -689,13 +695,39 @@ export default function Home() {
       );
       return;
     }
+
+    let resolvedParentId = parent_id;
+    if (kind === "goal") {
+      const storedNorthStar = items.find((i) => i.kind === "north_star");
+      const projectNorthStar = String(currentProject?.fields.north_star || "").trim();
+      if (!storedNorthStar && !projectNorthStar) {
+        tell("Define primero la North Star Metric del proyecto antes de crear un objetivo.");
+        return;
+      }
+      resolvedParentId = storedNorthStar?.id || null;
+    }
+
+    if ((kind === "opportunity" || kind === "idea") && !resolvedParentId) {
+      const requiredParentKind: Kind = kind === "opportunity" ? "goal" : "opportunity";
+      const candidates = items.filter((i) => i.kind === requiredParentKind);
+      if (!candidates.length) {
+        tell(
+          kind === "opportunity"
+            ? "Crea primero un objetivo en este proyecto antes de crear una oportunidad."
+            : "Crea primero una oportunidad en este proyecto antes de crear una idea.",
+        );
+        return;
+      }
+      if (candidates.length === 1) resolvedParentId = candidates[0].id;
+    }
+
     setError("");
     const defaults = Object.fromEntries(
       schemas[kind]
         .filter((f) => f.type === "select")
         .map((f) => [f.key, f.options?.[0] || ""]),
     );
-    const parent = items.find((item) => item.id === parent_id);
+    const parent = items.find((item) => item.id === resolvedParentId);
     const goal = parent
       ? ancestors(parent, items)
           .slice()
@@ -725,7 +757,7 @@ export default function Home() {
       workspace_id: workspace.id,
       project_id: kind === "project" ? null : currentProject!.id,
       kind,
-      parent_id,
+      parent_id: resolvedParentId,
       related_id: null,
       title: "",
       owner_id: demo ? "demo-user" : user?.id || null,
@@ -995,11 +1027,6 @@ export default function Home() {
             </summary>
             <div className="branch-children">{children.map(branch)}</div>
           </details>
-        )}
-        {editable && i.kind === "goal" && (
-          <button className="add-node" onClick={() => create("goal", i.id)}>
-            <Plus size={14} /> Añadir subobjetivo
-          </button>
         )}
         {editable && ["goal", "opportunity", "idea"].includes(i.kind) && (
           <button
@@ -1409,7 +1436,7 @@ export default function Home() {
               </p>
             </div>
             {editable && createKind && (!projectScoped || currentProject) && (
-              ["map", "goals", "opportunities", "ideas"].includes(view) ? (
+              view === "map" ? (
                 <div className="create-control create-menu-wrap">
                   <Action className="primary" onClick={() => setShowCreateMenu(v => !v)}>
                     <Plus size={17} /> Crear
@@ -2616,10 +2643,9 @@ function Method() {
           ))}
         </div>
         <p>
-          La North Star mide el valor que recibe el usuario. Los Goals son
-          métricas de entrada que pueden moverla; puedes dividirlos en
-          sub-Goals. Las oportunidades describen problemas reales o mejoras que
-          todavía no se están aprovechando.
+          La North Star mide el valor que recibe el usuario. Los Objetivos son
+          métricas o resultados que contribuyen a moverla. Las oportunidades
+          describen problemas reales o mejoras que todavía no se están aprovechando.
         </p>
         <p>
           Documenta las oportunidades y destaca un máximo de cinco por proyecto.
