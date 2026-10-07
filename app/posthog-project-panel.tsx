@@ -95,8 +95,24 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
             created++;
           }
         }
+        const remoteIds = new Set(list.map(idOf).filter(Boolean));
+        const stale = experiments.filter(e => {
+          const linkedId = String(e.fields.posthog_experiment_id || "").trim();
+          return linkedId && !remoteIds.has(linkedId);
+        });
+        let removed = 0;
+        for (const local of stale) {
+          const r = await supabase.from("records").delete().eq("id", local.id);
+          if (r.error) throw r.error;
+          removed++;
+        }
         await onSynced();
-        setMessage(created ? `${created} experimento${created === 1 ? "" : "s"} importado${created === 1 ? "" : "s"} de PostHog.` : "Experimental OS está sincronizado con PostHog.");
+        const changes = [
+          created ? `${created} importado${created === 1 ? "" : "s"}` : "",
+          updated ? `${updated} actualizado${updated === 1 ? "" : "s"}` : "",
+          removed ? `${removed} eliminado${removed === 1 ? "" : "s"} porque ya no existe${removed === 1 ? "" : "n"} en PostHog` : "",
+        ].filter(Boolean);
+        setMessage(changes.length ? `Sincronización completada: ${changes.join(", ")}.` : "Experimental OS está sincronizado con PostHog.");
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Error al consultar PostHog.");
