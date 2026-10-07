@@ -854,6 +854,38 @@ main {
 .north-value .meter span {
   background: var(--lime);
 }
+.north-star.compact {
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 9px;
+  box-shadow: inset 3px 0 var(--lime);
+}
+.north-star.compact .north-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+}
+.north-star.compact .north-content h2 {
+  font-size: 18px;
+  margin: 3px 0 4px;
+}
+.north-star.compact .north-content p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.north-star-empty {
+  cursor: default;
+}
+.project-north-star-banner {
+  margin-bottom: 24px;
+}
+.project-card-north-star {
+  margin: 16px 0 14px;
+}
+.project-card-north-star .north-star {
+  margin: 0;
+}
 .section-heading {
   display: flex;
   align-items: center;
