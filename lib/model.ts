@@ -82,7 +82,7 @@ export function validate(
 ): string | null {
   if (!item.title.trim()) return "Escribe un nombre.";
   if (
-    !["experiment", "learning"].includes(item.kind) &&
+    !["experiment", "learning", "goal"].includes(item.kind) &&
     parents[item.kind] &&
     !item.parent_id
   )
