@@ -209,9 +209,7 @@ function ExperimentalBookBanner() {
           <a href={experimentalBookAmazon} target="_blank" rel="noreferrer">
             Amazon <ArrowUpRight size={13} />
           </a>
-          <a href={experimentalBookPdf} target="_blank" rel="noreferrer">
-            PDF <ArrowUpRight size={13} />
-          </a>
+          {/* PDF temporalmente oculto. Mantener experimentalBookPdf para reactivarlo exactamente igual. */}
         </div>
       </div>
     </aside>
