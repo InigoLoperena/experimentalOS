@@ -2230,9 +2230,7 @@ export default function Home() {
               )}
               {draft.kind !== "experiment" && draft.kind !== "goal" && parents[draft.kind] && (
                 <label>
-                  {draft.kind === "goal"
-                    ? "North Star o Goal padre"
-                    : kinds[parents[draft.kind]!] + " al que pertenece"}
+                  {kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
                     required={draft.kind !== "learning"}
                     value={draft.parent_id || ""}
@@ -2244,8 +2242,7 @@ export default function Home() {
                     {items
                       .filter(
                         (i) =>
-                          (i.kind === parents[draft.kind] ||
-                            (draft.kind === "goal" && i.kind === "goal")) &&
+                          i.kind === parents[draft.kind] &&
                           i.id !== draft.id &&
                           !ancestors(i, items).some((a) => a.id === draft.id),
                       )
