@@ -704,6 +704,8 @@ export default function Home() {
         tell("Define primero la North Star Metric del proyecto antes de crear un objetivo.");
         return;
       }
+      // The database hierarchy requires a real north_star record as the goal parent.
+      // Projects created with the newer project-level North Star field may not have one yet.
       resolvedParentId = storedNorthStar?.id || null;
     }
 
