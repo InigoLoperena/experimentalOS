@@ -339,7 +339,6 @@ export default function Home() {
   const [attachmentsBusy, setAttachmentsBusy] = useState(false);
   const [demoAttachments, setDemoAttachments] = useState<Record<string, Attachment[]>>({});
   const [publicAttachments, setPublicAttachments] = useState<Attachment[]>([]);
-  const [newKind, setNewKind] = useState<Kind>("experiment");
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [inviteRole, setInviteRole] = useState("editor");
   const [inviteUrl, setInviteUrl] = useState("");
@@ -372,9 +371,7 @@ export default function Home() {
           : view === "map"
             ? ["north_star", "goal", "opportunity", "idea", "experiment"]
             : [];
-  const createKind = availableKinds.includes(newKind)
-    ? newKind
-    : availableKinds[0];
+  const createKind = availableKinds[0];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const loadVersion = useRef(0);
