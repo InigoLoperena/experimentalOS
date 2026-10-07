@@ -203,11 +203,11 @@ const schemas: Record<Kind, Field[]> = {
   ],
 };
 const nav: { id: View; label: string; icon: typeof Star }[] = [
-  { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
+  { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Aprendizajes", icon: Lightbulb },
-  { id: "team", label: "Equipo", icon: Users },
   { id: "map", label: "GOI Tree", icon: GitBranch },
+  { id: "team", label: "Equipo", icon: Users },
   { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
 ];
 function IconFor({ kind }: { kind: Kind }) {
@@ -322,7 +322,7 @@ function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "norm
   );
 }
 export default function Home() {
-  const [view, setView] = useState<View>("map");
+  const [view, setView] = useState<View>("projects");
   const [allItems, setItems] = useState<Item[]>([]);
   const [projectId, setProjectId] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
