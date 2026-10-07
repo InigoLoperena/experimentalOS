@@ -107,14 +107,7 @@ const schemas: Record<Kind, Field[]> = {
     },
     { key: "source", label: "Fuente de datos" },
   ],
-  goal: [
-    ...numberFields,
-    {
-      key: "stage",
-      label: "Etapa del Product Hackers Canvas (editable)",
-      required: true,
-    },
-  ],
+  goal: [],
   opportunity: [
     {
       key: "opportunity_type",
@@ -2113,7 +2106,7 @@ export default function Home() {
                 Editar ficha
               </Action>
             )}
-            {editable && !demo && !publicMode && ["project", "experiment", "learning"].includes(selected.kind) && (
+            {editable && !demo && !publicMode && ["project", "experiment", "learning", "goal"].includes(selected.kind) && (
               <Action
                 disabled={attachmentsBusy}
                 onClick={() => void deleteRecord(selected)}
@@ -2217,7 +2210,7 @@ export default function Home() {
                   </select>
                 </label>
               )}
-              {draft.kind !== "experiment" && parents[draft.kind] && (
+              {draft.kind !== "experiment" && draft.kind !== "goal" && parents[draft.kind] && (
                 <label>
                   {draft.kind === "goal"
                     ? "North Star o Goal padre"
