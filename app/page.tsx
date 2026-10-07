@@ -855,6 +855,38 @@ export default function Home() {
     }
     setSaving(false);
   }
+  async function deleteRecord(record: Item) {
+    if (!editable || demo || publicMode) return;
+    const label = record.kind === "project" ? "proyecto" : record.kind === "experiment" ? "experimento" : "aprendizaje";
+    const extra = record.kind === "project" ? " También se eliminarán todos sus registros asociados." : "";
+    if (!window.confirm(`¿Eliminar el ${label} «${record.title}»?${extra} Esta acción no se puede deshacer.`)) return;
+    setError("");
+    if (record.kind === "project") {
+      const children = workspaceItems.filter(i => i.project_id === record.id);
+      if (children.length) {
+        const childIds = children.map(i => i.id);
+        const attachments = await supabase!.from("attachments").select("storage_path").in("record_id", childIds);
+        if (!attachments.error) {
+          const paths = (attachments.data || []).map((a: any) => a.storage_path).filter(Boolean);
+          if (paths.length) await supabase!.storage.from(attachmentBucket).remove(paths);
+        }
+        const delChildren = await supabase!.from("records").delete().eq("project_id", record.id);
+        if (delChildren.error) { setError(delChildren.error.message); return; }
+      }
+    }
+    const ownAttachments = await supabase!.from("attachments").select("storage_path").eq("record_id", record.id);
+    if (!ownAttachments.error) {
+      const paths = (ownAttachments.data || []).map((a: any) => a.storage_path).filter(Boolean);
+      if (paths.length) await supabase!.storage.from(attachmentBucket).remove(paths);
+    }
+    const result = await supabase!.from("records").delete().eq("id", record.id);
+    if (result.error) { setError(result.error.message); return; }
+    setSelected(null);
+    if (record.kind === "project" && projectId === record.id) setProjectId("");
+    tell("Eliminado correctamente");
+    await load();
+  }
+
   async function exportData(format: BackupFormat, originals: boolean, progress: (message: string) => void) {
     if (!workspace) throw new Error("Abre el equipo antes de exportar.");
     const snapshot: Backup = demo ? {
@@ -2058,6 +2090,14 @@ export default function Home() {
                 }}
               >
                 Editar ficha
+              </Action>
+            )}
+            {editable && !demo && !publicMode && ["project", "experiment", "learning"].includes(selected.kind) && (
+              <Action
+                disabled={attachmentsBusy}
+                onClick={() => void deleteRecord(selected)}
+              >
+                Eliminar
               </Action>
             )}
             {selected.kind === "experiment" && editable && (
