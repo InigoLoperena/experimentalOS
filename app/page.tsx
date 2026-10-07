@@ -52,7 +52,7 @@ import {
   score,
   validate,
 } from "@/lib/model";
-type View = "experiments" | "projects" | "learning" | "team" | "map" | "method";
+type View = "experiments" | "projects" | "learning" | "team" | "map" | "goals" | "opportunities" | "ideas" | "method";
 type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
@@ -340,6 +340,7 @@ export default function Home() {
   const [demoAttachments, setDemoAttachments] = useState<Record<string, Attachment[]>>({});
   const [publicAttachments, setPublicAttachments] = useState<Attachment[]>([]);
   const [newKind, setNewKind] = useState<Kind>("experiment");
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [inviteRole, setInviteRole] = useState("editor");
   const [inviteUrl, setInviteUrl] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -360,7 +361,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "experiments", "learning"].includes(view);
+  const projectScoped = ["map", "goals", "opportunities", "ideas", "experiments", "learning"].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -1277,20 +1278,28 @@ export default function Home() {
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav>
           {nav.map(({ id, label, icon: I }) => (
-            <button
-              key={id}
-              className={view === id ? "active" : ""}
-              onClick={() => {
-                setView(id);
-                setFilter("");
-              }}
-            >
-              <I size={18} />
-              {label}
-              {id === "experiments" && (
-                <span className="nav-count">{experiments.length}</span>
+            <Fragment key={id}>
+              <button
+                className={view === id ? "active" : ""}
+                onClick={() => {
+                  setView(id);
+                  setFilter("");
+                }}
+              >
+                <I size={18} />
+                {label}
+                {id === "experiments" && (
+                  <span className="nav-count">{experiments.length}</span>
+                )}
+              </button>
+              {id === "map" && (
+                <div className="nav-subsections">
+                  <button className={view === "goals" ? "active" : ""} onClick={() => setView("goals")}>Objetivos</button>
+                  <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>Oportunidades</button>
+                  <button className={view === "ideas" ? "active" : ""} onClick={() => setView("ideas")}>Ideas</button>
+                </div>
               )}
-            </button>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-bottom">
@@ -1403,22 +1412,26 @@ export default function Home() {
               </p>
             </div>
             {editable && createKind && (!projectScoped || currentProject) && (
-              <div className="create-control">
-                <select
-                  aria-label="Tipo de nuevo registro"
-                  value={createKind}
-                  onChange={(e) => setNewKind(e.target.value as Kind)}
-                >
-                  {availableKinds.map((k) => (
-                    <option key={k} value={k}>
-                      {kinds[k]}
-                    </option>
-                  ))}
-                </select>
-                <Action className="primary" onClick={() => create(createKind)}>
-                  <Plus size={17} /> Crear
-                </Action>
-              </div>
+              view === "map" ? (
+                <div className="create-control create-menu-wrap">
+                  <Action className="primary" onClick={() => setShowCreateMenu(v => !v)}>
+                    <Plus size={17} /> Crear
+                  </Action>
+                  {showCreateMenu && <div className="create-menu">
+                    {(["goal", "opportunity", "idea", "experiment"] as Kind[]).map(k => (
+                      <button key={k} onClick={() => { setShowCreateMenu(false); create(k); }}>
+                        {kinds[k]}
+                      </button>
+                    ))}
+                  </div>}
+                </div>
+              ) : (
+                <div className="create-control">
+                  <Action className="primary" onClick={() => create(createKind)}>
+                    <Plus size={17} /> Crear
+                  </Action>
+                </div>
+              )
             )}
           </div>
           {error && !draft && (
@@ -1650,6 +1663,14 @@ export default function Home() {
                 <span>Haz clic en un elemento para ver su ficha</span>
               </div>
             </>
+          )}
+          {(["goals", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
+            <div className="cards-grid">
+              {items.filter(i => i.kind === (view === "goals" ? "goal" : view === "opportunities" ? "opportunity" : "idea")).map(itemCard)}
+              {!items.some(i => i.kind === (view === "goals" ? "goal" : view === "opportunities" ? "opportunity" : "idea")) && (
+                <Empty title={view === "goals" ? "Sin objetivos" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />
+              )}
+            </div>
           )}
           {view === "experiments" && currentProject && (
             <>
