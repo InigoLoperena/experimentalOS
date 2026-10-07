@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, BarChart3, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
@@ -48,6 +48,8 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
   const projectId = String(project.fields.posthog_project_id || "").trim();
   const host = String(project.fields.posthog_host || "https://us.posthog.com").replace(/\/+$/, "");
   const localByRemote = useMemo(() => new Map(experiments.map(e => [String(e.fields.posthog_experiment_id || ""), e])), [experiments]);
+  const experimentsRef = useRef(experiments);
+  useEffect(() => { experimentsRef.current = experiments; }, [experiments]);
 
   async function fetchPostHog(sync = true) {
     if (!supabase || !projectId) return;
@@ -65,12 +67,12 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
       if (!response.ok) throw new Error(payload.error || "No se ha podido consultar PostHog.");
       const list = listFrom(payload);
       setRemote(list);
-      if (sync && editable && list.length) {
+      if (sync && editable) {
         let created = 0, updated = 0;
         for (const ph of list) {
           const externalId = idOf(ph);
           if (!externalId) continue;
-          const existing = localByRemote.get(externalId);
+          const existing = experimentsRef.current.find(e => String(e.fields.posthog_experiment_id || "").trim() === externalId);
           const nextFields = {
             ...(existing?.fields || {}),
             posthog_experiment_id: externalId,
@@ -96,7 +98,7 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
           }
         }
         const remoteIds = new Set(list.map(idOf).filter(Boolean));
-        const stale = experiments.filter(e => {
+        const stale = experimentsRef.current.filter(e => {
           const linkedId = String(e.fields.posthog_experiment_id || "").trim();
           return linkedId && !remoteIds.has(linkedId);
         });
