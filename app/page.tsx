@@ -192,6 +192,32 @@ const schemas: Record<Kind, Field[]> = {
     { key: "other_url", label: "Otro enlace 3" },
   ],
 };
+const experimentalBookCover = "data:image/jpeg;base64,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";
+const experimentalBookAmazon = "https://www.amazon.es/gp/product/B0GXPMFM7P/ref=kinw_myk_ro_title";
+const experimentalBookPdf = "https://drive.google.com/file/d/1dpZhjPz76bqfH8lcxpw9CppshkaDusxK/view?usp=sharing";
+
+function ExperimentalBookBanner() {
+  return (
+    <aside className="experimental-book-banner">
+      <img src={experimentalBookCover} alt="Portada de La Empresa Experimental" />
+      <div className="experimental-book-copy">
+        <p>
+          Experimental Operative System está basado en la metodología del libro
+          <strong> La Empresa Experimental</strong> de Product Hackers.
+        </p>
+        <div className="experimental-book-links">
+          <a href={experimentalBookAmazon} target="_blank" rel="noreferrer">
+            Amazon <ArrowUpRight size={13} />
+          </a>
+          <a href={experimentalBookPdf} target="_blank" rel="noreferrer">
+            PDF <ArrowUpRight size={13} />
+          </a>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
@@ -1597,28 +1623,31 @@ export default function Home() {
                           : "Una guía sencilla para empezar a trabajar."}
               </p>
             </div>
-            {editable && createKind && (!projectScoped || currentProject) && (
-              view === "map" ? (
-                <div className="create-control create-menu-wrap">
-                  <Action className="primary" onClick={() => setShowCreateMenu(v => !v)}>
-                    <Plus size={17} /> Crear
-                  </Action>
-                  {showCreateMenu && <div className="create-menu">
-                    {(["goal", "opportunity", "idea", "experiment"] as Kind[]).map(k => (
-                      <button key={k} onClick={() => { setShowCreateMenu(false); create(k); }}>
-                        {kinds[k]}
-                      </button>
-                    ))}
-                  </div>}
-                </div>
-              ) : (
-                <div className="create-control">
-                  <Action className="primary" onClick={() => create(createKind)}>
-                    <Plus size={17} /> Crear
-                  </Action>
-                </div>
-              )
-            )}
+            <div className="page-heading-actions">
+              {(view === "projects" || view === "map") && <ExperimentalBookBanner />}
+              {editable && createKind && (!projectScoped || currentProject) && (
+                view === "map" ? (
+                  <div className="create-control create-menu-wrap">
+                    <Action className="primary" onClick={() => setShowCreateMenu(v => !v)}>
+                      <Plus size={17} /> Crear
+                    </Action>
+                    {showCreateMenu && <div className="create-menu">
+                      {(["goal", "opportunity", "idea", "experiment"] as Kind[]).map(k => (
+                        <button key={k} onClick={() => { setShowCreateMenu(false); create(k); }}>
+                          {kinds[k]}
+                        </button>
+                      ))}
+                    </div>}
+                  </div>
+                ) : (
+                  <div className="create-control">
+                    <Action className="primary" onClick={() => create(createKind)}>
+                      <Plus size={17} /> Crear
+                    </Action>
+                  </div>
+                )
+              )}
+            </div>
           </div>
           {error && !draft && (
             <div role="alert" className="error">
