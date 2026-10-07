@@ -66,6 +66,15 @@ type InvitationPreview = {
   role: "editor" | "viewer";
   expires_at: string;
 };
+type RecordComment = {
+  id: string;
+  workspace_id: string;
+  record_id: string;
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
 type Field = {
   key: string;
   label: string;
@@ -323,6 +332,10 @@ export default function Home() {
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
+  const [recordComments, setRecordComments] = useState<RecordComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentBusy, setCommentBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [attachmentsBusy, setAttachmentsBusy] = useState(false);
   const [demoAttachments, setDemoAttachments] = useState<Record<string, Attachment[]>>({});
@@ -665,6 +678,85 @@ export default function Home() {
     if (selected) detail.current?.showModal();
     else detail.current?.close();
   }, [selected]);
+  useEffect(() => {
+    setCommentText("");
+    setSelectedHistory([]);
+    setRecordComments([]);
+    if (!selected || !["goal", "opportunity", "idea"].includes(selected.kind) || publicMode) return;
+    if (demo) {
+      setSelectedHistory(activity.filter((entry) => entry.record_id === selected.id));
+      return;
+    }
+    if (!supabase) return;
+    let active = true;
+    void Promise.all([
+      supabase
+        .from("audit_log")
+        .select("id,actor_id,actor_name,action,record_id,title,created_at")
+        .eq("workspace_id", selected.workspace_id)
+        .eq("record_id", selected.id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("record_comments")
+        .select("id,workspace_id,record_id,author_id,author_name,body,created_at")
+        .eq("workspace_id", selected.workspace_id)
+        .eq("record_id", selected.id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]).then(([historyResult, commentsResult]) => {
+      if (!active) return;
+      if (!historyResult.error) setSelectedHistory((historyResult.data || []) as Activity[]);
+      if (!commentsResult.error) setRecordComments((commentsResult.data || []) as RecordComment[]);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selected?.id, selected?.kind, demo, publicMode]);
+  async function addRecordComment() {
+    if (!selected || !commentText.trim() || commentBusy || publicMode) return;
+    const body = commentText.trim();
+    setCommentBusy(true);
+    if (demo) {
+      setRecordComments((prev) => [
+        {
+          id: crypto.randomUUID(),
+          workspace_id: selected.workspace_id,
+          record_id: selected.id,
+          author_id: "demo-user",
+          author_name: profile.name,
+          body,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setCommentText("");
+      setCommentBusy(false);
+      return;
+    }
+    if (!supabase || !user) {
+      setCommentBusy(false);
+      return;
+    }
+    const result = await supabase
+      .from("record_comments")
+      .insert({
+        workspace_id: selected.workspace_id,
+        record_id: selected.id,
+        author_id: user.id,
+        author_name: profile.name,
+        body,
+      })
+      .select("id,workspace_id,record_id,author_id,author_name,body,created_at")
+      .single();
+    if (result.error) {
+      setError(result.error.message);
+    } else if (result.data) {
+      setRecordComments((prev) => [result.data as RecordComment, ...prev]);
+      setCommentText("");
+    }
+    setCommentBusy(false);
+  }
   function create(kind: Kind, parent_id: string | null = null) {
     if (!workspace) return;
     if (!demo && !schemaReady) {
@@ -749,7 +841,7 @@ export default function Home() {
       parent_id: resolvedParentId,
       related_id: null,
       title: "",
-      owner_id: demo ? "demo-user" : user?.id || null,
+      owner_id: null,
       fields: {
         ...defaults,
         ...contextFields,
@@ -972,7 +1064,12 @@ export default function Home() {
           )}
         </div>
         <strong>{i.title}</strong>
-        {["goal", "kr"].includes(i.kind) && (
+        {["goal", "opportunity", "idea"].includes(i.kind) && (
+          <span className="small record-owner">
+            Responsable: {i.owner_id ? author(i.owner_id) : "Sin asignar"}
+          </span>
+        )}
+        {i.kind === "kr" && (
           <>
             <div className="row small">
               <span>
@@ -2171,6 +2268,85 @@ export default function Home() {
                 {files}
               </> : <><FieldDetails record={selected} fields={schemas[selected.kind]} />{links}{files}</>}
             </RecordAttachments> : <FieldDetails record={selected} fields={schemas[selected.kind]} />}
+            {["goal", "opportunity", "idea"].includes(selected.kind) && !publicMode && (
+              <section className="record-activity">
+                <div className="record-activity-head">
+                  <div>
+                    <h3>Actividad y comentarios</h3>
+                    <p>Queda registrado quién crea o modifica esta ficha.</p>
+                  </div>
+                </div>
+                {editable && (
+                  <form
+                    className="comment-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void addRecordComment();
+                    }}
+                  >
+                    <textarea
+                      aria-label="Añadir comentario"
+                      placeholder="Escribe un comentario…"
+                      rows={3}
+                      maxLength={5000}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      className="btn primary"
+                      disabled={commentBusy || !commentText.trim()}
+                    >
+                      {commentBusy ? "Publicando…" : "Comentar"}
+                    </button>
+                  </form>
+                )}
+                <div className="activity-feed">
+                  {[
+                    ...selectedHistory.map((entry) => ({
+                      id: "history-" + entry.id,
+                      type: "history" as const,
+                      created_at: entry.created_at,
+                      actor: entry.actor_name || author(entry.actor_id),
+                      text:
+                        entry.action === "insert"
+                          ? "creó la ficha"
+                          : entry.action === "update"
+                            ? "modificó la ficha"
+                            : entry.action,
+                    })),
+                    ...recordComments.map((comment) => ({
+                      id: "comment-" + comment.id,
+                      type: "comment" as const,
+                      created_at: comment.created_at,
+                      actor: comment.author_name || author(comment.author_id),
+                      text: comment.body,
+                    })),
+                  ]
+                    .sort(
+                      (a, b) =>
+                        new Date(b.created_at).getTime() -
+                        new Date(a.created_at).getTime(),
+                    )
+                    .map((entry) => (
+                      <div className={"activity-entry " + entry.type} key={entry.id}>
+                        <div className="activity-entry-meta">
+                          <strong>{entry.actor}</strong>
+                          <span>
+                            {new Date(entry.created_at).toLocaleString("es")}
+                          </span>
+                        </div>
+                        <p>
+                          {entry.type === "history" ? entry.text : entry.text}
+                        </p>
+                      </div>
+                    ))}
+                  {!selectedHistory.length && !recordComments.length && (
+                    <p className="small">Todavía no hay actividad adicional.</p>
+                  )}
+                </div>
+              </section>
+            )}
             <div className="detail-audit">
               Creado por{" "}
               {selected.created_by_name || author(selected.created_by)} ·{" "}
