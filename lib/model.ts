@@ -44,7 +44,7 @@ export type Activity = {
 };
 export const kinds: Record<Kind, string> = {
   north_star: "North Star",
-  goal: "Goal",
+  goal: "Objetivo",
   opportunity: "Oportunidad",
   idea: "Idea",
   experiment: "Experimento",
