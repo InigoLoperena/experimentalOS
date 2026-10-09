@@ -33,15 +33,13 @@ export async function addLinkAttachment(recordId: string, workspaceId: string, l
   if (r.error) throw failure(r.error);
   return r.data as Attachment;
 }
-export async function removeAttachment(attachment: Attachment) {
-  if (attachment.storage_path) {
-    const r = await supabase!.storage.from(attachmentBucket).remove([attachment.storage_path]);
-    if (r.error) throw failure(r.error);
-  }
-  const r = await supabase!.from("record_attachments").delete().eq("id", attachment.id).select("id");
+export async function removeAttachment(attachment: Attachment, client = supabase!) {
+  const r = await client.from("record_attachments").delete().eq("id", attachment.id).eq("record_id", attachment.record_id).select("id");
   if (r.error) throw failure(r.error);
   if (!r.data?.length) throw new Error("No tienes permiso para retirar este adjunto. Actualiza la ficha.");
-  await cleanupAttachments();
+  // The database trigger queues cleanup only after a successful metadata deletion.
+  // A temporary Storage failure must not make the UI retain an already removed attachment.
+  await cleanupAttachments(client).catch(() => {});
 }
 // Insert the replacement before retiring the original; failed writes keep the old link.
 // This uses the existing insert/delete policies without adding UPDATE privileges.
@@ -63,18 +61,18 @@ export async function signedAttachmentUrl(path: string) {
   if (r.error) throw failure(r.error);
   return r.data.signedUrl;
 }
-export async function cleanupAttachments() {
-  if (!supabase) return;
-  const queued = await supabase.from("attachment_deletions").select("id,storage_path").limit(100);
+export async function cleanupAttachments(client = supabase) {
+  if (!client) return;
+  const queued = await client.from("attachment_deletions").select("id,storage_path").limit(100);
   // La aplicación sigue funcionando mientras se activa la actualización.
   if (queued.error) {
     if (["42P01", "PGRST205"].includes(queued.error.code)) return;
     throw failure(queued.error);
   }
   if (!queued.data?.length) return;
-  const removed = await supabase.storage.from(attachmentBucket).remove(queued.data.map(row => row.storage_path));
+  const removed = await client.storage.from(attachmentBucket).remove(queued.data.map(row => row.storage_path));
   if (removed.error) throw failure(removed.error);
-  const cleared = await supabase.from("attachment_deletions").delete().in("id", queued.data.map(row => row.id));
+  const cleared = await client.from("attachment_deletions").delete().in("id", queued.data.map(row => row.id));
   if (cleared.error) throw failure(cleared.error);
-  if (queued.data.length === 100) await cleanupAttachments();
+  if (queued.data.length === 100) await cleanupAttachments(client);
 }

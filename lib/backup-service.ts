@@ -24,7 +24,7 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
   const notes: string[] = [];
   const table = <T>(name: string, select: string, order = "id") => readAllPages<T>((from, to) =>
     client.from(name).select(select, { count: "exact" }).eq("workspace_id", workspaceId).order(order).range(from, to) as unknown as PromiseLike<Response<T>>);
-  const [records, rawMembers, audit, attachments] = await Promise.all([
+  const [records, rawMembers, audit, attachments, comments] = await Promise.all([
     table<Item>("records", "*"),
     table<Member & { profiles: { name: string; avatar_url?: string | null } | null }>("members", "*,profiles(*)", "user_id"),
     table<Record<string, unknown>>("audit_log", "*"),
@@ -32,9 +32,13 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
       if (!["42P01", "PGRST205"].includes(err.code)) throw err;
       notes.push("Los adjuntos no están activados en esta instalación."); return [];
     }),
+    table<Record<string, unknown>>("record_comments", "*").catch(err => {
+      if (!["42P01", "PGRST205"].includes(err.code)) throw err;
+      notes.push("Los comentarios no están activados en esta instalación."); return [];
+    }),
   ]);
   const ids = new Set(records.map(r => r.id));
   return { schema_version: 4, exported_at: new Date().toISOString(), workspace_id: workspaceId, records,
     members: rawMembers.map(m => ({ ...m, name: m.profiles?.name || "Miembro", avatar_url: m.profiles?.avatar_url || null })),
-    audit, attachments: attachments.filter(a => ids.has(a.record_id)), notes };
+    audit, attachments: attachments.filter(a => ids.has(a.record_id)), comments: comments.filter(c => ids.has(String(c.record_id))), notes };
 }

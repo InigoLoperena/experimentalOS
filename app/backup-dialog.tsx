@@ -27,7 +27,7 @@ export function BackupDialog({ onClose, onExport }: {
       finally { setBusy(false); }
     }}>
       <div className="backup-content">
-        <p>Incluye todos los proyectos, experimentos, aprendizajes, North Stars, Goals, oportunidades, ideas, equipo e historial. Se exportan los datos guardados, sin aplicar los filtros de la pantalla.</p>
+      <p>Incluye todos los proyectos, experimentos, aprendizajes, North Stars, Goals, oportunidades, ideas, comentarios, equipo e historial. Se exportan los datos guardados, sin aplicar los filtros de la pantalla.</p>
         <label>Formato de la copia
           <select value={format} disabled={busy} onChange={e => setFormat(e.target.value as BackupFormat)}>
             <option value="csv">CSV · abrir en Excel o Sheets</option>

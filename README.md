@@ -39,7 +39,7 @@ Ejecuta `supabase/migrations/004_record_attachments.sql` siguiendo [ACTIVAR-ADJU
 
 Pulsa **Exportar** en la barra superior o **Exportar copia completa** en el pie del menú. Elige **CSV** para Excel/Sheets, **PDF** para consultar o imprimir, o **JSON** para conservar los datos estructurados. Después pulsa **Descargar copia**.
 
-La copia incluye todos los proyectos, todas las fichas y sus campos, responsables, relaciones del GOI Tree, aprendizajes, perfiles del equipo, metadatos de adjuntos y el historial completo. No aplica el proyecto seleccionado ni los filtros de pantalla. Lee todas las páginas de datos de Supabase, también cuando hay más de 1.000 registros. Si falla una consulta o descarga, muestra un error y no genera una copia parcial.
+La copia incluye todos los proyectos, todas las fichas y sus campos, responsables, relaciones del GOI Tree, aprendizajes, comentarios, perfiles del equipo, metadatos de adjuntos y el historial completo. No aplica el proyecto seleccionado ni los filtros de pantalla. Lee todas las páginas de datos de Supabase, también cuando hay más de 1.000 registros. Si falla una consulta o descarga, muestra un error y no genera una copia parcial.
 
 Activa **Incluir archivos adjuntos originales** para descargar un ZIP con el documento elegido, `datos-completos.json` y las imágenes, PDF y DOCX originales. Los enlaces externos se conservan como enlaces. Sin esta opción, el CSV/PDF/JSON conserva los metadatos de los archivos y sus rutas, pero no sus originales.
 
@@ -51,8 +51,8 @@ Las copias contienen información interna: guárdalas en un lugar seguro. Conser
 
 Consulta [ACTUALIZAR-SUPABASE.md](ACTUALIZAR-SUPABASE.md).
 
-1. Ejecuta las migraciones pendientes en orden. Si tu instalación ya llega hasta la 005, aplica únicamente `supabase/migrations/006_public_preview_and_teams.sql`. **No vuelvas a ejecutar `001_initial.sql`.**
-2. Desactiva **Confirm email** en Authentication → Sign In / Providers → Email y guarda. Al registrarse, Supabase devuelve la sesión y la aplicación abre el acceso automáticamente.
+1. Ejecuta únicamente las migraciones pendientes en orden, hasta `010_private_team_access.sql`. **No vuelvas a ejecutar `001_initial.sql`.** La 010 corrige el acceso a los equipos y la privacidad de los adjuntos; sigue [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md).
+2. El registro admite confirmación de email: si está activada, hay que confirmar el correo antes de iniciar sesión. El acceso a los datos del equipo requiere una invitación.
 3. GitHub/Vercel despliegan el código; la migración de Supabase se ejecuta por separado.
 
 Para activar los perfiles personales, ejecuta también `supabase/migrations/003_profiles_and_company.sql` después de la actualización anterior. Si ya ejecutaste la 002, solo necesitas ejecutar la 003. Tienes los pasos en [ACTUALIZAR-PERFILES.md](ACTUALIZAR-PERFILES.md).
@@ -64,7 +64,7 @@ Si el código se despliega antes de ejecutar la migración, la aplicación muest
 ## Instalar desde cero
 
 1. Crea un proyecto Supabase nuevo. No ejecutes este esquema sobre una base de otra aplicación.
-2. En SQL Editor ejecuta, por orden, `supabase/migrations/001_initial.sql`, `supabase/migrations/002_project_growth_tree.sql`, `supabase/migrations/003_profiles_and_company.sql`, `supabase/migrations/004_record_attachments.sql`, `supabase/migrations/005_internal_team.sql` y `supabase/migrations/006_public_preview_and_teams.sql`.
+2. En SQL Editor ejecuta todas las migraciones de `supabase/migrations/` por orden, de la 001 a la 010.
 3. Configura estas variables con Project URL y la clave pública anon/publishable:
 
 ```dotenv
@@ -74,20 +74,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=TU-CLAVE-PUBLICA
 
 Nunca uses `service_role`, una clave secreta o credenciales de PostgreSQL en variables públicas.
 
-4. Activa Email y desactiva Confirm email en Supabase Auth. No necesitas SMTP para registrar cuentas. La recuperación de contraseña sigue utilizando emails y puede requerir configurar SMTP propio.
+4. Activa Email en Supabase Auth y configura el envío de correos de confirmación y recuperación. La aplicación respeta la configuración de confirmación de email del proyecto.
 5. En Authentication → URL Configuration establece Site URL al dominio de producción y autoriza las Redirect URLs de recuperación para ese dominio. Para desarrollo puedes añadir `http://localhost:3000/**`; evita comodines que incluyan dominios ajenos.
 6. Importa el repositorio en Vercel como Next.js. Install Command: `npm ci`; Build Command: `npm run build`; Output Directory: predeterminado. Añade las dos variables anteriores en Production y, si corresponde, en Preview.
-7. Crea tu cuenta: el único equipo interno se inicializa automáticamente y quedas como administrador. Crea tu primer proyecto e invita al resto de personas desde Equipo. Después configura su North Star y construye su GOI Tree.
+7. Crea la cuenta del administrador e inicializa el único equipo siguiendo [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md). Crea tu primer proyecto e invita al resto de personas desde Equipo. Después configura su North Star y construye su GOI Tree.
 
 Los cambios de variables `NEXT_PUBLIC_*` requieren un nuevo despliegue.
 
-## Vista pública y espacios privados
+## Vista pública y equipo interno
 
 Sin iniciar sesión, el enlace principal muestra en modo solo lectura el equipo original publicado por Imagine Builder, incluidos sus proyectos, experimentos, aprendizajes, GOI Tree y equipo. Las acciones que requieren una cuenta llevan al registro.
 
-Al registrarse, cada persona entra en un espacio privado independiente y vacío: no hereda ni puede consultar los datos internos publicados. Puede crear sus propios proyectos, experimentos y aprendizajes, y el creador de cada equipo es administrador. Las invitaciones añaden miembros al equipo correspondiente respetando sus roles. Esta separación se aplica también en Supabase mediante RLS y RPCs controlados.
+Registrarse crea una cuenta personal. El acceso al equipo requiere la invitación de un administrador; no se crean equipos ni empresas desde la aplicación. Los adjuntos y comentarios solo son accesibles a miembros autenticados. Los lectores pueden consultarlos y los administradores y editores pueden añadirlos. Los permisos se comprueban también en Supabase.
 
-La migración `006_public_preview_and_teams.sql` conserva el equipo y los datos existentes como vista pública, y habilita equipos privados nuevos sin duplicar ni mover esos registros.
+La migración 006 conserva la vista pública existente. La 010 retira la creación de equipos y el acceso público a los adjuntos sin borrar ni mover espacios, registros, archivos o miembros existentes.
 
 ## Perfiles y administración
 
@@ -95,13 +95,15 @@ Pulsa el icono **Mi perfil** de la barra superior o **Editar mi perfil** junto a
 
 En **Equipo**, el administrador puede asignar y modificar el nombre del equipo, invitar a personas, cambiar su rol de Editor/Lector y retirar su acceso. El enlace de invitación muestra primero el nombre del equipo y un formulario de registro; después del registro o inicio de sesión, la invitación se acepta automáticamente y la persona entra directamente en ese equipo. Las cuentas y la atribución de sus acciones se conservan. Una persona que crea su cuenta mantiene la sesión abierta, pero necesita una invitación para consultar los datos internos. No puede crear otra empresa. Los permisos también se comprueban en Supabase.
 
-Ejecuta una vez `supabase/migrations/005_internal_team.sql` después de las migraciones anteriores. Sigue [ACTIVAR-EQUIPO-INTERNO.md](ACTIVAR-EQUIPO-INTERNO.md). Se reutiliza el primer espacio existente sin borrar proyectos, registros, archivos ni miembros. Los miembros existentes pueden seguir trabajando mientras se aplica la actualización; se eliminan las operaciones de empresa en la base al ejecutar la 005. En una instalación nueva, el primer acceso crea el equipo automáticamente.
+Ejecuta las migraciones pendientes hasta la 010 siguiendo [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md). Los espacios y miembros existentes se conservan. En una instalación nueva, el administrador de Supabase inicializa el único equipo una vez.
 
 ## Identidad visual
 
 El logo original de Imagine Builder y el título Experimental Operative System identifican la herramienta. Toda la interfaz usa fondos grises oscuros, texto claro, verde fosforito para acciones principales y títulos, azul para ideas/información y rojo para oportunidades/avisos. Tarjetas, tablas, filtros, formularios, perfiles personales, acceso y ventanas comparten la misma paleta, también en móvil.
 
 ## Desarrollo y verificaciones
+
+Consulta [TESTING-AUDIT.md](TESTING-AUDIT.md) para los fallos corregidos, el alcance de las pruebas y las comprobaciones pendientes en Supabase y Vercel.
 
 Requiere Node.js 22.10+ y npm.
 

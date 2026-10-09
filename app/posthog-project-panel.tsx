@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, BarChart3, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
+import { syncPosthogExperiments, posthogId as idOf, posthogName as nameOf, posthogMetric as metricOf, posthogStatus as statusOf } from "@/lib/posthog-sync";
+import { posthogHost } from "@/lib/posthog-api";
+import { cleanupAttachments } from "@/lib/attachment-service";
 
 type Props = {
   project: Item;
@@ -21,23 +24,7 @@ function listFrom(payload: any): PHExperiment[] {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.results)) return value.results;
   if (Array.isArray(payload?.results)) return payload.results;
-  return [];
-}
-function idOf(e: PHExperiment) {
-  return String(e.id ?? e.pk ?? e.uuid ?? "").trim();
-}
-function nameOf(e: PHExperiment) {
-  return String(e.name ?? e.title ?? e.feature_flag?.name ?? "Experimento de PostHog");
-}
-function statusOf(e: PHExperiment) {
-  if (e.archived) return "Archivado";
-  if (e.end_date) return "Finalizado";
-  if (e.start_date) return "En curso";
-  return String(e.status ?? e.state ?? "Borrador");
-}
-function metricOf(e: PHExperiment) {
-  const metric = e.metrics?.[0] ?? e.primary_metrics?.[0] ?? e.parameters?.feature_flag_variants?.[0];
-  return String(metric?.name ?? metric?.metric_name ?? metric?.event ?? e.description ?? "");
+  throw new Error("PostHog no devolvió una lista válida. No se sincronizaron datos.");
 }
 
 export function PostHogProjectPanel({ project, experiments, workspaceId, userId, editable, onSynced }: Props) {
@@ -46,13 +33,16 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const projectId = String(project.fields.posthog_project_id || "").trim();
-  const host = String(project.fields.posthog_host || "https://us.posthog.com").replace(/\/+$/, "");
+  let host = "";
+  try { host = posthogHost(String(project.fields.posthog_host || ""), String(project.fields.posthog_host || "").replace(/^https:\/\//, "").replace(/\/+$/, "")); } catch {}
   const localByRemote = useMemo(() => new Map(experiments.map(e => [String(e.fields.posthog_experiment_id || ""), e])), [experiments]);
   const experimentsRef = useRef(experiments);
   useEffect(() => { experimentsRef.current = experiments; }, [experiments]);
+  const inFlight = useRef(false);
 
   async function fetchPostHog(sync = true) {
-    if (!supabase || !projectId) return;
+    if (!supabase || !projectId || inFlight.current) return;
+    inFlight.current = true;
     setBusy(true); setMessage("");
     try {
       const { data } = await supabase.auth.getSession();
@@ -67,48 +57,12 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
       if (!response.ok) throw new Error(payload.error || "No se ha podido consultar PostHog.");
       const list = listFrom(payload);
       setRemote(list);
-      if (sync && editable) {
-        let created = 0, updated = 0;
-        for (const ph of list) {
-          const externalId = idOf(ph);
-          if (!externalId) continue;
-          const existing = experimentsRef.current.find(e => String(e.fields.posthog_experiment_id || "").trim() === externalId);
-          const nextFields = {
-            ...(existing?.fields || {}),
-            posthog_experiment_id: externalId,
-            metric: existing?.fields.metric || metricOf(ph),
-            context: existing?.fields.context || String(ph.description || ""),
-            status: statusOf(ph),
-          };
-          if (existing) {
-            const r = await supabase.from("records").update({
-              title: nameOf(ph), fields: nextFields, updated_by: userId,
-            }).eq("id", existing.id);
-            if (r.error) throw r.error;
-            updated++;
-          } else {
-            const r = await supabase.from("records").insert({
-              id: crypto.randomUUID(), workspace_id: workspaceId, project_id: project.id,
-              kind: "experiment", parent_id: null, related_id: null, title: nameOf(ph),
-              owner_id: userId, fields: { ...nextFields, impact: 5, confidence: 5, ease: 5 },
-              created_by: userId, updated_by: userId,
-            });
-            if (r.error) throw r.error;
-            created++;
-          }
-        }
-        const remoteIds = new Set(list.map(idOf).filter(Boolean));
-        const stale = experimentsRef.current.filter(e => {
-          const linkedId = String(e.fields.posthog_experiment_id || "").trim();
-          return linkedId && !remoteIds.has(linkedId);
-        });
-        let removed = 0;
-        for (const local of stale) {
-          const r = await supabase.from("records").delete().eq("id", local.id);
-          if (r.error) throw r.error;
-          removed++;
-        }
-        await onSynced();
+      if (sync && editable && userId) {
+        let counts;
+        try { counts = await syncPosthogExperiments(supabase, project, userId, experimentsRef.current, list); }
+        finally { await onSynced(); }
+        const { created, updated, removed } = counts;
+        void cleanupAttachments().catch(() => {});
         const changes = [
           created ? `${created} importado${created === 1 ? "" : "s"}` : "",
           updated ? `${updated} actualizado${updated === 1 ? "" : "s"}` : "",
@@ -118,15 +72,18 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Error al consultar PostHog.");
-    } finally { setBusy(false); }
+    } finally { inFlight.current = false; setBusy(false); }
   }
+
+  const fetchRef = useRef(fetchPostHog);
+  useEffect(() => { fetchRef.current = fetchPostHog; });
 
   useEffect(() => {
     if (!open || !projectId) return;
-    void fetchPostHog(true);
-    const timer = window.setInterval(() => void fetchPostHog(true), 60000);
+    void fetchRef.current(true);
+    const timer = window.setInterval(() => void fetchRef.current(true), 60000);
     return () => window.clearInterval(timer);
-  }, [open, project.id, projectId]);
+  }, [open, project.id, projectId, host]);
 
   return <>
     <button className="btn posthog-project-button" type="button" onClick={() => setOpen(true)}>
@@ -143,7 +100,7 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
             <button className="btn primary" onClick={() => void fetchPostHog(true)} disabled={busy}>
               <RefreshCw size={15} className={busy ? "spin" : ""}/> {busy ? "Sincronizando…" : "Actualizar y sincronizar"}
             </button>
-            <a className="project-link" href={`${host}/project/${projectId}/experiments`} target="_blank" rel="noreferrer">Abrir PostHog <ArrowUpRight size={14}/></a>
+            {host && <a className="project-link" href={`${host}/project/${encodeURIComponent(projectId)}/experiments`} target="_blank" rel="noreferrer">Abrir PostHog <ArrowUpRight size={14}/></a>}
           </div>
           {message && <p className="small">{message}</p>}
           <div className="posthog-project-stats">
@@ -156,7 +113,7 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
               return <article key={id || nameOf(ph)}>
                 <div><span className="eyebrow">{statusOf(ph)}</span><h3>{nameOf(ph)}</h3><p>{metricOf(ph) || "Métricas disponibles en PostHog"}</p></div>
                 <div className="posthog-sync-state">{local ? "✓ Vinculado" : editable ? "Importando…" : "No vinculado"}</div>
-                {id && <a href={`${host}/project/${projectId}/experiments/${id}`} target="_blank" rel="noreferrer">Ver experimento <ArrowUpRight size={13}/></a>}
+                {id && host && <a href={`${host}/project/${encodeURIComponent(projectId)}/experiments/${encodeURIComponent(id)}`} target="_blank" rel="noreferrer">Ver experimento <ArrowUpRight size={13}/></a>}
               </article>;
             })}
             {!busy && !remote.length && <p className="small">No hay experimentos disponibles o todavía no se han cargado.</p>}

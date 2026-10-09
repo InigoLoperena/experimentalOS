@@ -21,6 +21,7 @@ export const sampleBackup: Backup = {
   members: [{ user_id: "u", role: "owner", name: "Íñigo García" }, { user_id: "v", role: "viewer", name: "Lector" }],
   attachments: ["a", "b"].map(id => ({ id, record_id: "=Experimento;\"A\"", workspace_id: "w", name: "../mismo.png", kind: "image" as const, storage_path: "w/" + id, url: null, mime_type: "image/png", size: 3 })),
   audit: [{ id: "historial", action: "UPDATE", title: "Cambio", old_data: { fields: { context: "Contexto anterior" } }, new_data: { fields: { context: "Nuevo contexto" } } }],
+  comments: [{ id: "comentario", record_id: "Goal retención", body: "=Comentario con evidencia", author_id: "u", author_name: "Íñigo García" }],
 };
 // Parse the actual spreadsheet output, including multiline cells and escaped quotes.
 function parseCsv(source: string) {
@@ -37,7 +38,7 @@ function parseCsv(source: string) {
 test("CSV preserves every project, field, relation, profile and audit payload safely", () => {
   const output = backupCsv(sampleBackup); assert.ok(output.startsWith("\uFEFF"));
   const rows = parseCsv(output);
-  assert.equal(rows.length, 1 + sampleBackup.records.length + sampleBackup.members.length + sampleBackup.attachments.length + sampleBackup.audit.length);
+  assert.equal(rows.length, 1 + sampleBackup.records.length + sampleBackup.members.length + sampleBackup.attachments.length + sampleBackup.audit.length + sampleBackup.comments!.length);
   for (const r of sampleBackup.records) assert.deepEqual(JSON.parse(rows.find(x => JSON.parse(x.datos_json).id === r.id && x.grupo !== "Historial")!.datos_json), r);
   const experiment = rows.find(x => x.grupo === "Experimentos")!;
   assert.equal(experiment.nombre, "'=Experimento;\"A\"");
@@ -46,6 +47,7 @@ test("CSV preserves every project, field, relation, profile and audit payload sa
   assert.ok(experiment.campo_tags.startsWith("'="));
   assert.equal(rows.filter(x => x.grupo === "Equipo")[0].nombre, "Íñigo García");
   assert.deepEqual(JSON.parse(rows.find(x => x.grupo === "Historial")!.datos_json), sampleBackup.audit[0]);
+  assert.deepEqual(JSON.parse(rows.find(x => x.grupo === "Comentarios")!.datos_json), sampleBackup.comments![0]);
   assert.equal(JSON.parse(backupJson(sampleBackup)).records.length, 9);
   assert.equal(recordPath(sampleBackup.records[6], sampleBackup.records), 'North Star / Goal retención / Oportunidad / Idea / =Experimento;"A"');
 });
@@ -61,7 +63,7 @@ test("failed, truncated or changing queries cannot silently return an incomplete
 });
 test("the full-data service scopes every query to the authenticated workspace and reads profile/audit fields", async () => {
   const queries: { name: string; select?: string; scope?: string; order?: string }[] = [];
-  const tables: Record<string, unknown[]> = { records: sampleBackup.records, members: sampleBackup.members.map(m => ({ ...m, profiles: { name: m.name, avatar_url: null, updated_at: "today" } })), audit_log: sampleBackup.audit, record_attachments: sampleBackup.attachments };
+  const tables: Record<string, unknown[]> = { records: sampleBackup.records, members: sampleBackup.members.map(m => ({ ...m, profiles: { name: m.name, avatar_url: null, updated_at: "today" } })), audit_log: sampleBackup.audit, record_attachments: sampleBackup.attachments, record_comments: sampleBackup.comments! };
   const client = { from(name: string) {
     const query = { name } as typeof queries[number]; queries.push(query);
     return { select(select: string, options: { count: string }) { query.select = select; assert.equal(options.count, "exact"); return this; },
@@ -69,9 +71,10 @@ test("the full-data service scopes every query to the authenticated workspace an
       order(key: string) { query.order = key; return this; }, range(from: number, to: number) { return Promise.resolve({ data: tables[name].slice(from, to + 1), count: tables[name].length, error: null }); } };
   } } as unknown as SupabaseClient;
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 4); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(queries.length, 5); assert.ok(queries.every(q => q.scope === "w"));
   assert.equal(queries.find(q => q.name === "members")?.select, "*,profiles(*)");
   assert.deepEqual(backup.records, sampleBackup.records); assert.deepEqual(backup.audit, sampleBackup.audit);
+  assert.deepEqual(backup.comments, sampleBackup.comments);
   assert.equal(backup.members[0].name, "Íñigo García");
 });
 test("ZIP preserves structured data and original files with identical names without collisions", async () => {

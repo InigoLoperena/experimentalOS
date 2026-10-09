@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
@@ -77,9 +77,13 @@ export function PostHogResults({ experiment, project }: Props) {
   const posthogProjectId = String(project?.fields.posthog_project_id || "").trim();
   const configured = !!experimentId && !!posthogProjectId;
   const variants = useMemo(() => collectVariants(payload?.results), [payload]);
+  const requestVersion = useRef(0);
+  const inFlight = useRef(false);
 
   async function refresh() {
-    if (!configured || !supabase) return;
+    if (!configured || !supabase || inFlight.current) return;
+    const version = ++requestVersion.current;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
@@ -99,17 +103,21 @@ export function PostHogResults({ experiment, project }: Props) {
       });
       const next = (await response.json()) as ResultPayload;
       if (!response.ok) throw new Error(next.error || "No se ha podido consultar PostHog.");
-      setPayload(next);
+      if (version === requestVersion.current) setPayload(next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se ha podido consultar PostHog.");
+      if (version === requestVersion.current) setError(err instanceof Error ? err.message : "No se ha podido consultar PostHog.");
     } finally {
-      setBusy(false);
+      if (version === requestVersion.current) { inFlight.current = false; setBusy(false); }
     }
   }
 
   useEffect(() => {
+    ++requestVersion.current;
+    inFlight.current = false;
     setPayload(null);
     setError("");
+    setBusy(false);
+    return () => { ++requestVersion.current; inFlight.current = false; };
   }, [experiment.id, experimentId, project?.id, posthogProjectId]);
 
   if (!project) return null;
@@ -117,7 +125,7 @@ export function PostHogResults({ experiment, project }: Props) {
   const detail = payload?.detail || {};
   const posthogUrl =
     payload?.host && payload?.project_id && experimentId
-      ? `${payload.host}/project/${payload.project_id}/experiments/${experimentId}`
+      ? `${payload.host}/project/${encodeURIComponent(payload.project_id)}/experiments/${encodeURIComponent(experimentId)}`
       : "";
 
   return (

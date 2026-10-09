@@ -36,11 +36,14 @@ import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
+import { deleteWorkspaceRecord, loadWorkspaceRecords, ensureProjectNorthStar, projectNorthStarRecord } from "@/lib/record-service";
 import { getPublicPreview, openTeamSpace } from "@/lib/internal-space";
+import { registerAccount } from "@/lib/auth-service";
 import { attachmentBucket, supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
 import {
   ancestors,
+  goalParent,
   Item,
   Member,
   Activity,
@@ -225,7 +228,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
           Estás viendo los proyectos y experimentos reales publicados por Imagine Builder en modo solo lectura.
         </p>
       </div>
-      <button onClick={onSignup}>Crear mi propio espacio</button>
+      <button onClick={onSignup}>Acceder al equipo</button>
     </aside>
   );
 }
@@ -238,6 +241,7 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "team", label: "Equipo", icon: Users },
   { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
 ];
+const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", opportunities: "Oportunidades", ideas: "Ideas" };
 function IconFor({ kind }: { kind: Kind }) {
   const I =
     kind === "north_star"
@@ -372,6 +376,7 @@ export default function Home() {
   const [draft, setDraft] = useState<Item | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
   const [recordComments, setRecordComments] = useState<RecordComment[]>([]);
+  const [demoComments, setDemoComments] = useState<Record<string, RecordComment[]>>({});
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -498,6 +503,7 @@ export default function Home() {
       setProfile({ name: demoMembers[0].name, avatar_url: null });
       setProfileReady(true);
       setDemoAttachments({});
+      setDemoComments({});
       setItems(structuredClone(demoItems).map(normalizeExperiment));
       setMembers(demoMembers);
       setActivity(demoActivity);
@@ -630,11 +636,7 @@ export default function Home() {
     const version = ++loadVersion.current;
     setLoading(true);
     const r = await Promise.all([
-      supabase!
-        .from("records")
-        .select("*")
-        .eq("workspace_id", w.id)
-        .order("created_at"),
+      loadWorkspaceRecords(supabase!, w.id).then(data => ({ data, error: null }), error => ({ data: null, error: { message: error.message } })),
       supabase!
         .from("members")
         .select("user_id,role,profiles(*)")
@@ -725,6 +727,7 @@ export default function Home() {
     if (!selected || !["goal", "opportunity", "idea"].includes(selected.kind) || publicMode) return;
     if (demo) {
       setSelectedHistory(activity.filter((entry) => entry.record_id === selected.id));
+      setRecordComments(demoComments[selected.id] || []);
       return;
     }
     if (!supabase) return;
@@ -748,6 +751,7 @@ export default function Home() {
       if (!active) return;
       if (!historyResult.error) setSelectedHistory((historyResult.data || []) as Activity[]);
       if (!commentsResult.error) setRecordComments((commentsResult.data || []) as RecordComment[]);
+      else setError(commentsResult.error.message);
     });
     return () => {
       active = false;
@@ -758,8 +762,7 @@ export default function Home() {
     const body = commentText.trim();
     setCommentBusy(true);
     if (demo) {
-      setRecordComments((prev) => [
-        {
+      const comment: RecordComment = {
           id: crypto.randomUUID(),
           workspace_id: selected.workspace_id,
           record_id: selected.id,
@@ -767,9 +770,9 @@ export default function Home() {
           author_name: profile.name,
           body,
           created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+        };
+      setDemoComments(prev => ({ ...prev, [selected.id]: [comment, ...(prev[selected.id] || [])] }));
+      setRecordComments(prev => [comment, ...prev]);
       setCommentText("");
       setCommentBusy(false);
       return;
@@ -826,7 +829,7 @@ export default function Home() {
       }
       // The database hierarchy requires a real north_star record as the goal parent.
       // Projects created with the newer project-level North Star field may not have one yet.
-      resolvedParentId = storedNorthStar?.id || null;
+      resolvedParentId = goalParent(resolvedParentId, items);
     }
 
     if ((kind === "opportunity" || kind === "idea") && !resolvedParentId) {
@@ -909,7 +912,7 @@ export default function Home() {
       );
       return;
     }
-    const record = normalizeExperiment(draft);
+    let record = normalizeExperiment(draft);
     const problem = validate(record);
     if (problem) {
       setError(problem);
@@ -929,11 +932,22 @@ export default function Home() {
       setSaving(false);
       return;
     }
+    let addedNorthStar: Item | null = null;
+    if (record.kind === "goal" && !record.parent_id && currentProject) {
+      try {
+        addedNorthStar = demo ? projectNorthStarRecord(currentProject) : await ensureProjectNorthStar(supabase!, currentProject);
+        record = { ...record, parent_id: addedNorthStar.id };
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo guardar la North Star del proyecto.");
+        setSaving(false);
+        return;
+      }
+    }
     if (demo) {
       setItems((prev) =>
         exists
           ? prev.map((i) => (i.id === record.id ? record : i))
-          : [...prev, record],
+          : [...prev, ...(addedNorthStar ? [addedNorthStar] : []), record],
       );
       setActivity((prev) => [
         {
@@ -959,7 +973,7 @@ export default function Home() {
     const payload = {
       title: draft.title,
       owner_id: draft.owner_id,
-      parent_id: draft.parent_id,
+      parent_id: record.parent_id,
       related_id: draft.related_id,
       fields: record.fields,
       project_id: record.project_id,
@@ -1001,30 +1015,18 @@ export default function Home() {
   }
   async function deleteRecord(record: Item) {
     if (!editable || demo || publicMode) return;
-    const label = record.kind === "project" ? "proyecto" : record.kind === "experiment" ? "experimento" : "aprendizaje";
+    const label = kinds[record.kind].toLocaleLowerCase("es");
     const extra = record.kind === "project" ? " También se eliminarán todos sus registros asociados." : "";
     if (!window.confirm(`¿Eliminar el ${label} «${record.title}»?${extra} Esta acción no se puede deshacer.`)) return;
     setError("");
-    if (record.kind === "project") {
-      const children = workspaceItems.filter(i => i.project_id === record.id);
-      if (children.length) {
-        const childIds = children.map(i => i.id);
-        const attachments = await supabase!.from("attachments").select("storage_path").in("record_id", childIds);
-        if (!attachments.error) {
-          const paths = (attachments.data || []).map((a: any) => a.storage_path).filter(Boolean);
-          if (paths.length) await supabase!.storage.from(attachmentBucket).remove(paths);
-        }
-        const delChildren = await supabase!.from("records").delete().eq("project_id", record.id);
-        if (delChildren.error) { setError(delChildren.error.message); return; }
-      }
+    try {
+      await deleteWorkspaceRecord(supabase!, record);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se ha podido eliminar la ficha.");
+      return;
     }
-    const ownAttachments = await supabase!.from("attachments").select("storage_path").eq("record_id", record.id);
-    if (!ownAttachments.error) {
-      const paths = (ownAttachments.data || []).map((a: any) => a.storage_path).filter(Boolean);
-      if (paths.length) await supabase!.storage.from(attachmentBucket).remove(paths);
-    }
-    const result = await supabase!.from("records").delete().eq("id", record.id);
-    if (result.error) { setError(result.error.message); return; }
+    // Failed cleanup stays in the existing queue and is retried on the next session.
+    void cleanupAttachments().catch(() => {});
     setSelected(null);
     if (record.kind === "project" && projectId === record.id) setProjectId("");
     tell("Eliminado correctamente");
@@ -1037,6 +1039,7 @@ export default function Home() {
       schema_version: 4, exported_at: new Date().toISOString(), workspace_id: workspace.id,
       records: structuredClone(workspaceItems), members: structuredClone(members), audit: structuredClone(activity) as unknown as Record<string, unknown>[],
       attachments: workspaceItems.flatMap(record => demoAttachments[record.id] || []).map(({ preview_url, ...attachment }) => attachment),
+      comments: Object.values(demoComments).flat() as unknown as Record<string, unknown>[],
       notes: ["Demostración: datos ficticios de esta sesión."],
     } : await fetchBackup(supabase!, workspace.id);
     const { downloadBackup } = await import("@/lib/backup-download");
@@ -1567,11 +1570,11 @@ export default function Home() {
             <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
             <span>Equipo interno</span>
             <ChevronRight size={14} />
-            <strong>{nav.find((n) => n.id === view)?.label}</strong>
+            <strong>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</strong>
           </div>
           <div>
             {publicMode
-              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio</span></button>
+              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Acceder al equipo</span></button>
               : <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>}
             <span className={"top-status" + (publicMode ? " public-status" : "")}>
               {publicMode ? "Vista pública · solo lectura" : demo ? "Datos de ejemplo" : "Espacio privado"}
@@ -1614,7 +1617,7 @@ export default function Home() {
               <span className="eyebrow">
                 {view === "map" ? "ESTRATEGIA EN ACCIÓN" : "LABORATORIO"}
               </span>
-              <h1>{nav.find((n) => n.id === view)?.label}</h1>
+              <h1>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</h1>
               <p>
                 {view === "map"
                   ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
@@ -2292,7 +2295,7 @@ export default function Home() {
           <footer className="footer">
             <span>Experimental Operative System · Imagine Builder</span>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
-              {publicMode ? "Crear mi propio espacio" : "Exportar copia completa"}
+              {publicMode ? "Acceder al equipo" : "Exportar copia completa"}
             </button>
           </footer>
         </main>
@@ -2739,25 +2742,12 @@ function Auth({
             setMessage("");
             try {
               if (mode === "signup") {
-                const { data, error: signupError } =
-                  await supabase!.auth.signUp({
-                    email: email.trim(),
-                    password,
-                    options: { data: { name: name.trim() } },
-                  });
-                if (signupError) setError(signupError.message);
-                else if (data.session) onAuthenticated(data.session.user);
-                else {
-                  const signedIn = await supabase!.auth.signInWithPassword({
-                    email: email.trim(),
-                    password,
-                  });
-                  if (signedIn.error || !signedIn.data.session)
-                    setError(
-                      "La cuenta se ha creado, pero el inicio de sesión automático no está disponible. Revisa la configuración de confirmación de email.",
-                    );
-                  else onAuthenticated(signedIn.data.session.user);
-                }
+                const nextUser = await registerAccount(supabase!, {
+                  email, password, name,
+                  redirectTo: window.location.origin + window.location.pathname + (invitation ? window.location.search : ""),
+                });
+                if (nextUser) onAuthenticated(nextUser);
+                else setMessage("Revisa tu email para confirmar el registro. Después podrás iniciar sesión y aceptar la invitación al equipo.");
                 return;
               }
               let result;
@@ -2779,9 +2769,9 @@ function Auth({
                 onMessage("Contraseña actualizada");
                 setMode("login");
               }
-            } catch {
+            } catch (err) {
               setError(
-                "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.",
+                err instanceof Error ? err.message : "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.",
               );
             } finally {
               setBusy(false);

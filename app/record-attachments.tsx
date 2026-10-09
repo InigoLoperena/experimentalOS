@@ -50,12 +50,20 @@ export function RecordAttachments({ record, editable, demo, prefetched = false, 
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const alive = useRef(true);
+  // Reading prefetched/demo data must not restart network loading on every form keystroke.
+  const valuesRef = useRef(values);
+  useEffect(() => { valuesRef.current = values; }, [values]);
+  useEffect(() => {
+    if (!prefetched) return;
+    setAttachments(values);
+    setUrls(linkSlots(values).slots.map(a => a?.url || ""));
+  }, [prefetched, values]);
   useEffect(() => {
     alive.current = true;
     let active = true;
-    if (prefetched) {
-      setAttachments(values);
-      setUrls(linkSlots(values).slots.map(a => a?.url || ""));
+    if (prefetched || demo) {
+      setAttachments(valuesRef.current);
+      setUrls(linkSlots(valuesRef.current).slots.map(a => a?.url || ""));
       setLoading(false);
     } else if (!demo && persisted) {
       setLoading(true);
@@ -64,7 +72,7 @@ export function RecordAttachments({ record, editable, demo, prefetched = false, 
         .finally(() => { if (active) setLoading(false); });
     }
     return () => { active = false; alive.current = false; };
-  }, [record.id, demo, prefetched, persisted, retry, values]);
+  }, [record.id, demo, prefetched, persisted, retry]);
   const update = (next: Attachment[]) => { setAttachments(next); if (demo) onDemoChange(next); };
   async function operation(action: () => Promise<void>) {
     if (busy) return;

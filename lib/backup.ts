@@ -6,6 +6,7 @@ export type Backup = {
   schema_version: 4; exported_at: string; workspace_id: string;
   records: Item[]; members: Member[]; attachments: Attachment[];
   audit: Record<string, unknown>[]; notes: string[];
+  comments?: Record<string, unknown>[];
 };
 export const fieldLabels: Record<string, string> = {
   ...Object.fromEntries(experimentFields.map(f => [f.key, f.label])),
@@ -63,6 +64,12 @@ export function backupCsv(backup: Backup): string {
     const record = records.get(a.record_id);
     rows.push({ grupo: "Adjuntos", tipo: a.kind, id: a.id, nombre: a.name, padre_id: a.record_id, padre: record?.title,
       proyecto_id: record?.project_id, proyecto: records.get(record?.project_id || "")?.title, creado: a.created_at, creado_por: a.created_by, datos_json: a });
+  }
+  for (const c of backup.comments || []) {
+    const record = records.get(String(c.record_id));
+    rows.push({ grupo: "Comentarios", tipo: "Comentario", id: c.id, nombre: c.body, padre_id: c.record_id, padre: record?.title,
+      proyecto_id: record?.project_id, proyecto: records.get(record?.project_id || "")?.title,
+      creado: c.created_at, creado_por: c.author_id, responsable: c.author_name, datos_json: c });
   }
   for (const a of backup.audit) rows.push({ grupo: "Historial", tipo: a.action, id: a.id, nombre: a.title, creado: a.created_at, creado_por: a.actor_id, responsable: a.actor_name, datos_json: a });
   return "\uFEFF" + [header.map(csvCell).join(";"), ...rows.map(row => header.map(key => csvCell(row[key])).join(";"))].join("\r\n") + "\r\n";

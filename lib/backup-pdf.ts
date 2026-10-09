@@ -62,7 +62,7 @@ export async function createBackupPdf(backup: Backup, providedAssets?: Assets): 
     ["Fecha de exportación (UTC)", backup.exported_at], ["ID del equipo interno", backup.workspace_id],
     ["Proyectos", backup.records.filter(r => r.kind === "project").length], ["Experimentos", backup.records.filter(r => r.kind === "experiment").length],
     ["Aprendizajes", backup.records.filter(r => r.kind === "learning").length], ["Elementos del GOI Tree", backup.records.filter(r => !["project", "experiment", "learning"].includes(r.kind)).length],
-    ["Equipo", backup.members.length], ["Adjuntos y enlaces", backup.attachments.length], ["Historial", backup.audit.length],
+    ["Equipo", backup.members.length], ["Adjuntos y enlaces", backup.attachments.length], ["Comentarios", backup.comments?.length || 0], ["Historial", backup.audit.length],
     ["Alcance", "Todos los proyectos. Los filtros de la pantalla no se aplican."],
     ["Archivos originales", "Para conservar también imágenes, PDF y DOCX, activa Incluir archivos adjuntos originales al exportar. Se guardan en el ZIP."],
     ["Datos reutilizables", "El CSV conserva las columnas y los datos completos. El ZIP incluye además una copia estructurada en JSON. El PDF es una copia de consulta; no restaura cuentas ni contraseñas."],
@@ -108,6 +108,10 @@ export async function createBackupPdf(backup: Backup, providedAssets?: Assets): 
       ["Ficha", byId.get(a.record_id)?.title || a.record_id], ["ID de la ficha", a.record_id],
       ...Object.entries(a).filter(([key]) => key !== "preview_url").map(([key, value]) => [key, value]),
     ]);
+  }
+  if (backup.comments?.length) {
+    doc.addPage(); y = 44;
+    for (const c of backup.comments) table("Comentario: " + (byId.get(String(c.record_id))?.title || c.record_id), Object.entries(c).map(([key, value]) => [key, value]));
   }
   if (backup.audit.length) {
     doc.addPage(); y = 44;

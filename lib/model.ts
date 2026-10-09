@@ -64,6 +64,9 @@ export const parents: Record<Kind, Kind | null> = {
   kr: "objective",
   project: null,
 };
+export function goalParent(parentId: string | null, items: Item[]): string | null {
+  return parentId || items.find(item => item.kind === "north_star")?.id || null;
+}
 export function score(f: Fields) {
   return (
     Number(f.impact || 0) * Number(f.confidence || 0) * Number(f.ease || 0)
