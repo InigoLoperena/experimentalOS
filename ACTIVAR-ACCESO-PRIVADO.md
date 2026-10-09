@@ -12,6 +12,10 @@ El despliegue de Vercel publica código; no ejecuta las migraciones de Supabase.
 
 La migración conserva identificadores, miembros, proyectos y archivos. Revoca la creación de equipos desde la app, elimina la política de lectura anónima de archivos y retira los metadatos de adjuntos del RPC público. No cambia contraseñas ni ajustes de autenticación.
 
+### Estado verificado de ExperimentalOS
+
+El 9 de octubre de 2026 se aplicó la 010 al proyecto `yjnidbgjkobzlmhpzawz` mediante la conexión **Greenriot4**. Su entrada remota es `20261009183438_private_team_access`. Se verificaron permisos, aislamiento de cuentas sin membresía y privacidad de adjuntos; se conservaron los dos espacios, los dos miembros y los 16 registros existentes. Esta instalación ya tiene aplicada esa migración. Las comprobaciones SQL no sustituyen el recorrido con una sesión real de la app.
+
 ## Instalación nueva sin ningún equipo
 
 Después de aplicar 001–010, registra la cuenta del administrador y confirma su email si la configuración lo requiere. En Authentication → Users copia el identificador de esa cuenta.

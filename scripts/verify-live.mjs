@@ -24,5 +24,6 @@ if (url && key) {
   const preview = await response.json();
   console.log(`PASS: Supabase Auth and public preview accessible; projects=${preview?.records?.filter(r => r.kind === "project").length || 0}.`);
   // Report only aggregate counts; never print credentials, profiles or attachments.
-  if (preview?.attachments?.length) console.log(`PENDING: migration 010 is needed; public attachment metadata count=${preview.attachments.length}.`);
+  assert.equal(preview?.attachments?.length || 0, 0, "Public preview must not expose attachment metadata.");
+  console.log("PASS: public preview contains no attachment metadata.");
 }

@@ -26,7 +26,7 @@ La comprobación de tipos y la compilación final de producción terminaron corr
 | Exportaciones | Descargas CSV, JSON, PDF y ZIP; JSON con dos proyectos y un comentario; original PNG idéntico byte a byte | Correcto; paginación y protección de fórmulas CSV también probadas |
 | PostHog | Paginación de más de 100 experimentos; errores, respuestas incompletas, destinos inseguros, concurrencia y preservación de campos locales | Correcto con respuestas simuladas; conexión real pendiente |
 | HTTP local | Página 200; PostHog sin sesión y con token inválido 401; método GET 405 | Correcto |
-| Supabase público | Auth y RPC de vista pública responden 200; cinco proyectos visibles | Solo lectura; no acredita acceso administrativo |
+| Supabase público | Auth y RPC de vista pública responden 200; cinco proyectos visibles y cero metadatos de adjuntos | Correcto; migración 010 aplicada y comprobada por separado |
 | Pantalla móvil | Navegación del GOI Tree, anchura CSS observada de 375 px y ausencia de desbordamiento horizontal de página | Correcto en la pantalla comprobada |
 | Navegador | Registro de errores durante el recorrido | Ningún error registrado |
 
@@ -66,10 +66,13 @@ node --env-file=.env.local scripts/verify-live.mjs
 
 Este comando realiza consultas de solo lectura, no imprime claves ni datos personales. Puede utilizar `TEST_APP_URL` para otro destino explícito de pruebas.
 
+Para comprobar los permisos de una instalación existente, ejecuta `scripts/verify-live-permissions.sql` con una conexión administrativa en SQL Editor. El script exige una membresía de propietario, prueba las políticas bajo los roles `authenticated` y `anon` y revierte sus claims temporales. No crea cuentas ni sesiones, y no realiza escrituras en las tablas.
+
 ## Pendiente en los servicios reales
 
-- Supabase rechazó la consulta administrativa de migraciones del proyecto `yjnidbgjkobzlmhpzawz`. **No se aplicó ni verificó la migración 010 en ese servicio.** Hay que habilitar una conexión administrativa al proyecto y seguir [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md). Ocultar adjuntos en la app no sustituye las políticas de base de datos.
-- Vercel rechazó consultar `experimental-os` en `inigos-projects-c5a8369f` con 403. No hay una CLI autenticada disponible. La compilación local no confirma el estado de su despliegue ni sus variables.
+- La conexión correcta de Supabase es **Greenriot4**. Se aplicó la migración local 010 como `20261009183438_private_team_access` al proyecto `yjnidbgjkobzlmhpzawz`, y se verificó su historial, la retirada de la política anónima de archivos, la revocación de creación de equipos y los cero metadatos públicos de adjuntos. Se conservaron los dos espacios, los dos miembros y los 16 registros existentes. No se reprodujeron las migraciones antiguas: el historial remoto contiene solo dos entradas anteriores, pero los objetos requeridos ya existían.
+- Las comprobaciones SQL de solo lectura pasaron bajo los roles reales de la base de datos: un propietario existente abre su espacio; una identidad sin membresía no puede abrir espacios ni consultar fichas, comentarios o adjuntos; un visitante anónimo no ve objetos del bucket privado. Se utilizaron claims de prueba dentro de una transacción revertida, sin sesiones reales de navegador ni modificaciones de usuarios o registros.
+- La conexión automática de Vercel sigue devolviendo 403 para `experimental-os` en `inigos-projects-c5a8369f`, pero la sesión de Chrome del perfil **Inigo**, cuenta **greenriot4-2658**, permite consultar el proyecto y sus variables. El panel confirmó el despliegue de producción **Ready** del commit `279be68c0f6ba2e02b236ce66f77e8f0d4fc75ef` en `https://experimental-os.vercel.app/`.
 - Falta una cuenta de pruebas autenticada y un proyecto con datos desechables para completar el recorrido navegador → API → Supabase, incluyendo subir/abrir/retirar archivos privados, roles, invitaciones, cierre de sesión y recuperación de contraseña. No se enviaron correos de prueba ni se modificaron contraseñas reales.
-- Falta configurar/verificar `POSTHOG_PERSONAL_API_KEY` en el entorno servidor y los identificadores correctos de PostHog para probar sincronización y resultados reales. La clave debe guardarse en el gestor de variables del servicio, nunca en el chat ni en una variable pública.
-- Tras sincronizar GitHub, se debe verificar el despliegue correspondiente y repetir el recorrido autenticado. No se afirma que todas las funcionalidades hayan quedado verificadas en producción.
+- Vercel contiene `POSTHOG_PERSONAL_API_KEY` como secreto de producción, además de las dos variables públicas de Supabase para producción y preview. No se revelaron los valores. La existencia del secreto no confirma su validez: la sincronización y los resultados reales de PostHog siguen pendientes de una sesión de pruebas.
+- La interfaz de producción respondió mostrando los cinco proyectos en modo público de solo lectura. Se dejó el inicio de sesión abierto en Chrome para continuar con una cuenta del equipo. El recorrido autenticado sigue pendiente; no se afirma que todas las funcionalidades hayan quedado verificadas en producción.
