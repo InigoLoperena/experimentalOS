@@ -36,6 +36,8 @@ import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
+import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
+import {addFileAttachment} from '@/lib/attachment-service';
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
 import { deleteWorkspaceRecord, loadWorkspaceRecords, ensureProjectNorthStar, projectNorthStarRecord } from "@/lib/record-service";
@@ -373,12 +375,14 @@ export default function Home() {
   const [showBackup, setShowBackup] = useState(false);
   const [monitoringBusy, setMonitoringBusy] = useState(false);
   const [assistantBusy, setAssistantBusy] = useState(false);
+  const [draftFiles,setDraftFiles]=useState<File[]>([]);
   const [demo, setDemo] = useState(!supabase);
   const [loading, setLoading] = useState(!!supabase);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
+  useEffect(()=>setDraftFiles([]),[draft?.id]);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
   const [recordComments, setRecordComments] = useState<RecordComment[]>([]);
   const [demoComments, setDemoComments] = useState<Record<string, RecordComment[]>>({});
@@ -987,7 +991,7 @@ export default function Home() {
       fields: record.fields,
       project_id: record.project_id,
     };
-    const q = exists
+    const q = record.kind==='experiment' ? supabase!.rpc('save_experiment_preparation',{p_record:{...payload,id:record.id,workspace_id:record.workspace_id},p_expected:exists?record.updated_at:null}) : exists
       ? supabase!
           .from("records")
           .update(payload)
@@ -1011,6 +1015,14 @@ export default function Home() {
         "Otra persona ha modificado este registro. Cierra el formulario y actualiza antes de editar.",
       );
     } else {
+      if(record.kind==='experiment' && draftFiles.length){
+        const remaining=[...draftFiles];
+        try{
+          while(remaining.length){await addFileAttachment(record.id,record.workspace_id,remaining[0]);remaining.shift();setDraftFiles([...remaining]);}
+        }catch(err){
+          await load();setDraft(normalizeExperiment(r.data[0] as Item));setError(`La ficha se guardó, pero faltan archivos: ${err instanceof Error?err.message:'Error de subida'}. Puedes volver a guardar para reintentar.`);setSaving(false);return;
+        }
+      }
       if (record.kind === "project") {
         setProjectId(record.id);
         setView("map");
@@ -2404,6 +2416,7 @@ export default function Home() {
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
+                <ExecutionDetails key={selected.id} experiment={selected}/>
                 <PostHogResults experiment={selected} project={currentProject} />
                 {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
                   editable={editable} demo={demo} onBusy={setMonitoringBusy}/>}
@@ -2537,7 +2550,8 @@ export default function Home() {
               </button>
             </div>
             <div className="form-body">
-              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
+              {draft.kind==='experiment'&&<ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>}
+              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
               <label className="full">
                 Nombre
                 <input

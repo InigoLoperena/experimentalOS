@@ -1,4 +1,5 @@
 import { cleanExperimentFields } from "./experiments";
+import {parseChannel,executionFromFields} from './execution-plan';
 export type Kind =
   | "north_star"
   | "goal"
@@ -84,6 +85,7 @@ export function validate(
   item: Pick<Item, "kind" | "title" | "parent_id" | "fields">,
 ): string | null {
   if (!item.title.trim()) return "Escribe un nombre.";
+  if(item.kind==='experiment')try{parseChannel(item.fields.channel);executionFromFields(item.fields);}catch(error){return error instanceof Error?error.message:'Revisa la configuración del experimento.';}
   if (
     !["experiment", "learning", "goal"].includes(item.kind) &&
     parents[item.kind] &&

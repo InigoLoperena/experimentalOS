@@ -24,6 +24,7 @@ function AttachmentPreview({ attachment, demo }: { attachment: Attachment; demo:
   }, [attachment.storage_path, demo, retry]);
   return <>
     {attachment.kind === "image" && url && <a href={url} target="_blank" rel="noreferrer" className="attachment-image"><img src={url} alt={attachment.name} loading="lazy" /></a>}
+    {attachment.kind === "video" && url && <video controls preload="metadata" src={url} aria-label={attachment.name} style={{maxWidth:'100%'}}/>}
     <div className="attachment-info">
       {attachment.kind === "link" ? <Link2 size={18} /> : <FileText size={18} />}
       <div><strong>{attachment.name}</strong><span className="small">{attachment.kind === "link" ? attachment.url : `${attachment.kind.toUpperCase()} · ${Math.ceil((attachment.size || 0) / 1024)} KB`}</span></div>
@@ -137,9 +138,9 @@ export function RecordAttachments({ record, editable, demo, prefetched = false, 
       </article>)}
     </div>
     {editable && persisted && <div className="attachment-controls">
-      <p className="small">Los archivos se guardan al añadirlos. Imágenes, PDF o DOCX · hasta 10 MB por archivo.</p>
+      <p className="small">Los archivos se guardan al añadirlos. Imágenes, vídeos MP4/WebM, PDF o DOCX · hasta 10 MB por archivo.</p>
       <label className="attachment-upload">Adjuntar archivos
-        <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.docx" disabled={busy || loading}
+        <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.pdf,.docx" disabled={busy || loading}
           onChange={e => {
             const files = Array.from(e.target.files || []); e.target.value = "";
             if (!files.length) return;

@@ -35,9 +35,9 @@ export const experimentSections = {
 // El nombre y el responsable se guardan en title y owner_id, respectivamente.
 export function cleanExperimentFields(fields: Fields): Fields {
   return Object.fromEntries(
-    experimentFields
-      .filter(({ key }) => fields[key] !== undefined)
-      .map(({ key }) => [key, fields[key]]),
+    [...experimentFields.map(({key})=>key),'channel','execution_config']
+      .filter(key => fields[key] !== undefined)
+      .map(key => [key, fields[key]]),
   );
 }
 

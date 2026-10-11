@@ -112,6 +112,19 @@ test("complete migration chain preserves existing teams, invitation-only access 
     await as(editor);
     await db.query("delete from records where id=$1",[second]);
     assert.equal(fields.posthog_experiment_id, "101");assert.equal(fields.status, undefined);
+    const plan={goal:'traffic',destination:'https://greenhunt.net/',audience:'Stooping',location:'Nueva York',daily_budget:10,currency:'USD',duration_days:7,variants:[{label:'A',description:'Gratis',headline:'Muebles',body:'Descubre objetos',call_to_action:'Ver más',allocation:50},{label:'B',description:'Circular',headline:'Reutiliza',body:'Economía circular',call_to_action:'Ver más',allocation:50}]};
+    const preparation={id:experiment,workspace_id:w,project_id:p,title:'Preparado',owner_id:null,parent_id:idea,related_id:null,fields:{...fields,channel:'meta_ads',start:'2026-10-11',execution_config:JSON.stringify(plan)}};
+    const saved=await scalar<{updated_at:string}>("select to_jsonb(r) as value from save_experiment_preparation($1,(select updated_at from records where id=$2)) r",[JSON.stringify(preparation),experiment]);
+    assert.equal(await scalar<number>('select budget::float as value from experiment_specs where experiment_id=$1',[experiment]),10);
+    assert.equal(await scalar<string>('select planned_end::text as value from experiment_specs where experiment_id=$1',[experiment]),'2026-10-17');
+    assert.equal(await scalar<string>("select id as value from experiment_variants where experiment_id=$1 and label='A'",[experiment]),variant);
+    assert.equal(await scalar<number>('select count(*)::int as value from experiment_variants where experiment_id=$1',[experiment]),2);
+    await db.query('update experiment_specs set budget=12 where experiment_id=$1',[experiment]);
+    const resaved=await scalar<{updated_at:string}>("select to_jsonb(r) as value from save_experiment_preparation($1,$2) r",[JSON.stringify(preparation),saved.updated_at]);
+    assert.equal(await scalar<number>('select budget::float as value from experiment_specs where experiment_id=$1',[experiment]),12);
+    await assert.rejects(db.query('select save_experiment_preparation($1,$2)',[JSON.stringify(preparation),saved.updated_at]));
+    await assert.rejects(db.query('select save_experiment_preparation($1,$2)',[JSON.stringify({...preparation,title:'Must roll back',fields:{...preparation.fields,execution_config:JSON.stringify({...plan,variants:[plan.variants[0],plan.variants[0]]})}}),resaved.updated_at]));
+    assert.equal(await scalar<string>('select title as value from records where id=$1',[experiment]),'Preparado');
     const learning = await record("learning", experiment);
     const comment = await scalar("insert into record_comments(workspace_id,record_id,author_id,author_name,body) values($1,$2,$3,'Forged','Evidencia') returning id as value", [w, goal, outsider]);
     assert.equal(await scalar("select author_id as value from record_comments where id=$1", [comment]), editor);
@@ -126,6 +139,7 @@ test("complete migration chain preserves existing teams, invitation-only access 
     await assert.rejects(db.query("select * from record_comments"));
     await as(viewer);
     await db.query("select join_workspace($1)", [viewerToken]);
+    await assert.rejects(db.query('select save_experiment_preparation($1,$2)',[JSON.stringify(preparation),resaved.updated_at]));
     assert.equal((await db.query('select * from experiment_specs')).rows.length,1);
     assert.equal((await db.query('select * from metric_observations')).rows.length,1);
     assert.equal((await db.query("update experiment_specs set budget=10 returning experiment_id")).rows.length,0);

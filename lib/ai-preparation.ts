@@ -1,9 +1,11 @@
 import type { Fields } from './model';
+import {channels,executionSchema,parseChannel,parseExecution,executionFromFields,type Channel,type ExecutionPlan} from './execution-plan';
 
 export const preparationKeys = ['context','hypothesis','metric','success_criteria','start','tags','secondary_metrics','audience','traffic_plan','risks'] as const;
-export type Preparation = { title: string; fields: Record<typeof preparationKeys[number], string | null>; missing: string[]; assumptions: string[] };
+export type Preparation = { title: string; fields: Record<typeof preparationKeys[number], string | null>; missing: string[]; assumptions: string[]; channel?:Channel|null; execution?:ExecutionPlan|null };
 const text = { type: ['string','null'] };
-export const preparationSchema = { type:'object',additionalProperties:false,required:['title','fields','missing','assumptions'],properties:{
+export const preparationSchema = { type:'object',additionalProperties:false,required:['title','fields','missing','assumptions','channel','execution'],properties:{
+  channel:{type:['string','null'],enum:[...Object.keys(channels),null]},execution:{anyOf:[executionSchema,{type:'null'}]},
   title:{type:'string'},fields:{type:'object',additionalProperties:false,required:[...preparationKeys],properties:Object.fromEntries(preparationKeys.map(key => [key,text]))},
   missing:{type:'array',items:{type:'string'}},assumptions:{type:'array',items:{type:'string'}},
 } };
@@ -21,11 +23,19 @@ export function parsePreparation(value: unknown): Preparation {
   }
   if (fields.start && (!/^\d{4}-\d{2}-\d{2}$/.test(fields.start) || Number.isNaN(Date.parse(fields.start)) || new Date(fields.start).toISOString().slice(0,10)!==fields.start)) throw new Error('La fecha propuesta no es válida.');
   const list=(input: unknown) => { if (!Array.isArray(input) || input.length>20 || input.some(row => typeof row!=='string' || row.length>1000)) throw new Error('Las aclaraciones de la IA no son válidas.'); return input as string[]; };
-  return {title:candidate.title.trim(),fields,missing:list(candidate.missing),assumptions:list(candidate.assumptions)};
+  return {title:candidate.title.trim(),fields,missing:list(candidate.missing),assumptions:list(candidate.assumptions),channel:parseChannel(candidate.channel),execution:candidate.execution==null?null:parseExecution(candidate.execution)};
 }
 export function applyPreparation(current: Fields, proposal: Preparation): Fields {
   // Null means unknown: never erase existing user values or change record identity/ownership.
-  return {...current,...Object.fromEntries(preparationKeys.filter(key => proposal.fields[key]!==null).map(key => [key,proposal.fields[key]!]))};
+  const next={...current,...Object.fromEntries(preparationKeys.filter(key => proposal.fields[key]!==null).map(key => [key,proposal.fields[key]!]))};
+  if(proposal.channel && !current.channel)next.channel=proposal.channel;
+  if(proposal.execution){
+    const old=executionFromFields(current);
+    const execution={...proposal.execution};
+    if(old)for(const key of Object.keys(old) as (keyof ExecutionPlan)[])if(execution[key]===null || (key==='variants'&&!execution.variants.length))Object.assign(execution,{[key]:old[key]});
+    next.execution_config=JSON.stringify(parseExecution(execution));
+  }
+  return next;
 }
 
 export function humanSuccessCriterion(proposal: Preparation, current: unknown): Preparation {

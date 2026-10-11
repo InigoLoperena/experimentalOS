@@ -2508,3 +2508,4 @@ nav button,
 @media (max-width: 600px) { .monitoring-grid { grid-template-columns: 1fr; } .experiment-monitoring { padding: 12px; } .monitoring-heading { flex-wrap: wrap; } }
 .assistant-proposal { margin-top: 16px; padding: 16px; border: 1px solid var(--lime); border-radius: 12px; background: #252525; color: #f5f5f5; }
 .assistant-proposal p { white-space: pre-wrap; overflow-wrap: anywhere; }
+ .execution-summary { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .9rem; line-height: 1.6; }
