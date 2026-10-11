@@ -1546,7 +1546,7 @@ export default function Home() {
             setView("map");
           }}
         >
-          <img className="xperiments-logo" src="/xperiments-logo-horizontal.png" width={1389} height={516} alt="Xperiments · Experimental Innovation Operative System" />
+          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation Operative System" />
         </a>
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav>
