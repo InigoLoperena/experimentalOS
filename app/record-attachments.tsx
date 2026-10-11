@@ -158,7 +158,7 @@ export function RecordAttachments({ record, editable, demo, prefetched = false, 
           }} />
       </label>
     </div>}
-    {!persisted && <p className="small">Guarda la ficha para adjuntar imágenes, PDF o DOCX.</p>}
+    {!persisted && <p className="small">Guarda la ficha para adjuntar imágenes, vídeos, PDF o DOCX.</p>}
     {errorDisplay}
   </section>;
   return children ? children({ files, links }) : <>{links}{files}</>;

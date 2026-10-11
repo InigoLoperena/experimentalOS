@@ -33,6 +33,11 @@ export function applyPreparation(current: Fields, proposal: Preparation): Fields
     const old=executionFromFields(current);
     const execution={...proposal.execution};
     if(old)for(const key of Object.keys(old) as (keyof ExecutionPlan)[])if(execution[key]===null || (key==='variants'&&!execution.variants.length))Object.assign(execution,{[key]:old[key]});
+    if(old&&proposal.execution.variants.length)execution.variants=execution.variants.map(variant=>{
+      const previous=old.variants.find(value=>value.label.trim().toLowerCase()===variant.label.trim().toLowerCase());
+      if(!previous)return variant;
+      return {...variant,...Object.fromEntries(Object.entries(variant).filter(([,value])=>value===null).map(([key])=>[key,previous[key as keyof typeof previous]]))};
+    });
     next.execution_config=JSON.stringify(parseExecution(execution));
   }
   return next;
