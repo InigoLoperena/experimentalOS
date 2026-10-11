@@ -7,7 +7,7 @@ import { PGlite } from "@electric-sql/pglite";
 test("complete migration chain preserves the internal team, invitation-only access, private attachments and GOI comments", async () => {
   const db = new PGlite();
   try {
-    await db.exec(`create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb);
+    await db.exec(`create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb,email text,email_confirmed_at timestamptz);
       create role anon;create role authenticated;
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;
@@ -19,7 +19,7 @@ test("complete migration chain preserves the internal team, invitation-only acce
     const files = (await readdir(dir)).filter(f => f.endsWith(".sql")).sort();
     const migrate = async (file: string) => db.exec((await readFile(new URL(file, dir), "utf8")).replace("create extension if not exists pgcrypto;", ""));
     for (const file of files.filter(f => f < "005")) await migrate(file);
-    for (const id of [owner, editor, viewer, outsider]) await db.query("insert into auth.users values($1,'{\"name\":\"Test\"}')", [id]);
+    for (const id of [owner, editor, viewer, outsider]) await db.query("insert into auth.users(id,raw_user_meta_data) values($1,'{\"name\":\"Test\"}')", [id]);
     async function as(id: string | null) {
       await db.exec("reset role");
       await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id || ""]);
@@ -84,6 +84,32 @@ test("complete migration chain preserves the internal team, invitation-only acce
     await as(outsider);
     assert.equal((await db.query("select * from record_comments")).rows.length, 0);
     assert.equal((await db.query("select * from record_attachments")).rows.length, 0);
+    // A confirmed account is not a team member until an administrator explicitly provisions it.
+    await db.exec("reset role");
+    const administrator = randomUUID();
+    await db.query("insert into auth.users(id,raw_user_meta_data,email,email_confirmed_at) values($1,'{}','Admin@Example.org',now())", [administrator]);
+    const repair = await readFile(new URL("../scripts/restore-team-owner.sql", import.meta.url), "utf8");
+    await as(administrator);
+    assert.equal(await scalar("select open_team_space() as value"), null);
+    await assert.rejects(db.exec(repair.replaceAll("ADMINISTRATOR_EMAIL", "admin@example.org")));
+    await db.exec("rollback;reset role");
+    await assert.rejects(db.exec(repair.replaceAll("ADMINISTRATOR_EMAIL", "missing@example.org")));
+    await db.exec("rollback;reset role");
+    await db.query("insert into auth.users(id,raw_user_meta_data,email) values($1,'{}','unconfirmed@example.org')", [randomUUID()]);
+    await assert.rejects(db.exec(repair.replaceAll("ADMINISTRATOR_EMAIL", "unconfirmed@example.org")));
+    await db.exec("rollback;reset role");
+    const existingRecords = await scalar<number>("select count(*)::int as value from records");
+    const existingMembers = await scalar<number>("select count(*)::int as value from members");
+    await db.exec(repair.replaceAll("ADMINISTRATOR_EMAIL", "admin@example.org"));
+    await db.exec(repair.replaceAll("ADMINISTRATOR_EMAIL", "admin@example.org"));
+    assert.equal(await scalar<number>("select count(*)::int as value from records"), existingRecords);
+    assert.equal(await scalar<number>("select count(*)::int as value from members"), existingMembers + 1);
+    await as(administrator);
+    assert.equal(await scalar("select open_team_space() as value"), w);
+    assert.equal(await scalar("select member_role($1) as value", [w]), "owner");
+    assert.equal(await scalar("select title as value from records where id=$1", [p]), "Proyecto");
+    await as(outsider);
+    assert.equal(await scalar("select open_team_space() as value"), null);
     await as(owner);
     await db.query("delete from records where workspace_id=$1 and project_id=$2", [w, p]);
     await db.query("delete from records where id=$1", [p]);
