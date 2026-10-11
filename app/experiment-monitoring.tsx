@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Download, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
+import { MetaMonitoring } from './meta-monitoring';
 import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricsCsvTemplate, parseMetricsCsv,
   periodRows, providers, safeResourceUrl, validateObservation,
   type Monitoring, type Observation, type Provider, type CsvMetric } from "@/lib/monitoring";
@@ -31,6 +32,8 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
   const [resourceEditing, setResourceEditing] = useState<string | null>(null);
   const active = useRef(true);
   const inFlight = useRef(false);
+  const resourceDetails = useRef<HTMLDetailsElement>(null);
+  const resultsDetails = useRef<HTMLDetailsElement>(null);
   const scope = experimentScope(experiment);
 
   useEffect(() => {
@@ -152,7 +155,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
       <p className="small">El reparto es una planificación. Añadir variantes aquí no configura por sí solo un A/B aleatorizado en Meta.</p>
     </details>
 
-    <details className="monitoring-block">
+    <details className="monitoring-block" ref={resourceDetails}>
       <summary>Campañas y recursos vinculados · {data.resources.length}</summary>
       <div className="monitoring-list">{data.resources.map(value => <div key={value.id} className="monitoring-entry">
         <div><strong>{value.label || value.external_id || "Recurso enlazado"}</strong><p>{providers[value.provider]} · {resourceLabels[value.resource_type] || value.resource_type} · {value.external_id ? `ID ${value.external_id}` : "ID pendiente"}</p>
@@ -181,10 +184,18 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
         <label>Variante<select value={resource.variant} onChange={e => setResource({ ...resource,variant:e.target.value })}><option value="">Sin asignar / todas</option>{data.variants.map(value => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
         <div className="row"><button type="submit" className="btn primary">{resourceEditing ? "Guardar vínculo" : "Vincular recurso"}</button>{resourceEditing && <button type="button" className="btn" onClick={() => { setResourceEditing(null); setResource({...resource,id:"",url:"",label:"",variant:""}); }}>Cancelar</button>}</div>
       </fieldset></form>}
-      <p className="small">Indica el ID o la URL de la plataforma. Para importar CSV necesitas añadir el ID. El vínculo no activa todavía una sincronización automática.</p>
+      <p className="small">Indica el ID o la URL de la plataforma. Para importar resultados necesitas añadir el ID. Meta permite consultar resultados desde su conexión; las otras plataformas admiten importación manual.</p>
     </details>
 
-    <details className="monitoring-block" open>
+    {!demo && <MetaMonitoring experiment={experiment} resources={data.resources} editable={editable} locked={busy} onBusy={onBusy}
+      onChoose={campaign=>{setResourceEditing(null);setResource({provider:'meta_ads',type:'campaign',id:campaign.id,url:campaign.url,label:campaign.name,variant:''});
+        if(resourceDetails.current) {resourceDetails.current.open=true;resourceDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}
+        setMessage('Campaña preparada en el formulario de recursos. Asigna una variante y pulsa Vincular recurso.');}}
+      onReview={metrics=>{try {csvObservationPayload(experiment,data.resources,metrics);setCsv(metrics);setError('');setMessage('Resultados de Meta listos para revisión. Confirma la importación en Resultados.');
+          if(resultsDetails.current) {resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}
+        catch(err) {setError(err instanceof Error ? err.message : 'Revisa el vínculo antes de importar.');}}}/>}
+
+    <details className="monitoring-block" open ref={resultsDetails}>
       <summary>Resultados · {data.observations.length} observaciones</summary>
       <div className="monitoring-grid"><label>Desde<input type="date" value={period.start} onChange={e => setPeriod({ ...period,start:e.target.value })}/></label>
         <label>Hasta<input type="date" value={period.end} onChange={e => setPeriod({ ...period,end:e.target.value })}/></label></div>
@@ -193,7 +204,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
         {rows.map(value => { const linked=data.resources.find(row => row.id===value.resource_id); const associated=data.variants.find(row => row.id===linked?.variant_id);
           return <tr key={value.id}><td>{associated?.label || "Sin variante"}<br/><span className="small">{linked?.label || linked?.external_id || "Recurso enlazado"}</span></td><td>{metricLabels[value.metric] || value.metric}</td>
             <td>{value.unit==="ratio" ? `${(Number(value.value)*100).toLocaleString("es",{maximumFractionDigits:2})} %` : `${Number(value.value).toLocaleString("es")}${value.currency ? ` ${value.currency}` : ""}`}</td>
-            <td>{value.source==="csv" ? "CSV importado" : value.source==="api" ? "API" : "Manual"}</td><td>{value.notes}</td>
+            <td>{value.source==="csv" ? (value.notes.startsWith('Origen: Meta Insights API') ? 'Meta · importación revisada' : 'CSV importado') : value.source==="api" ? "API" : "Manual"}</td><td>{value.notes}</td>
             {editable && <td><button type="button" className="icon-button" aria-label={`Eliminar resultado ${value.metric}`} disabled={busy || value.source==="api"} onClick={() => {
               if (!window.confirm("¿Eliminar esta observación? La modificación quedará en el historial.")) return;
               void run(async () => { if (demo) setData(previous => previous && ({ ...previous,observations:previous.observations.filter(row => row.id!==value.id) })); else await remove("metric_observations",value.id); });

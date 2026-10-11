@@ -14,7 +14,7 @@ PostHog usa una asociación verificada en `posthog_project_bindings`, de lectura
 
 Cada experimento obtiene un código estable como `EXP-GREENHUNT-0001`. Los contadores están aislados por proyecto/workspace y no reutilizan códigos. Cambiar el nombre del proyecto no altera los códigos existentes.
 
-En la ficha se gestionan estado y presupuesto previstos, fechas, zona horaria, variantes y recursos externos. Un experimento puede tener varias campañas, anuncios o publicaciones, asociados opcionalmente a una variante. Se admite ID o URL HTTPS; para importar CSV se requiere un ID sin ambigüedad. No hay sincronización nueva de Meta ni verificación automática del estado externo todavía.
+En la ficha se gestionan estado y presupuesto previstos, fechas, zona horaria, variantes y recursos externos. Un experimento puede tener varias campañas, anuncios o publicaciones, asociados opcionalmente a una variante. Se admite ID o URL HTTPS; para importar CSV se requiere un ID sin ambigüedad. Meta dispone de consulta bajo demanda e importación revisada; la sincronización programada sigue pendiente.
 
 Las observaciones tienen métrica, valor, unidad, moneda cuando corresponde, periodo y fuente. Se compara el periodo exacto; no se suman periodos superpuestos, snapshots acumulados ni porcentajes. Un recuento requiere enteros y una proporción valores 0–1. El CSV acepta hasta 500 filas/500 KB y exige revisión antes de importar. Reimportar el mismo recurso/métrica/periodo actualiza el valor con historial, sin duplicarlo. Los lectores consultan; propietarios y editores modifican. Las referencias compuestas impiden mezclar experimentos/proyectos/workspaces, incluso para un usuario miembro de ambos.
 
@@ -31,6 +31,18 @@ La clave `OPENAI_API_KEY` permanece en el servidor. Se usa Responses API con sal
 La base reserva 0,03 USD por solicitud con un bloqueo transaccional, un máximo de 5 USD por workspace/mes UTC y 15 segundos entre consultas. El límite es conservador: registra reservas estimadas, no la facturación real. Incluso los fallos consumen reserva; no se reintenta automáticamente. IDs de solicitud repetidos se rechazan. Los miembros no pueden editar reservas ni bajar el límite desde el navegador. Revisar tarifas antes de cambiar modelo/límites; OpenAI factura por separado y necesita saldo. El 11 de octubre la generación real se completó con HTTP 200 después de que el usuario añadiera saldo; una propuesta de Greenhunt utilizó 514 tokens.
 
 ## Base de datos y despliegue
+
+### Conexión de lectura con Meta Ads
+
+El piloto de Greenhunt usa un usuario técnico Employee con «Ver rendimiento» en la cuenta publicitaria y «Probar app» en la app Greenhunt. El token tiene únicamente `ads_read`, duración de 60 días y se guarda como Secret de producción en Vercel (`META_ADS_ACCESS_TOKEN`), sin archivo local ni exposición al navegador. Las variables de servidor `META_ADS_WORKSPACE_ID`, `META_ADS_PROJECT_ID` y `META_ADS_ACCOUNT_ID` fijan la asociación autorizada. Renombrar un proyecto o editar sus campos no puede ampliar acceso. Esta asociación de un solo proyecto es para el piloto; antes de añadir clientes, migrar a asociaciones administradas y credenciales individuales por tenant.
+
+En «Conexión con Meta Ads», el usuario puede listar campañas (50 por página), completar el formulario de vinculación sin duplicar la ficha y consultar recursos vinculados de tipo campaña, conjunto o anuncio. El servidor valida sesión y RLS, asociación de proyecto/workspace y pertenencia real del recurso a la cuenta antes de pedir sus métricas. Solo hace GET a `graph.facebook.com/v26.0`; no sigue URLs de paginación que puedan contener tokens. No crea, modifica, activa ni publica anuncios.
+
+Los informes incluyen impresiones, clics totales, alcance y gasto/moneda para un periodo exacto de hasta 31 días. Sin datos no significa cero. Un informe de otro recurso, cuenta o periodo se rechaza. No se interpreta la North Star como clics de anuncios ni se suman acciones de conversión potencialmente superpuestas. Los datos del día pueden cambiar; el selector propone la semana anterior a hoy.
+
+«Revisar importación de resultados» reutiliza la revisión/importación existente. Después de confirmar se guardan como importación revisada (`source=csv`), con cuenta, versión de API, fecha de consulta y advertencias en notas; la UI distingue estos datos de CSV externos y de una futura sincronización automática (`source=api`). No se amplían permisos RLS ni se emplea una clave service-role para este flujo. Reimportar el mismo periodo conserva la idempotencia y auditoría existentes. Ver documentación oficial: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights y https://developers.facebook.com/docs/graph-api/changelog/.
+
+Esta entrega no requiere nuevas migraciones. Renovar el token en Meta/Vercel al caducar o revocarse y desplegar para que el nuevo entorno llegue al servidor. La programación y la creación de recursos pausados necesitan trabajo y autorizaciones posteriores.
 
 Aplicadas y verificadas en el proyecto `yjnidbgjkobzlmhpzawz` el 11 de octubre de 2026:
 
