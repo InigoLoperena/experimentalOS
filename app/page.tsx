@@ -214,7 +214,7 @@ function ExperimentalBookBanner() {
       <img src={experimentalBookCover} alt="Portada de La Empresa Experimental" />
       <div className="experimental-book-copy">
         <p>
-          Experimental Operative System está basado en la metodología del libro
+          Experimental Innovation System está basado en la metodología del libro
           <strong> La Empresa Experimental</strong> de Product Hackers.
         </p>
         <div className="experimental-book-links">
@@ -1562,7 +1562,7 @@ export default function Home() {
             setView("map");
           }}
         >
-          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation Operative System" />
+          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation System" />
         </a>
         <div className="sidebar-product-identity" aria-label="Experimental Innovation System">
           <span>Experimental</span>
@@ -2376,7 +2376,7 @@ export default function Home() {
           {view === "method" && <Method />}
           {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
-            <span>Experimental Operative System · Imagine Builder</span>
+            <span>Experimental Innovation System · Imagine Builder</span>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
               {publicMode ? "Acceder al equipo" : "Exportar copia completa"}
             </button>
@@ -2803,7 +2803,7 @@ function Auth({
       </div>
       <div className="auth-card">
         <div className="auth-mobile-brand"><BrandIdentity /></div>
-        <span className="eyebrow">EXPERIMENTAL OPERATIVE SYSTEM</span>
+        <span className="eyebrow">EXPERIMENTAL INNOVATION SYSTEM</span>
         {invitation && (
           <div className="notice">
             <strong>Estás invitado a unirte al equipo {invitation.team_name}</strong>
