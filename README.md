@@ -109,7 +109,7 @@ Aplicar la migración `integrations_and_team_permissions` y configurar `INTEGRAT
 
 ## Identidad visual
 
-El logo original de Imagine Builder y el título Experimental Operative System identifican la herramienta. Toda la interfaz usa fondos grises oscuros, texto claro, verde fosforito para acciones principales y títulos, azul para ideas/información y rojo para oportunidades/avisos. Tarjetas, tablas, filtros, formularios, perfiles personales, acceso y ventanas comparten la misma paleta, también en móvil.
+El menú muestra el logo horizontal de Xperiments sin un título adicional. La interfaz usa fondos azul oscuro, texto claro y verde fosforito para acciones y selección, siguiendo la referencia visual aprobada. El menú incluye «Documentar aprendizajes» con un libro, «Objetivos o input metrics», «Oportunidades / problemas» y ayuda con un icono de interrogación. El acceso y las exportaciones conservan los recursos de Imagine Builder. La navegación se adapta a móvil.
 
 ## Desarrollo y verificaciones
 

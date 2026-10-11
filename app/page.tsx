@@ -11,6 +11,7 @@ import {
   Download,
   FlaskConical,
   GitBranch,
+  CircleHelp,
   Layers,
   Lightbulb,
   LogOut,
@@ -244,13 +245,13 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
 const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
-  { id: "learning", label: "Aprendizajes", icon: Lightbulb },
+  { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
-  { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
+  { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
-const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", opportunities: "Oportunidades", ideas: "Ideas" };
+const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos o input metrics", opportunities: "Oportunidades / problemas", ideas: "Ideas" };
 function IconFor({ kind }: { kind: Kind }) {
   const I =
     kind === "north_star"
@@ -1535,7 +1536,7 @@ export default function Home() {
             setView("map");
           }}
         >
-          <BrandIdentity />
+          <img className="xperiments-logo" src="/xperiments-logo-horizontal.png" width={1389} height={516} alt="Xperiments · Experimental Innovation Operative System" />
         </a>
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav>
@@ -1556,8 +1557,8 @@ export default function Home() {
               </button>
               {id === "map" && (
                 <div className="nav-subsections">
-                  <button className={view === "goals" ? "active" : ""} onClick={() => setView("goals")}>Objetivos</button>
-                  <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>Oportunidades</button>
+                  <button className={view === "goals" ? "active" : ""} onClick={() => setView("goals")}>{viewLabels.goals}</button>
+                  <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>{viewLabels.opportunities}</button>
                   <button className={view === "ideas" ? "active" : ""} onClick={() => setView("ideas")}>Ideas</button>
                 </div>
               )}
