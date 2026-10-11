@@ -2,14 +2,14 @@ export function BrandIdentity() {
   return (
     <span className="brand-identity">
       <img
-        className="imagine-logo"
-        src="/imagine-builder-logo.png"
-        width={300}
-        height={100}
-        alt="Imagine Builder · Experimental Innovation"
+        className="xperiments-logo"
+        src="/xperiments-logo-horizontal.png"
+        width={1389}
+        height={516}
+        alt="Xperiments"
       />
       <span className="product-title">
-        Experimental <span>Operative System</span>
+        Experimental Innovation Operative System
       </span>
     </span>
   );
