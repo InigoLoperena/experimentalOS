@@ -7,6 +7,8 @@ export const preparationSchema = { type:'object',additionalProperties:false,requ
   title:{type:'string'},fields:{type:'object',additionalProperties:false,required:[...preparationKeys],properties:Object.fromEntries(preparationKeys.map(key => [key,text]))},
   missing:{type:'array',items:{type:'string'}},assumptions:{type:'array',items:{type:'string'}},
 } };
+export const preparationRequestSchema = {...preparationSchema,properties:{...preparationSchema.properties,fields:{...preparationSchema.properties.fields,
+  properties:{...preparationSchema.properties.fields.properties,success_criteria:{type:'null'}}}}};
 export function parsePreparation(value: unknown): Preparation {
   if (!value || typeof value!=='object') throw new Error('La IA no devolvió una propuesta válida.');
   const candidate=value as Preparation;
@@ -24,4 +26,9 @@ export function parsePreparation(value: unknown): Preparation {
 export function applyPreparation(current: Fields, proposal: Preparation): Fields {
   // Null means unknown: never erase existing user values or change record identity/ownership.
   return {...current,...Object.fromEntries(preparationKeys.filter(key => proposal.fields[key]!==null).map(key => [key,proposal.fields[key]!]))};
+}
+
+export function humanSuccessCriterion(proposal: Preparation, current: unknown): Preparation {
+  const criterion=typeof current==='string' && current.trim() ? current : null;
+  return {...proposal,fields:{...proposal.fields,success_criteria:criterion},missing:criterion ? proposal.missing : [...new Set([...proposal.missing,'Define el criterio de éxito y su umbral antes de ejecutar el experimento.'])]};
 }

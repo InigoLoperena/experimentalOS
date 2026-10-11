@@ -27,7 +27,7 @@ export function ExperimentAssistant({draft,disabled,demo,onApply,onBusy}: {draft
     finally { pending.current=false;setBusy(false);onBusy(false); }
   }
   return <details className="monitoring-block full"><summary>Preparar con IA</summary>
-    <p className="small">Utiliza el contexto y los aprendizajes registrados del proyecto. La propuesta necesita revisión. En esta primera versión describe los materiales en el texto; sus archivos no se envían a la IA.</p>
+    <p className="small">Utiliza el contexto y los aprendizajes registrados del proyecto. Revisa la propuesta y define tú el criterio de éxito en el formulario. En esta primera versión describe los materiales en el texto; sus archivos no se envían a la IA.</p>
     {demo ? <p className="notice">El asistente está disponible al iniciar sesión en tu workspace.</p> : <>
       <label>Describe el experimento<textarea maxLength={4000} rows={4} disabled={disabled || busy} value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="Prepara un A/B en Meta Ads para Greenhunt: muebles gratuitos frente a sostenibilidad, en Nueva York, siete días y 10 USD diarios…"/></label>
       <button className="btn primary" type="button" disabled={disabled || busy || !prompt.trim()} onClick={() => void prepare()}>{busy ? 'Preparando propuesta…' : 'Proponer contenido'}</button>
