@@ -10,6 +10,15 @@ export function listTeamSpaces(client: SupabaseClient): Promise<TeamSpace[]> {
     .select("id,name", { count: "exact" }).order("created_at").order("id").range(from, to));
 }
 
+export async function createPersonalTeamSpace(client: SupabaseClient, userName?: string): Promise<TeamSpace> {
+  const displayName = (userName || "").trim().slice(0, 90);
+  const name = displayName ? `Equipo de ${displayName}` : "Mi equipo";
+  const { data, error } = await client.rpc("create_team", { team_name: name });
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== "string") throw new Error("No se ha podido crear el equipo.");
+  return { id: data, name };
+}
+
 export function selectTeamSpace(spaces: TeamSpace[], preferredId?: string | null) {
   return spaces.find(space => space.id === preferredId) || spaces[0] || null;
 }
