@@ -189,13 +189,13 @@ select {
 .product-title {
   display: block;
   max-width: 100%;
-  color: var(--muted);
-  font-size: 10px;
+  color: #fa3654;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.8px;
-  line-height: 1.45;
-  text-align: center;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
   text-wrap: balance;
 }
 .auth-intro .brand-identity,
@@ -2047,7 +2047,7 @@ legend {
     max-width: 100%;
   }
   .sidebar .product-title {
-    font-size: 10px;
+    font-size: 13px;
     text-align: left;
   }
   .nav-caption,
@@ -2617,7 +2617,7 @@ nav button,
   flex-direction: column;
   align-items: flex-start;
   background: #0b1530;
-  color: #fff;
+  color: #fa3654;
   border-radius: 8px;
   padding: 12px 13px 13px;
   margin: -10px 0 18px;
@@ -2626,7 +2626,7 @@ nav button,
   line-height: 1.08;
   letter-spacing: -0.45px;
 }
-.sidebar-product-identity .accent { color: #a8ff33; }
+.sidebar-product-identity .accent { color: #fa3654; }
 .sidebar-product-identity .identity-stripes {
   display: flex;
   gap: 0;
