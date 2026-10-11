@@ -3,9 +3,9 @@ export function BrandIdentity() {
     <span className="brand-identity">
       <img
         className="xperiments-logo"
-        src="/xperiments-logo-horizontal.png"
-        width={1389}
-        height={516}
+        src="/logo.svg"
+        width={695}
+        height={258}
         alt="Xperiments"
       />
       <span className="product-title">
