@@ -40,17 +40,18 @@ test("partial, malformed, looping and cross-host PostHog responses fail before s
 test("PostHog sync preserves local fields, scopes all changes and keeps unlinked or other-project experiments", async () => {
   const existing = [item("linked", "experiment", { posthog_experiment_id: "101", metric: "Local KPI", hypothesis: "Local hypothesis" }),
     item("old", "experiment", { posthog_experiment_id: "3" }), item("manual"), { ...item("other", "experiment", { posthog_experiment_id: "4" }), project_id: "other-project" }];
-  const mock = queuedClient([{ data: [{ id: "linked" }], error: null }, { data: null, error: null }, { data: [{ id: "old" }], error: null }]);
+  const mock = queuedClient([{ data: [{ id: "linked" }], error: null }, { data: null, error: null }]);
   const result = await syncPosthogExperiments(mock.client, item("p", "project"), "u", existing, [{ id: 101, name: "Remote name", metrics: [{ name: "Remote KPI" }] }, { id: 102, name: "New" }, { id: 102, name: "Duplicate" }]);
-  assert.deepEqual(result, { created: 1, updated: 1, removed: 1 });
+  assert.deepEqual(result, { created: 1, updated: 1, preserved: 1 });
   assert.equal(mock.calls[0].payload.fields.hypothesis, "Local hypothesis");
   assert.equal(mock.calls[0].payload.fields.metric, "Local KPI");
   assert.deepEqual(mock.calls[0].filters, { workspace_id: "w", project_id: "p", id: "linked", updated_at: existing[0].updated_at });
-  assert.equal(mock.calls[2].filters.id, "old");
+  assert.equal(mock.calls.length, 2);
+  assert.ok(mock.calls.every(call => call.action !== "delete"));
   assert.equal(mock.calls[1].payload.fields.impact, 5);
 });
 
-test("sync rejects incomplete IDs and concurrent edits before deleting stale experiments", async () => {
+test("sync rejects incomplete IDs and concurrent edits without deleting history", async () => {
   const malformed = queuedClient([]);
   await assert.rejects(syncPosthogExperiments(malformed.client, item("p", "project"), "u", [], [{ name: "No ID" }]));
   assert.equal(malformed.calls.length, 0);

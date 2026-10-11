@@ -1,6 +1,8 @@
 # Experimental OS
 
-Herramienta interna de Imagine Builder para organizar la experimentación por proyectos, con cuentas individuales y un único equipo compartido. Next.js + TypeScript, GitHub y Vercel; Supabase aporta cuentas, sesiones y base de datos.
+Plataforma de experimentación por proyectos. El piloto utiliza el workspace de Imagine Builder; los datos, miembros y permisos están aislados por workspace. Next.js + TypeScript, GitHub y Vercel; Supabase aporta cuentas, sesiones y base de datos. El acceso sigue siendo por invitación.
+
+Consulta [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md) para las funcionalidades nuevas, las migraciones aplicadas, los límites y el orden de las siguientes entregas.
 
 ## Navegación
 
@@ -21,7 +23,7 @@ Incluye nombre, responsable, contexto, hipótesis, métrica principal, criterio 
 
 El proyecto se toma del selector de la vista; no es otro campo del formulario. Si el experimento se crea desde una idea del árbol, su vínculo se conserva automáticamente. También se pueden crear experimentos independientes desde su lista.
 
-No incluye estados, canal, variantes, muestras, conversiones, resultados, analista, costes, fecha final ni vínculos a OKR. La asignación de tráfico se documenta en texto; esta aplicación no ejecuta tests ni hace análisis estadístico.
+Los campos sencillos se conservan. La ficha añade un panel independiente de preparación y resultados: código estable, presupuesto y fechas previstos, variantes, campañas externas y métricas manuales/CSV. La aplicación no ejecuta campañas ni realiza inferencia estadística automáticamente.
 
 Para documentar lo descubierto, abre el experimento y pulsa **Documentar aprendizaje**. El aprendizaje se guarda en una ficha separada dentro del mismo proyecto; también puede crearse directamente en Aprendizajes.
 
@@ -51,7 +53,7 @@ Las copias contienen información interna: guárdalas en un lugar seguro. Conser
 
 Consulta [ACTUALIZAR-SUPABASE.md](ACTUALIZAR-SUPABASE.md).
 
-1. Ejecuta únicamente las migraciones pendientes en orden, hasta `010_private_team_access.sql`. **No vuelvas a ejecutar `001_initial.sql`.** La 010 corrige el acceso a los equipos y la privacidad de los adjuntos; sigue [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md).
+1. Ejecuta únicamente las migraciones pendientes en orden; después de la 010, aplica las tres migraciones fechadas de 20261011 descritas en [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md). **No vuelvas a ejecutar `001_initial.sql`.** En el proyecto del piloto ya están aplicadas y verificadas.
 2. El registro admite confirmación de email: si está activada, hay que confirmar el correo antes de iniciar sesión. El acceso a los datos del equipo requiere una invitación.
 3. GitHub/Vercel despliegan el código; la migración de Supabase se ejecuta por separado.
 
@@ -64,7 +66,7 @@ Si el código se despliega antes de ejecutar la migración, la aplicación muest
 ## Instalar desde cero
 
 1. Crea un proyecto Supabase nuevo. No ejecutes este esquema sobre una base de otra aplicación.
-2. En SQL Editor ejecuta todas las migraciones de `supabase/migrations/` por orden, de la 001 a la 010.
+2. En SQL Editor ejecuta todas las migraciones de `supabase/migrations/` por orden, incluidas las migraciones fechadas posteriores a la 010.
 3. Configura estas variables con Project URL y la clave pública anon/publishable:
 
 ```dotenv
@@ -83,11 +85,11 @@ Los cambios de variables `NEXT_PUBLIC_*` requieren un nuevo despliegue.
 
 ## Vista pública y equipo interno
 
-Sin iniciar sesión, el enlace principal muestra en modo solo lectura el equipo original publicado por Imagine Builder, incluidos sus proyectos, experimentos, aprendizajes, GOI Tree y equipo. Las acciones que requieren una cuenta llevan al registro.
+Sin iniciar sesión se muestra la pantalla de acceso y una demostración con datos ficticios. Los datos reales de los workspaces no son públicos.
 
 Registrarse crea una cuenta personal. El acceso al equipo requiere la invitación de un administrador; no se crean equipos ni empresas desde la aplicación. Los adjuntos y comentarios solo son accesibles a miembros autenticados. Los lectores pueden consultarlos y los administradores y editores pueden añadirlos. Los permisos se comprueban también en Supabase.
 
-La migración 006 conserva la vista pública existente. La 010 retira la creación de equipos y el acceso público a los adjuntos sin borrar ni mover espacios, registros, archivos o miembros existentes.
+La migración 010 retiró la creación de equipos y el acceso público a los adjuntos. La migración fechada de seguridad desactiva también la vista pública de datos reales, sin borrar ni mover espacios, registros, archivos o miembros.
 
 ## Perfiles y administración
 

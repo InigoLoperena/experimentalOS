@@ -34,10 +34,12 @@ import { TeamAccess } from "./team-access";
 import { BackupDialog, type BackupFormat } from "./backup-dialog";
 import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
+import { ExperimentMonitoring } from "./experiment-monitoring";
+import { ExperimentAssistant } from "./experiment-assistant";
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
 import { deleteWorkspaceRecord, loadWorkspaceRecords, ensureProjectNorthStar, projectNorthStarRecord } from "@/lib/record-service";
-import { getPublicPreview, openTeamSpace } from "@/lib/internal-space";
+import { getPublicPreview, listTeamSpaces, selectTeamSpace } from "@/lib/internal-space";
 import { registerAccount } from "@/lib/auth-service";
 import { attachmentBucket, supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
@@ -360,6 +362,7 @@ export default function Home() {
   const [members, setMembers] = useState<Member[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [publicMode, setPublicMode] = useState(false);
   const [authRequested, setAuthRequested] = useState(false);
@@ -368,6 +371,8 @@ export default function Home() {
   const [profileReady, setProfileReady] = useState(!supabase);
   const [showProfile, setShowProfile] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
+  const [monitoringBusy, setMonitoringBusy] = useState(false);
+  const [assistantBusy, setAssistantBusy] = useState(false);
   const [demo, setDemo] = useState(!supabase);
   const [loading, setLoading] = useState(!!supabase);
   const [toast, setToast] = useState("");
@@ -511,6 +516,7 @@ export default function Home() {
       return;
     }
     if (!user) {
+      setWorkspaces([]);
       if (!supabase) return;
       if (pendingInvite) {
         setPublicMode(false);
@@ -559,6 +565,8 @@ export default function Home() {
     }
 
     setPublicMode(false);
+    setWorkspaces([]);
+    setWorkspace(null);
     let alive = true;
     (async () => {
       setLoading(true);
@@ -567,8 +575,10 @@ export default function Home() {
           const joined = await supabase!.rpc("join_workspace", { invite_token: pendingInvite });
           if (joined.error) throw new Error(joined.error.message);
           if (!joined.data) throw new Error("La invitación ya no es válida.");
+          const joinedSpaces = await listTeamSpaces(supabase!);
           preferredWorkspace.current = joined.data as string;
           if (alive) {
+            setWorkspaces(joinedSpaces);
             setWorkspace({ id: joined.data as string, name: invitationPreview?.team_name });
             setPendingInvite("");
             setInvitationPreview(null);
@@ -578,15 +588,12 @@ export default function Home() {
           return;
         }
 
-        if (preferredWorkspace.current) {
-          const id = preferredWorkspace.current;
-          preferredWorkspace.current = null;
-          if (alive) setWorkspace((current) => current?.id === id ? current : { id });
-          return;
-        }
-
-        const space = await openTeamSpace(supabase!);
-        if (alive) { setWorkspace(space); setError(""); }
+        const spaces = await listTeamSpaces(supabase!);
+        let preferred: string | null = preferredWorkspace.current;
+        preferredWorkspace.current = null;
+        if (!preferred) { try { preferred = localStorage.getItem(`experimental-os.workspace.${user.id}`); } catch {} }
+        const space = selectTeamSpace(spaces, preferred);
+        if (alive) { setWorkspaces(spaces); setWorkspace(space); setError(""); }
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "No se ha podido abrir el equipo.");
       } finally {
@@ -708,6 +715,8 @@ export default function Home() {
     if (!demo) {
       ++loadVersion.current;
       setMembers([]); setItems([]); setActivity([]); setInvitations([]); setInviteUrl("");
+      setSelected(null); setDraft(null); setProjectId(""); setPublicAttachments([]);
+      setRecordComments([]); setSelectedHistory([]); setFilter("");
       if (workspace) void load(workspace);
     }
   }, [workspace?.id, demo]);
@@ -905,7 +914,7 @@ export default function Home() {
     });
   }
   async function save() {
-    if (!draft || saving || attachmentsBusy) return;
+    if (!draft || saving || attachmentsBusy || assistantBusy) return;
     if (!demo && !schemaReady) {
       setError(
         "Completa primero la actualización de Supabase indicada en el repositorio.",
@@ -1485,7 +1494,9 @@ export default function Home() {
         <button className="btn" onClick={() => void supabase!.auth.signOut()}>Salir</button>
       </div>
       <TeamAccess error={error} onAccepted={async () => {
-        setWorkspace(await openTeamSpace(supabase!));
+        const spaces = await listTeamSpaces(supabase!);
+        setWorkspaces(spaces);
+        setWorkspace(selectTeamSpace(spaces));
         setPendingInvite(""); setError("");
       }} />
       {profileEditor}
@@ -1568,7 +1579,21 @@ export default function Home() {
         <header className="topbar">
           <div>
             <button className="icon-button" aria-label="Mi perfil" title="Mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
-            <span>Equipo interno</span>
+            {!demo && !publicMode && workspaces.length > 1 ? <label className="workspace-switch">
+              <span className="sr-only">Espacio de trabajo</span>
+              <select aria-label="Espacio de trabajo" value={workspace?.id || ""}
+                disabled={saving || attachmentsBusy || assistantBusy || monitoringBusy || loading}
+                onChange={e => {
+                  const next = selectTeamSpace(workspaces, e.target.value);
+                  if (!next || next.id === workspace?.id) return;
+                  ++loadVersion.current;
+                  setMembers([]); setItems([]); setSelected(null); setDraft(null); setError("");
+                  setWorkspace(next);
+                  if (user) { try { localStorage.setItem(`experimental-os.workspace.${user.id}`, next.id); } catch {} }
+                }}>
+                {workspaces.map(space => <option key={space.id} value={space.id}>{space.name || "Espacio de trabajo"}</option>)}
+              </select>
+            </label> : <span>{workspace?.name || "Espacio de trabajo"}</span>}
             <ChevronRight size={14} />
             <strong>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</strong>
           </div>
@@ -2305,9 +2330,9 @@ export default function Home() {
       <dialog
         ref={detail}
         className="detail-dialog"
-        onCancel={e => { if (attachmentsBusy) e.preventDefault(); else setSelected(null); }}
+        onCancel={e => { if (attachmentsBusy || monitoringBusy) e.preventDefault(); else setSelected(null); }}
         onClick={(e) => {
-          if (!attachmentsBusy && e.target === detail.current) setSelected(null);
+          if (!attachmentsBusy && !monitoringBusy && e.target === detail.current) setSelected(null);
         }}
       >
         {selected && (
@@ -2320,7 +2345,7 @@ export default function Home() {
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
-                disabled={attachmentsBusy}
+                disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => setSelected(null)}
               >
                 <X />
@@ -2345,7 +2370,7 @@ export default function Home() {
             {editable && (demo || schemaReady) && (
               <Action
                 className="primary"
-                disabled={attachmentsBusy}
+                disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => {
                   setDraft(structuredClone(selected));
                   setSelected(null);
@@ -2357,7 +2382,7 @@ export default function Home() {
             )}
             {editable && !demo && !publicMode && ["project", "experiment", "learning", "goal"].includes(selected.kind) && (
               <Action
-                disabled={attachmentsBusy}
+                disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => void deleteRecord(selected)}
               >
                 Eliminar
@@ -2365,7 +2390,7 @@ export default function Home() {
             )}
             {selected.kind === "experiment" && editable && (
               <Action
-                disabled={attachmentsBusy}
+                disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => {
                   create("learning", selected.id);
                   setSelected(null);
@@ -2380,6 +2405,8 @@ export default function Home() {
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
                 <PostHogResults experiment={selected} project={currentProject} />
+                {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
+                  editable={editable} demo={demo} onBusy={setMonitoringBusy}/>}
                 <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
                 {links}
                 <FieldDetails record={selected} fields={experimentSections.additional} />
@@ -2481,7 +2508,7 @@ export default function Home() {
         ref={dialog}
         className="edit-dialog"
         onCancel={e => {
-          if (saving || attachmentsBusy) e.preventDefault(); else setDraft(null);
+          if (saving || attachmentsBusy || assistantBusy) e.preventDefault(); else setDraft(null);
         }}
       >
         {draft && (
@@ -2503,13 +2530,14 @@ export default function Home() {
                 type="button"
                 className="icon-button"
                 aria-label="Cerrar formulario"
-                disabled={saving || attachmentsBusy}
+                disabled={saving || attachmentsBusy || assistantBusy}
                 onClick={() => setDraft(null)}
               >
                 <X />
               </button>
             </div>
             <div className="form-body">
+              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
               <label className="full">
                 Nombre
                 <input
@@ -2600,12 +2628,12 @@ export default function Home() {
               <button
                 type="button"
                 className="btn"
-                disabled={saving || attachmentsBusy}
+                disabled={saving || attachmentsBusy || assistantBusy}
                 onClick={() => setDraft(null)}
               >
                 Cancelar
               </button>
-              <button type="submit" className="btn primary" disabled={saving || attachmentsBusy}>
+              <button type="submit" className="btn primary" disabled={saving || attachmentsBusy || assistantBusy}>
                 {saving ? "Guardando…" : "Guardar ficha"}
               </button>
             </div>

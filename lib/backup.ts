@@ -3,10 +3,11 @@ import type { Attachment } from "./attachments";
 import { experimentFields } from "./experiments";
 
 export type Backup = {
-  schema_version: 4; exported_at: string; workspace_id: string;
+  schema_version: 4 | 5; exported_at: string; workspace_id: string;
   records: Item[]; members: Member[]; attachments: Attachment[];
   audit: Record<string, unknown>[]; notes: string[];
   comments?: Record<string, unknown>[];
+  monitoring?: Record<string, Record<string, unknown>[]>;
 };
 export const fieldLabels: Record<string, string> = {
   ...Object.fromEntries(experimentFields.map(f => [f.key, f.label])),
@@ -71,6 +72,7 @@ export function backupCsv(backup: Backup): string {
       proyecto_id: record?.project_id, proyecto: records.get(record?.project_id || "")?.title,
       creado: c.created_at, creado_por: c.author_id, responsable: c.author_name, datos_json: c });
   }
+  for (const [type, values] of Object.entries(backup.monitoring || {})) for (const value of values) rows.push({ grupo: "Preparación y resultados", tipo: type, id: value.id || value.experiment_id, proyecto_id: value.project_id, proyecto: records.get(String(value.project_id))?.title, padre_id: value.experiment_id, padre: records.get(String(value.experiment_id))?.title, nombre: value.label || value.metric || value.code, creado: value.created_at, actualizado: value.updated_at, datos_json: value });
   for (const a of backup.audit) rows.push({ grupo: "Historial", tipo: a.action, id: a.id, nombre: a.title, creado: a.created_at, creado_por: a.actor_id, responsable: a.actor_name, datos_json: a });
   return "\uFEFF" + [header.map(csvCell).join(";"), ...rows.map(row => header.map(key => csvCell(row[key])).join(";"))].join("\r\n") + "\r\n";
 }

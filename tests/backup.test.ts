@@ -70,8 +70,12 @@ test("the full-data service scopes every query to the authenticated workspace an
       eq(key: string, value: string) { assert.equal(key, "workspace_id"); query.scope = value; return this; },
       order(key: string) { query.order = key; return this; }, range(from: number, to: number) { return Promise.resolve({ data: tables[name].slice(from, to + 1), count: tables[name].length, error: null }); } };
   } } as unknown as SupabaseClient;
+  tables.experiment_specs=[{experiment_id:'e',workspace_id:'w',project_id:'p',code:'EXP-P-0001'}];
+  tables.experiment_variants=[]; tables.external_resources=[]; tables.metric_observations=[{id:'m',workspace_id:'w',experiment_id:'e',metric:'clicks',value:12}];
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 5); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(queries.length, 9); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(backup.schema_version,5); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  assert.ok(backupCsv(backup).includes('EXP-P-0001')); assert.equal(JSON.parse(backupJson(backup)).monitoring.metric_observations[0].metric,'clicks');
   assert.equal(queries.find(q => q.name === "members")?.select, "*,profiles(*)");
   assert.deepEqual(backup.records, sampleBackup.records); assert.deepEqual(backup.audit, sampleBackup.audit);
   assert.deepEqual(backup.comments, sampleBackup.comments);

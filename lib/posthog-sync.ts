@@ -18,7 +18,7 @@ export function posthogStatus(experiment: PostHogExperiment) {
 export async function syncPosthogExperiments(client: SupabaseClient, project: Item, userId: string, existing: Item[], remote: PostHogExperiment[]) {
   if (remote.some(experiment => !posthogId(experiment))) throw new Error("La lista de PostHog está incompleta. No se sincronizaron datos.");
   const local = existing.filter(item => item.kind === "experiment" && item.workspace_id === project.workspace_id && item.project_id === project.id);
-  const counts = { created: 0, updated: 0, removed: 0 };
+  const counts = { created: 0, updated: 0, preserved: 0 };
   const seen = new Set<string>();
   for (const experiment of remote) {
     const id = posthogId(experiment);
@@ -45,11 +45,8 @@ export async function syncPosthogExperiments(client: SupabaseClient, project: It
   for (const record of local) {
     const id = String(record.fields.posthog_experiment_id || "").trim();
     if (!id || seen.has(id)) continue;
-    const result = await client.from("records").delete().eq("workspace_id", project.workspace_id)
-      .eq("project_id", project.id).eq("id", record.id).eq("updated_at", record.updated_at).select("id");
-    if (result.error) throw new Error(result.error.message);
-    if (!result.data?.length) throw new Error("Un experimento cambió durante la sincronización. Actualiza los datos e inténtalo de nuevo.");
-    counts.removed++;
+    // An absent resource is not permission to destroy its hypothesis, evidence or learnings.
+    counts.preserved++;
   }
   return counts;
 }

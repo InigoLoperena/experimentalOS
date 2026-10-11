@@ -5,7 +5,7 @@ import { goalParent } from "../lib/model";
 import { removeAttachment } from "../lib/attachment-service";
 import type { Attachment } from "../lib/attachments";
 import { item, queuedClient } from "./service-fixture";
-import { openTeamSpace, getPublicPreview } from "../lib/internal-space";
+import { openTeamSpace, getPublicPreview, listTeamSpaces, selectTeamSpace } from "../lib/internal-space";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 test("opening the app reads existing membership without creating a team; public previews hide attachment metadata", async () => {
@@ -16,6 +16,15 @@ test("opening the app reads existing membership without creating a team; public 
   }
   const client = { rpc: async () => ({ data: { workspace: { id: "w" }, records: [], attachments: [{ storage_path: "private" }] }, error: null }) } as unknown as SupabaseClient;
   assert.deepEqual((await getPublicPreview(client))?.attachments, []);
+});
+
+test("workspace preference can only select memberships returned under RLS", async () => {
+  const spaces = [{ id: "w1", name: "First" }, { id: "w2", name: "Second" }];
+  const mock = queuedClient([{ data: spaces, error: null, count: 2 }]);
+  assert.deepEqual(await listTeamSpaces(mock.client), spaces);
+  assert.equal(selectTeamSpace(spaces, "w2")?.id, "w2");
+  assert.equal(selectTeamSpace(spaces, "foreign")?.id, "w1");
+  assert.equal(selectTeamSpace([], "foreign"), null);
 });
 
 test("workspace loading reads every row beyond the server cap with stable ordering and scope", async () => {

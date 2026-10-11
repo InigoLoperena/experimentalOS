@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { listPosthogExperiments, posthogHost, posthogIdentifier, posthogJson, PostHogError } from "@/lib/posthog-api";
+import { listPosthogExperiments, posthogIdentifier, posthogJson, PostHogError } from "@/lib/posthog-api";
+import { ApiError, authenticatedClient, authorizedProject } from "@/lib/server-access";
+import { verifiedPosthogConnection } from "@/lib/posthog-connection";
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = request.headers.get("authorization") || "";
-    if (!auth.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "No autenticado." }, { status: 401 });
-    }
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const { client: supabase } = await authenticatedClient(request);
     const posthogKey = process.env.POSTHOG_PERSONAL_API_KEY;
-    if (!url || !anon) {
-      return NextResponse.json({ error: "Supabase no está configurado en el servidor." }, { status: 500 });
-    }
-    const supabase = createClient(url, anon, {
-      global: { headers: { Authorization: auth } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
-    }
 
     if (!posthogKey) {
       return NextResponse.json({ error: "Falta POSTHOG_PERSONAL_API_KEY en las variables del servidor." }, { status: 503 });
@@ -34,24 +19,8 @@ export async function POST(request: NextRequest) {
     const experimentId = String(body.experiment_id || "");
     if (!projectId) return NextResponse.json({ error: "Falta el proyecto." }, { status: 400 });
 
-    const { data: project, error: projectError } = await supabase
-      .from("records")
-      .select("id,kind,fields")
-      .eq("id", projectId)
-      .eq("kind", "project")
-      .single();
-    if (projectError || !project) {
-      return NextResponse.json({ error: "No tienes acceso a ese proyecto." }, { status: 403 });
-    }
-
-    const externalProjectId = String(project.fields?.posthog_project_id || "").trim();
-    const host = posthogHost(String(project.fields?.posthog_host || "https://us.posthog.com"), process.env.POSTHOG_ALLOWED_HOSTS);
-    if (!externalProjectId) {
-      return NextResponse.json(
-        { error: "Configura el ID del proyecto de PostHog en la ficha del proyecto." },
-        { status: 400 },
-      );
-    }
+    const project = await authorizedProject(supabase, projectId);
+    const { projectId: externalProjectId, host } = await verifiedPosthogConnection(supabase, project, process.env.POSTHOG_ALLOWED_HOSTS);
 
     const base = `${host}/api/projects/${posthogIdentifier(externalProjectId)}/experiments`;
 
@@ -77,7 +46,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error inesperado al consultar PostHog." },
-      { status: error instanceof PostHogError ? error.status : 502 },
+      { status: error instanceof PostHogError || error instanceof ApiError ? error.status : 502,
+        headers: { "Cache-Control": "private, no-store" } },
     );
   }
 }

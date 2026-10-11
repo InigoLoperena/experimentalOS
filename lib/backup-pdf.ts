@@ -113,6 +113,10 @@ export async function createBackupPdf(backup: Backup, providedAssets?: Assets): 
     doc.addPage(); y = 44;
     for (const c of backup.comments) table("Comentario: " + (byId.get(String(c.record_id))?.title || c.record_id), Object.entries(c).map(([key, value]) => [key, value]));
   }
+  for (const [type, values] of Object.entries(backup.monitoring || {})) if (values.length) {
+    doc.addPage(); y = 44;
+    for (const value of values) table("Preparación y resultados: " + type, Object.entries(value).map(([key, field]) => [key, field]));
+  }
   if (backup.audit.length) {
     doc.addPage(); y = 44;
     for (const a of backup.audit) table("Historial: " + displayValue(a.title), Object.entries(a).map(([key, value]) => [key, value]));

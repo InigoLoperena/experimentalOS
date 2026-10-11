@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
 import { syncPosthogExperiments, posthogId as idOf, posthogName as nameOf, posthogMetric as metricOf, posthogStatus as statusOf } from "@/lib/posthog-sync";
 import { posthogHost } from "@/lib/posthog-api";
-import { cleanupAttachments } from "@/lib/attachment-service";
 
 type Props = {
   project: Item;
@@ -61,12 +60,11 @@ export function PostHogProjectPanel({ project, experiments, workspaceId, userId,
         let counts;
         try { counts = await syncPosthogExperiments(supabase, project, userId, experimentsRef.current, list); }
         finally { await onSynced(); }
-        const { created, updated, removed } = counts;
-        void cleanupAttachments().catch(() => {});
+        const { created, updated, preserved } = counts;
         const changes = [
           created ? `${created} importado${created === 1 ? "" : "s"}` : "",
           updated ? `${updated} actualizado${updated === 1 ? "" : "s"}` : "",
-          removed ? `${removed} eliminado${removed === 1 ? "" : "s"} porque ya no existe${removed === 1 ? "" : "n"} en PostHog` : "",
+          preserved ? `${preserved} conservado${preserved === 1 ? "" : "s"} sin recurso visible en PostHog` : "",
         ].filter(Boolean);
         setMessage(changes.length ? `Sincronización completada: ${changes.join(", ")}.` : "Experimental OS está sincronizado con PostHog.");
       }

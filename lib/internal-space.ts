@@ -1,6 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Activity, Item, Member } from "./model";
 import type { Attachment } from "./attachments";
+import { readAllPages } from "./backup-service";
+
+export type TeamSpace = { id: string; name?: string };
+
+export function listTeamSpaces(client: SupabaseClient): Promise<TeamSpace[]> {
+  return readAllPages<TeamSpace>((from, to) => client.from("workspaces")
+    .select("id,name", { count: "exact" }).order("created_at").order("id").range(from, to));
+}
+
+export function selectTeamSpace(spaces: TeamSpace[], preferredId?: string | null) {
+  return spaces.find(space => space.id === preferredId) || spaces[0] || null;
+}
 
 export type PublicPreview = {
   workspace: { id: string; name?: string } | null;
