@@ -1495,9 +1495,25 @@ export default function Home() {
   if (loading && !workspace)
     return (
       <div className="auth-shell">
-        <div className="auth-card">
-          <BrandIdentity />
-          <h1>Cargando tu espacio…</h1>
+        <div className="auth-card guest-loader-card" role="status" aria-live="polite">
+          <div className="guest-loader-brand">
+            <div className="guest-logo-wrap">
+              <img
+                className="xperiments-logo guest-logo"
+                src="/logo.svg"
+                width={695}
+                height={258}
+                alt="Xperiments"
+              />
+              <span className="lab-bubbles" aria-hidden="true">
+                <i /><i /><i />
+              </span>
+            </div>
+          </div>
+          <h1>Preparando laboratorio digital…</h1>
+          <p className="guest-loader-text">
+            Estamos encendiendo tu entorno de experimentación.
+          </p>
         </div>
       </div>
     );
