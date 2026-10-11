@@ -2487,6 +2487,13 @@ nav button,
 .nav-subsections button{font-size:13px;padding:9px 6px;min-height:auto;text-align:left;color:var(--muted);line-height:1.45}
 .nav-subsections button.active{color:var(--charcoal)}
 .nav-subsections button.active{opacity:1;font-weight:700}
+@media(max-width:800px){
+  .sidebar nav{align-items:center}
+  .sidebar nav button{flex-shrink:0}
+  .sidebar .nav-subsections{display:flex;align-items:center;gap:5px;margin:0;padding:0;border:0;flex-shrink:0}
+  .project-filter .selected-project{flex-direction:column;align-items:flex-start;width:100%;gap:12px}
+  .project-filter .selected-project-copy{width:100%;margin:0}
+}
 .create-menu-wrap{position:relative}
 .create-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:190px;padding:7px;background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;box-shadow:0 14px 40px rgba(15,23,42,.14);display:grid;gap:3px}
 .create-menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer}
