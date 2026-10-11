@@ -1564,7 +1564,12 @@ export default function Home() {
         >
           <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation Operative System" />
         </a>
-        <span className="nav-caption">ESPACIO DE TRABAJO</span>
+        <div className="sidebar-product-identity" aria-label="Experimental Innovation System">
+          <span>Experimental</span>
+          <span>Innovation</span>
+          <span className="accent">System</span>
+          <span className="identity-stripes" aria-hidden="true"><i /><i /><i /></span>
+        </div>
         <nav>
           {nav.map(({ id, label, icon: I }) => (
             <Fragment key={id}>
