@@ -24,6 +24,10 @@ export async function POST(request: Request) {
       return NextResponse.json({available:true},{headers});
     }
     const connection = metaConnection(project);
+    if (body.action === 'preview') {
+      const report = await metaReport(connection,body.external_id,'campaign',body.start,body.end);
+      return NextResponse.json({resource_id:null,...report},{headers});
+    }
     if (!body.resource_id) {
       if (body.after != null && typeof body.after !== 'string') throw new ApiError('La solicitud no es válida.',400);
       const account = await metaAccount(connection);

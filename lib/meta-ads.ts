@@ -4,7 +4,7 @@ import { validateObservation, type CsvMetric } from './monitoring';
 
 export type MetaCampaign = { id: string; name: string; status: string; url: string };
 export type MetaAccount = { id: string; name: string; currency: string; timezone: string; active: boolean };
-export type MetaReport = { resource_id: string; name: string; status: string; metrics: CsvMetric[]; fetched_at: string };
+export type MetaReport = { resource_id: string | null; name: string; status: string; metrics: CsvMetric[]; fetched_at: string };
 export type MetaConnection = { accountId: string; token: string };
 
 export function metaId(value: unknown): string {
