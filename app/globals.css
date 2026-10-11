@@ -2529,3 +2529,84 @@ nav button,
 .integration-fields input,.integration-fields textarea,.integration-fields select{width:100%;min-width:0}.integration-fields textarea{font-family:inherit}
 .integration-status{color:#c4f54c;font-weight:700}.integration-actions{flex-wrap:wrap;margin:20px 0}.member-permissions{border-top:1px solid #48504c;padding:12px 0;margin:0 0 20px}.member-permissions summary{cursor:pointer;color:#c4f54c;font-weight:600}.member-permissions table{margin:16px 0}.member-permissions input[type=checkbox]{width:18px;height:18px;accent-color:#b8ef28}
 @media(max-width:760px){.integration-layout{grid-template-columns:1fr}.integration-list{grid-template-columns:repeat(2,minmax(0,1fr))}.integration-fields{grid-template-columns:1fr}.integration-list button{font-size:12px;padding:10px}}
+
+
+/* Pantalla de carga de la vista pública */
+.guest-loader-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  align-items: center;
+}
+.guest-loader-brand {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.guest-logo-wrap {
+  position: relative;
+  display: inline-block;
+  width: min(100%, 360px);
+  padding: 18px;
+  border-radius: 16px;
+  background: #09173a;
+}
+.guest-logo {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.guest-loader-card h1 {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2;
+  margin: 0;
+}
+.guest-loader-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.lab-bubbles {
+  position: absolute;
+  left: 9%;
+  top: 8%;
+  width: 36px;
+  height: 38px;
+  pointer-events: none;
+}
+.lab-bubbles i {
+  position: absolute;
+  bottom: 0;
+  border-radius: 50%;
+  background: #d6ff72;
+  opacity: 0;
+  animation: labBubble 1.8s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(214, 255, 114, 0.35);
+}
+.lab-bubbles i:nth-child(1) {
+  left: 2px;
+  width: 7px;
+  height: 7px;
+}
+.lab-bubbles i:nth-child(2) {
+  left: 14px;
+  width: 10px;
+  height: 10px;
+  animation-delay: 0.35s;
+}
+.lab-bubbles i:nth-child(3) {
+  left: 27px;
+  width: 6px;
+  height: 6px;
+  animation-delay: 0.7s;
+}
+@keyframes labBubble {
+  0% { transform: translateY(10px) scale(.7); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-22px) scale(1.05); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-bubbles i { animation: none; }
+}
