@@ -29,7 +29,7 @@ export async function posthogJson(url: string, key: string, fetcher: typeof fetc
   try { payload = await response.json(); }
   catch { throw new PostHogError("PostHog devolvió una respuesta no válida."); }
   if (!response.ok) throw new PostHogError(
-    payload?.detail || payload?.error || "PostHog ha rechazado la consulta.", response.status);
+    "PostHog ha rechazado la consulta. Revisa la clave, el proyecto y sus permisos.", response.status);
   return payload;
 }
 

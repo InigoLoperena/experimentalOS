@@ -23,6 +23,7 @@ import {
   X,
   LayoutGrid,
   UserRound,
+  Plug,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
@@ -37,6 +38,9 @@ import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
 import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
+import {IntegrationSettings} from './integration-settings';
+import {MemberPermissions} from './member-permissions';
+import {canRecord,type RecordAction} from '@/lib/permissions';
 import {addFileAttachment} from '@/lib/attachment-service';
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
@@ -59,7 +63,7 @@ import {
   score,
   validate,
 } from "@/lib/model";
-type View = "experiments" | "projects" | "learning" | "team" | "map" | "goals" | "opportunities" | "ideas" | "method";
+type View = "experiments" | "projects" | "learning" | "team" | "integrations" | "map" | "goals" | "opportunities" | "ideas" | "method";
 type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
@@ -243,6 +247,7 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "learning", label: "Aprendizajes", icon: Lightbulb },
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
+  { id: "integrations", label: "Integraciones", icon: Plug },
   { id: "method", label: "Cómo utilizar Experimental OS", icon: BookOpen },
 ];
 const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", opportunities: "Oportunidades", ideas: "Ideas" };
@@ -374,6 +379,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
   const [monitoringBusy, setMonitoringBusy] = useState(false);
+  const [integrationBusy,setIntegrationBusy]=useState(false);
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [draftFiles,setDraftFiles]=useState<File[]>([]);
   const [demo, setDemo] = useState(!supabase);
@@ -430,7 +436,6 @@ export default function Home() {
                 : view === "map"
                   ? ["north_star", "goal", "opportunity", "idea", "experiment"]
                   : [];
-  const createKind = availableKinds[0];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const loadVersion = useRef(0);
@@ -440,6 +445,9 @@ export default function Home() {
       ? "owner"
       : members.find((m) => m.user_id === user?.id)?.role;
   const editable = role === "owner" || role === "editor";
+  const currentMember=members.find(m=>m.user_id===user?.id);
+  const can=(kind:Kind,action:RecordAction)=>!publicMode&&(demo?editable:canRecord(currentMember,kind,action));
+  const createKind=availableKinds.find(kind=>can(kind,'create'));
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("recovery")) setRecovery(true);
@@ -650,7 +658,7 @@ export default function Home() {
       loadWorkspaceRecords(supabase!, w.id).then(data => ({ data, error: null }), error => ({ data: null, error: { message: error.message } })),
       supabase!
         .from("members")
-        .select("user_id,role,profiles(*)")
+        .select("user_id,role,permissions,profiles(*)")
         .eq("workspace_id", w.id),
       supabase!
         .from("audit_log")
@@ -672,7 +680,7 @@ export default function Home() {
     // Los permisos del equipo no dependen de la carga de sus registros.
     if (!r[1].error) setMembers(
       (r[1].data || []).map((m: any) => ({
-        user_id: m.user_id, role: m.role,
+        user_id: m.user_id, role: m.role, permissions:m.permissions,
         name: m.profiles?.name || "Miembro", avatar_url: m.profiles?.avatar_url || null,
       })),
     );
@@ -814,6 +822,7 @@ export default function Home() {
     setCommentBusy(false);
   }
   function create(kind: Kind, parent_id: string | null = null) {
+    if(!can(kind,'create')){tell('No tienes permiso para crear este tipo de ficha.');return;}
     if (!workspace) return;
     if (!demo && !schemaReady) {
       tell(
@@ -919,6 +928,7 @@ export default function Home() {
   }
   async function save() {
     if (!draft || saving || attachmentsBusy || assistantBusy) return;
+    if(!can(draft.kind,allItems.some(i=>i.id===draft.id)?'edit':'create')){setError('No tienes permiso para guardar esta ficha.');return;}
     if (!demo && !schemaReady) {
       setError(
         "Completa primero la actualización de Supabase indicada en el repositorio.",
@@ -1035,7 +1045,7 @@ export default function Home() {
     setSaving(false);
   }
   async function deleteRecord(record: Item) {
-    if (!editable || demo || publicMode) return;
+    if (!can(record.kind,'delete') || demo || publicMode) return;
     const label = kinds[record.kind].toLocaleLowerCase("es");
     const extra = record.kind === "project" ? " También se eliminarán todos sus registros asociados." : "";
     if (!window.confirm(`¿Eliminar el ${label} «${record.title}»?${extra} Esta acción no se puede deshacer.`)) return;
@@ -1254,7 +1264,7 @@ export default function Home() {
             <div className="branch-children">{children.map(branch)}</div>
           </details>
         )}
-        {editable && ["goal", "opportunity", "idea"].includes(i.kind) && (
+        {can(i.kind==='goal'?'opportunity':i.kind==='opportunity'?'idea':'experiment','create') && ["goal", "opportunity", "idea"].includes(i.kind) && (
           <button
             className="add-node"
             onClick={() =>
@@ -1563,7 +1573,7 @@ export default function Home() {
               </strong>
               <span>
                 {role === "owner"
-                  ? "Administrador"
+                  ? "Superadministrador"
                   : role === "editor"
                     ? "Editor"
                     : "Lector"}
@@ -1594,7 +1604,7 @@ export default function Home() {
             {!demo && !publicMode && workspaces.length > 1 ? <label className="workspace-switch">
               <span className="sr-only">Espacio de trabajo</span>
               <select aria-label="Espacio de trabajo" value={workspace?.id || ""}
-                disabled={saving || attachmentsBusy || assistantBusy || monitoringBusy || loading}
+                disabled={saving || attachmentsBusy || assistantBusy || monitoringBusy || integrationBusy || loading}
                 onChange={e => {
                   const next = selectTeamSpace(workspaces, e.target.value);
                   if (!next || next.id === workspace?.id) return;
@@ -1664,6 +1674,8 @@ export default function Home() {
                       ? "Guarda lo que ocurrió, lo que aprendiste y qué harás después."
                       : view === "team"
                         ? "Gestiona las personas y sus permisos en el sistema."
+                        : view === "integrations"
+                          ? "Configura las cuentas y conexiones de tus proyectos en un único lugar."
                         : view === "projects"
                           ? "Cada proyecto tiene su propio GOI Tree, experimentos y aprendizajes."
                           : "Una guía sencilla para empezar a trabajar."}
@@ -1764,7 +1776,7 @@ export default function Home() {
             <Empty
               title="Empieza creando un proyecto"
               text="Cada proyecto tendrá su propio GOI Tree, experimentos y aprendizajes."
-              action={editable ? () => create("project") : undefined}
+              action={can('project','create') ? () => create("project") : undefined}
             />
           )}
           {view === "map" && currentProject && (
@@ -1827,7 +1839,7 @@ export default function Home() {
                 <Empty
                   title="Define tu North Star"
                   text="Define la métrica que representa el valor que este proyecto aporta a sus usuarios."
-                  action={editable ? () => create("north_star") : undefined}
+                  action={can('north_star','create') ? () => create("north_star") : undefined}
                 />
               )}
               <div className="section-heading">
@@ -1835,7 +1847,7 @@ export default function Home() {
                   <h2>GOI Tree · {currentProject.title}</h2>
                   <p>Objetivos · oportunidades · ideas · experimentos</p>
                 </div>
-                {editable && nsm && (
+                {can('goal','create') && nsm && (
                   <Action onClick={() => create("goal")}>
                     <Plus size={16} /> Nuevo Objetivo
                   </Action>
@@ -1852,7 +1864,7 @@ export default function Home() {
                           <ChevronRight size={14} /> Oportunidades y subobjetivos
                         </summary>
                         {items.filter((i) => i.parent_id === g.id).map(branch)}
-                        {editable && (
+                        {can('goal','create') && (
                           <button
                             className="add-node"
                             onClick={() => create("goal", g.id)}
@@ -1860,7 +1872,7 @@ export default function Home() {
                             <Plus size={14} /> Añadir sub-Goal
                           </button>
                         )}
-                        {editable && (
+                        {can('opportunity','create') && (
                           <button
                             className="add-node"
                             onClick={() => create("opportunity", g.id)}
@@ -2045,7 +2057,7 @@ export default function Home() {
                     >
                       Abrir GOI Tree
                     </Action>
-                    {editable && (
+                    {can('project','edit') && (
                       <Action onClick={() => setSelected(p)}>
                         Editar proyecto
                       </Action>
@@ -2055,7 +2067,7 @@ export default function Home() {
                       experiments={workspaceItems.filter((e) => e.kind === "experiment" && e.project_id === p.id)}
                       workspaceId={workspace.id}
                       userId={user?.id || null}
-                      editable={editable && !demo && !publicMode}
+                      editable={can('experiment','create') && !demo && !publicMode}
                       onSynced={() => load()}
                     />
                   </div>
@@ -2065,7 +2077,7 @@ export default function Home() {
                 <Empty
                   title="Crea tu primer proyecto"
                   text="Organiza cada producto o iniciativa con su propio árbol y experimentos."
-                  action={editable ? () => create("project") : undefined}
+                  action={can('project','create') ? () => create("project") : undefined}
                 />
               )}
             </div>
@@ -2136,7 +2148,7 @@ export default function Home() {
                 <Empty
                   title="Documenta lo que has aprendido"
                   text="Guarda el resultado, la evidencia, la conclusión y el siguiente paso en una ficha separada del experimento."
-                  action={editable ? () => create("learning") : undefined}
+                  action={can('learning','create') ? () => create("learning") : undefined}
                 />
               )}
             </div>
@@ -2182,8 +2194,9 @@ export default function Home() {
                   <h2>Miembros del equipo</h2>
                   <span>{members.length} personas</span>
                 </div>
+                <p className="small">El superadministrador gestiona las APIs y el equipo. Para un Editor, abre «Permisos» y elige qué puede crear, editar o eliminar. Un Editor nuevo comienza con acceso de consulta hasta que le concedas esas acciones.</p>
                 {members.map((m) => (
-                  <div className="member-row" key={m.user_id}>
+                  <Fragment key={m.user_id}><div className="member-row">
                     <Avatar name={m.name} photo={m.avatar_url} />
                     <strong>{m.name}</strong>
                     {role === "owner" && m.role !== "owner" && !demo ? (
@@ -2231,13 +2244,13 @@ export default function Home() {
                     ) : (
                       <span className="badge">
                         {m.role === "owner"
-                          ? "Administrador"
+                          ? "Superadministrador"
                           : m.role === "editor"
                             ? "Editor"
                             : "Lector"}
                       </span>
                     )}
-                  </div>
+                  </div><MemberPermissions key={`${m.user_id}:${m.role}:${(m.permissions||[]).join(',')}`} member={m} workspaceId={workspace.id} editable={role==='owner'&&!demo} onSaved={load}/></Fragment>
                 ))}
               </div>
               {role === "owner" && (
@@ -2254,7 +2267,7 @@ export default function Home() {
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
                     >
-                      <option value="editor">Editor · crear y editar</option>
+                      <option value="editor">Editor · permisos configurables</option>
                       <option value="viewer">Lector · consultar</option>
                     </select>
                     <Action
@@ -2329,6 +2342,7 @@ export default function Home() {
             </>
           )}
           {view === "method" && <Method />}
+          {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Operative System · Imagine Builder</span>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
@@ -2379,7 +2393,7 @@ export default function Home() {
                 <Badge state={selected.fields.status} />
               )}
             </div>
-            {editable && (demo || schemaReady) && (
+            {can(selected.kind,'edit') && (demo || schemaReady) && (
               <Action
                 className="primary"
                 disabled={attachmentsBusy || monitoringBusy}
@@ -2392,7 +2406,7 @@ export default function Home() {
                 Editar ficha
               </Action>
             )}
-            {editable && !demo && !publicMode && ["project", "experiment", "learning", "goal"].includes(selected.kind) && (
+            {can(selected.kind,'delete') && !demo && !publicMode && ["project", "experiment", "learning", "goal"].includes(selected.kind) && (
               <Action
                 disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => void deleteRecord(selected)}
@@ -2400,7 +2414,7 @@ export default function Home() {
                 Eliminar
               </Action>
             )}
-            {selected.kind === "experiment" && editable && (
+            {selected.kind === "experiment" && can('learning','create') && (
               <Action
                 disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => {
@@ -2412,14 +2426,14 @@ export default function Home() {
               </Action>
             )}
             {supportsAttachments(selected.kind) ? <RecordAttachments key={selected.id}
-              record={selected} editable={editable} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
+              record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
                 <ExecutionDetails key={selected.id} experiment={selected}/>
                 <PostHogResults experiment={selected} project={currentProject} />
                 {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
-                  editable={editable} demo={demo} onBusy={setMonitoringBusy}/>}
+                  editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
                 <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
                 {links}
                 <FieldDetails record={selected} fields={experimentSections.additional} />
@@ -2434,7 +2448,7 @@ export default function Home() {
                     <p>Queda registrado quién crea o modifica esta ficha.</p>
                   </div>
                 </div>
-                {editable && (
+                {can(selected.kind,'edit') && (
                   <form
                     className="comment-form"
                     onSubmit={(e) => {
@@ -2551,7 +2565,7 @@ export default function Home() {
             </div>
             <div className="form-body">
               {draft.kind==='experiment'&&<ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>}
-              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
+              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
               <label className="full">
                 Nombre
                 <input
@@ -2627,7 +2641,7 @@ export default function Home() {
                 </label>
               )}
               {supportsAttachments(draft.kind) ? <RecordAttachments key={draft.id}
-                record={draft} editable={editable && !saving} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === draft.id) : (demoAttachments[draft.id] || [])}
+                record={draft} editable={can(draft.kind,'edit') && !saving} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === draft.id) : (demoAttachments[draft.id] || [])}
                 persisted={allItems.some(item => item.id === draft.id)}
                 onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy}>
                 {({ links, files }) => <>{draftFields(links)}{draft.kind !== "experiment" && <div className="full">{links}</div>}<div className="full">{files}</div></>}

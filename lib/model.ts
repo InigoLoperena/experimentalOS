@@ -31,6 +31,7 @@ export type Item = {
 export type Member = {
   user_id: string;
   role: "owner" | "editor" | "viewer";
+  permissions?: string[];
   name: string;
   avatar_url?: string | null;
 };

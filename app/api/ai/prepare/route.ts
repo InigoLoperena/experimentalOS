@@ -3,6 +3,7 @@ import { authenticatedClient,authorizedProject,ApiError } from '@/lib/server-acc
 import { parsePreparation,preparationRequestSchema,preparationKeys,humanSuccessCriterion,requiredPreparation } from '@/lib/ai-preparation';
 import {parseChannel,executionFromFields} from '@/lib/execution-plan';
 import {validateAiMedia} from '@/lib/ai-media';
+import {resolvedOpenAIKey} from '@/lib/integration-service';
 
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -20,7 +21,10 @@ export async function POST(request: Request) {
     const project=await authorizedProject(client,body.project_id);
     const membership=await client.from('members').select('role').eq('workspace_id',project.workspace_id).eq('user_id',user.id).single();
     if (!['owner','editor'].includes(membership.data?.role || '')) throw new ApiError('Solo administradores y editores pueden preparar experimentos con IA.',403);
-    const key=process.env.OPENAI_API_KEY;
+    const permission=await client.rpc('can_record_action',{w:project.workspace_id,k:'experiment',a:'create'});
+    const editPermission=await client.rpc('can_record_action',{w:project.workspace_id,k:'experiment',a:'edit'});
+    if(permission.error||editPermission.error||(!permission.data&&!editPermission.data))throw new ApiError('No tienes permiso para preparar experimentos.',403);
+    const key=await resolvedOpenAIKey(client,project.workspace_id);
     if (!key?.startsWith('sk-')) throw new ApiError('OpenAI todavía no está configurado en este entorno.',503);
     const context=await client.from('records').select('id,kind,title,fields,updated_at').eq('workspace_id',project.workspace_id).eq('project_id',project.id)
       .in('kind',['north_star','goal','learning','experiment']).order('updated_at',{ascending:false}).order('id').limit(20);

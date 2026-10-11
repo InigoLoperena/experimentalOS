@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listPosthogExperiments, posthogIdentifier, posthogJson, PostHogError } from "@/lib/posthog-api";
 import { ApiError, authenticatedClient, authorizedProject } from "@/lib/server-access";
-import { verifiedPosthogConnection } from "@/lib/posthog-connection";
+import { resolvedPosthog } from "@/lib/integration-service";
 
 export async function POST(request: NextRequest) {
   try {
     const { client: supabase } = await authenticatedClient(request);
-    const posthogKey = process.env.POSTHOG_PERSONAL_API_KEY;
-
-    if (!posthogKey) {
-      return NextResponse.json({ error: "Falta POSTHOG_PERSONAL_API_KEY en las variables del servidor." }, { status: 503 });
-    }
-
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body))
       return NextResponse.json({ error: "La solicitud no es válida." }, { status: 400 });
@@ -20,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!projectId) return NextResponse.json({ error: "Falta el proyecto." }, { status: 400 });
 
     const project = await authorizedProject(supabase, projectId);
-    const { projectId: externalProjectId, host } = await verifiedPosthogConnection(supabase, project, process.env.POSTHOG_ALLOWED_HOSTS);
+    const { projectId: externalProjectId, host, key: posthogKey } = await resolvedPosthog(supabase, project);
 
     const base = `${host}/api/projects/${posthogIdentifier(externalProjectId)}/experiments`;
 

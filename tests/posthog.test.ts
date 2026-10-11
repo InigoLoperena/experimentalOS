@@ -33,7 +33,8 @@ test("partial, malformed, looping and cross-host PostHog responses fail before s
   }
   let calls = 0;
   await assert.rejects(listPosthogExperiments("https://us.posthog.com", "42", "test", (async () => ++calls === 1
-    ? Response.json({ results: [{ id: 1 }], next: "?offset=100" }) : Response.json({ detail: "Unavailable" }, { status: 503 })) as typeof fetch), /Unavailable/);
+    ? Response.json({ results: [{ id: 1 }], next: "?offset=100" }) : Response.json({ detail: "Unavailable" }, { status: 503 })) as typeof fetch), /rechazado/);
+  await assert.rejects(posthogJson('https://us.posthog.com','private-token',(async()=>Response.json({detail:'private-token'},{status:401})) as typeof fetch),error=>error instanceof Error&&!error.message.includes('private-token'));
   await assert.rejects(posthogJson("https://us.posthog.com", "test", (async () => new Response("not JSON")) as typeof fetch), /válida/);
 });
 

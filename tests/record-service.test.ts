@@ -59,20 +59,18 @@ test("project-level North Stars are materialized once, including a concurrent cr
   assert.equal((await ensureProjectNorthStar(race.client, project)).id, "ns");
 });
 
-test("record and project deletion use the records table and never remove files before authorization", async () => {
-  const mock = queuedClient([{ data: null, error: null }, { data: [{ id: "p" }], error: null }]);
-  await deleteWorkspaceRecord(mock.client, item("p", "project"));
-  assert.deepEqual(mock.calls.map(c => c.table), ["records", "records"]);
-  assert.deepEqual(mock.calls.map(c => c.filters), [{ workspace_id: "w", project_id: "p" }, { workspace_id: "w", id: "p" }]);
-  assert.equal(mock.storageCalls(), 0);
+test("project deletion is atomic; denied record deletion never removes files", async () => {
+  const calls:unknown[]=[];
+  const client={rpc:async(name:string,args:unknown)=>{calls.push([name,args]);return {error:null};}} as unknown as SupabaseClient;
+  await deleteWorkspaceRecord(client,item('p','project'));
+  assert.deepEqual(calls,[['delete_project',{p_project:'p'}]]);
   for (const response of [{ data: null, error: { message: "Foreign key violation" } }, { data: [], error: null }]) {
     const denied = queuedClient([response]);
     await assert.rejects(deleteWorkspaceRecord(denied.client, item("e")));
     assert.equal(denied.storageCalls(), 0);
   }
-  const childrenDenied = queuedClient([{ data: null, error: { message: "Access denied" } }]);
-  await assert.rejects(deleteWorkspaceRecord(childrenDenied.client, item("p", "project")), /Access denied/);
-  assert.equal(childrenDenied.calls.length, 1);
+  const deniedProject={rpc:async()=>({error:{message:'Access denied'}})} as unknown as SupabaseClient;
+  await assert.rejects(deleteWorkspaceRecord(deniedProject,item('p','project')),/Access denied/);
 });
 
 test("denied attachment removal preserves its file; cleanup failure does not undo successful metadata removal", async () => {

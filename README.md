@@ -99,6 +99,14 @@ En **Equipo**, el administrador puede asignar y modificar el nombre del equipo, 
 
 Ejecuta las migraciones pendientes hasta la 010 siguiendo [ACTIVAR-ACCESO-PRIVADO.md](ACTIVAR-ACCESO-PRIVADO.md). Los espacios y miembros existentes se conservan. En una instalación nueva, el administrador de Supabase inicializa el único equipo una vez.
 
+## Integraciones y permisos del equipo
+
+Todos los miembros ven **Integraciones**. Solo quienes tienen el rol **Superadministrador** configuran APIs, activan/desactivan conexiones y comprueban su acceso. OpenAI se comparte dentro del equipo; las demás conexiones se configuran por proyecto. Las claves guardadas permanecen cifradas y nunca se devuelven al navegador. OpenAI, Meta y PostHog utilizan estas conexiones; los otros proveedores muestran explícitamente que sus operaciones API siguen pendientes.
+
+En **Equipo → Permisos**, el superadministrador concede por separado crear, editar y eliminar proyectos, experimentos, aprendizajes y elementos del GOI Tree. Crear un experimento no concede editarlo posteriormente. Los materiales y resultados requieren permiso de edición. Las APIs y la administración del equipo no se delegan a editores. Los colaboradores existentes mantienen inicialmente sus permisos anteriores.
+
+Aplicar la migración `integrations_and_team_permissions` y configurar `INTEGRATIONS_ENCRYPTION_KEY` exclusivamente en el servidor antes de publicar esta versión. Usar 32 bytes aleatorios expresados como 64 caracteres hexadecimales; conservar esa clave, ya que sustituirla obliga a introducir otra vez las credenciales de las conexiones cifradas. Guardar una configuración no comprueba el proveedor ni publica campañas.
+
 ## Identidad visual
 
 El logo original de Imagine Builder y el título Experimental Operative System identifican la herramienta. Toda la interfaz usa fondos grises oscuros, texto claro, verde fosforito para acciones principales y títulos, azul para ideas/información y rojo para oportunidades/avisos. Tarjetas, tablas, filtros, formularios, perfiles personales, acceso y ventanas comparten la misma paleta, también en móvil.

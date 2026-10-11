@@ -42,9 +42,9 @@ export function loadWorkspaceRecords(client: SupabaseClient, workspaceId: string
 
 export async function deleteWorkspaceRecord(client: SupabaseClient, record: Item) {
   if (record.kind === "project") {
-    const children = await client.from("records").delete()
-      .eq("workspace_id", record.workspace_id).eq("project_id", record.id);
-    if (children.error) throw new Error(children.error.message);
+    const result=await client.rpc('delete_project',{p_project:record.id});
+    if(result.error)throw new Error(result.error.message);
+    return;
   }
   // Attachment metadata cascades with the record. Its trigger queues file cleanup.
   // Never delete a file first: foreign keys or access policies can reject the record deletion.

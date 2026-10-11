@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticatedClient, authorizedProject, ApiError } from '@/lib/server-access';
-import { metaAccount, metaCampaigns, metaConnection, metaReport } from '@/lib/meta-ads';
+import { metaAccount, metaCampaigns, metaReport } from '@/lib/meta-ads';
+import {resolvedMetaConnection} from '@/lib/integration-service';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -16,14 +17,14 @@ export async function POST(request: Request) {
     if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.project_id !== 'string') throw new ApiError('Selecciona un proyecto válido.',400);
     const project = await authorizedProject(client,body.project_id);
     if (body.action === 'connection') {
-      try { metaConnection(project); }
+      try { await resolvedMetaConnection(client,project); }
       catch (error) {
         if (error instanceof ApiError && error.status===403) return NextResponse.json({available:false},{headers});
         throw error;
       }
       return NextResponse.json({available:true},{headers});
     }
-    const connection = metaConnection(project);
+    const connection = await resolvedMetaConnection(client,project);
     if (body.action === 'preview') {
       const report = await metaReport(connection,body.external_id,'campaign',body.start,body.end);
       return NextResponse.json({resource_id:null,...report},{headers});

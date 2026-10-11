@@ -50,6 +50,10 @@ test("complete migration chain preserves existing teams, invitation-only access 
     assert.equal(preview.team_name, "Equipo original");
     await as(editor);
     assert.equal(await scalar("select join_workspace($1) as value", [editorToken]), w);
+    assert.deepEqual(await scalar<string[]>("select permissions as value from members where workspace_id=$1 and user_id=$2",[w,editor]),[]);
+    await as(owner);
+    await db.query("select set_member_permissions($1,$2,(select permissions from members where workspace_id=$1 and user_id=$3))",[w,editor,owner]);
+    await as(editor);
     await assert.rejects(db.query("select join_workspace($1)", [editorToken]));
     async function record(kind: string, parent: string | null = null, fields = {}) {
       return scalar("insert into records(workspace_id,project_id,kind,title,parent_id,fields) values($1,$2,$3,$3,$4,$5) returning id as value", [w, p, kind, parent, JSON.stringify(fields)]);
@@ -178,6 +182,47 @@ test("complete migration chain preserves existing teams, invitation-only access 
     await as(outsider);
     assert.equal((await db.query("select * from record_comments")).rows.length, 0);
     assert.equal((await db.query("select * from record_attachments")).rows.length, 0);
+    // Granular permissions protect SQL/RPC paths, not just the interface.
+    await as(owner);
+    const connection=await scalar<{id:string;updated_at:string}>("select to_jsonb(r) as value from save_integration($1,$2,'meta_ads','{\"account_id\":\"123\"}',array['access_token'],$3,null) r",[w,p,'v1.'+'a'.repeat(50)]);
+    await assert.rejects(db.query("select save_integration($1,$2,'meta_ads','{}',array['access_token'],$3,null)",[w,p,'b'.repeat(50)]),/ha cambiado/);
+    await assert.rejects(db.query("select save_integration($1,$2,'meta_ads','{}',array['access_token'],$3,null)",[w,p2,'b'.repeat(50)]),/Proyecto no autorizado/);
+    await db.query("select set_member_permissions($1,$2,array['experiments.create'])",[w,editor]);
+    await as(editor);
+    assert.equal(await scalar<boolean>("select can_record_action($1,'experiment','create') as value",[w]),true);
+    await assert.rejects(db.query("select set_member_permissions($1,$2,array['experiments.edit'])",[w,editor]));
+    await assert.rejects(db.query("select save_integration($1,$2,'smartlead','{}',array['api_key'],$3,null)",[w,p,'a'.repeat(50)]));
+    await assert.rejects(db.query("select set_integration_state($1,$2,false)",[connection.id,connection.updated_at]));
+    await assert.rejects(db.query("update integration_connections set enabled=false where id=$1",[connection.id]));
+    await assert.rejects(db.query("select * from experimental_private.integration_secrets"));
+    const createOnly=randomUUID();
+    await db.query('select save_experiment_preparation($1,null)',[JSON.stringify({...preparation,id:createOnly})]);
+    assert.equal(await scalar<number>('select count(*)::int as value from experiment_variants where experiment_id=$1',[createOnly]),2);
+    await assert.rejects(db.query('select save_experiment_preparation($1,(select updated_at from records where id=$2))',[JSON.stringify({...preparation,id:createOnly}),createOnly]));
+    assert.equal((await db.query("update records set title='Forbidden' where id=$1 returning id",[createOnly])).rows.length,0);
+    assert.equal((await db.query("delete from records where id=$1 returning id",[createOnly])).rows.length,0);
+    assert.equal((await db.query("update experiment_specs set budget=99 where experiment_id=$1 returning experiment_id",[createOnly])).rows.length,0);
+    await assert.rejects(db.query('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1))',[createOnly,randomUUID(),fingerprint]));
+    await assert.rejects(db.query("insert into record_comments(workspace_id,record_id,author_id,author_name,body) values($1,$2,$3,'Test','Forbidden')",[w,createOnly,editor]));
+    assert.equal(await scalar<boolean>('select can_write_attachment($1) as value',[path]),false);
+    await assert.rejects(db.query('select save_experiment_preparation($1,null)',[JSON.stringify({...preparation,id:randomUUID(),project_id:p2})]));
+    await as(viewer);
+    assert.equal((await db.query('select * from integration_connections where id=$1',[connection.id])).rows.length,1);
+    assert.equal(await scalar('select read_integration_envelope($1) as value',[connection.id]),'v1.'+'a'.repeat(50));
+    await assert.rejects(db.query("select save_integration($1,$2,'smartlead','{}',array['api_key'],$3,null)",[w,p,'a'.repeat(50)]));
+    await as(outsider);
+    assert.equal((await db.query('select * from integration_connections')).rows.length,0);
+    await assert.rejects(db.query('select read_integration_envelope($1)',[connection.id]));
+    await assert.rejects(db.query('select delete_project($1)',[p]));
+    await as(owner);
+    const disposable=await scalar("insert into records(workspace_id,kind,title) values($1,'project','Disposable') returning id as value",[w]);
+    await db.query("insert into records(workspace_id,project_id,kind,title) values($1,$2,'experiment','Child')",[w,disposable]);
+    await db.query("select set_member_permissions($1,$2,array['projects.delete'])",[w,editor]);
+    await as(editor);
+    await db.query('select delete_project($1)',[disposable]);
+    assert.equal((await db.query('select * from records where id=$1 or project_id=$1',[disposable])).rows.length,0);
+    await as(owner);
+    await db.query('delete from records where id=$1',[createOnly]);
     // A confirmed account is not a team member until an administrator explicitly provisions it.
     await db.exec("reset role");
     const administrator = randomUUID();
