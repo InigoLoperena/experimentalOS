@@ -46,7 +46,7 @@ import {addFileAttachment} from '@/lib/attachment-service';
 import type { Backup } from "@/lib/backup";
 import { fetchBackup } from "@/lib/backup-service";
 import { deleteWorkspaceRecord, loadWorkspaceRecords, ensureProjectNorthStar, projectNorthStarRecord } from "@/lib/record-service";
-import { getPublicPreview, listTeamSpaces, selectTeamSpace } from "@/lib/internal-space";
+import { createPersonalTeamSpace, getPublicPreview, listTeamSpaces, selectTeamSpace } from "@/lib/internal-space";
 import { registerAccount } from "@/lib/auth-service";
 import { attachmentBucket, supportsAttachments, type Attachment } from "@/lib/attachments";
 import { cleanupAttachments } from "@/lib/attachment-service";
@@ -601,7 +601,17 @@ export default function Home() {
           return;
         }
 
-        const spaces = await listTeamSpaces(supabase!);
+        // A new account without an invitation owns its own team automatically.
+        // Users arriving by invitation are handled above and do not create a team.
+        let spaces = await listTeamSpaces(supabase!);
+        if (spaces.length === 0) {
+          const created = await createPersonalTeamSpace(supabase!, user.user_metadata?.name);
+          spaces = await listTeamSpaces(supabase!);
+          if (!spaces.some((space) => space.id === created.id)) {
+            spaces = [created, ...spaces];
+          }
+          preferredWorkspace.current = created.id;
+        }
         let preferred: string | null = preferredWorkspace.current;
         preferredWorkspace.current = null;
         if (!preferred) { try { preferred = localStorage.getItem(`experimental-os.workspace.${user.id}`); } catch {} }
