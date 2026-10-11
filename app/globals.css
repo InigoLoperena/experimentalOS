@@ -188,23 +188,15 @@ select {
 }
 .product-title {
   display: block;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-  line-height: 1.18;
-}
-.product-title > span {
-  display: block;
-  color: var(--lime);
-}
-.product-title::after {
-  content: "";
-  display: block;
-  width: 52px;
-  height: 3px;
-  margin-top: 12px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--lime) 0 34%, var(--blue) 34% 67%, var(--red) 67%);
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 1.45;
+  text-align: center;
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 .auth-intro .brand-identity,
 .auth-card .brand-identity {
@@ -2045,18 +2037,18 @@ legend {
     max-width: 100%;
   }
   .sidebar .brand-identity {
-    max-width: none;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px 24px;
+    max-width: 270px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
   .sidebar .imagine-logo {
     width: 200px;
     max-width: 100%;
   }
   .sidebar .product-title {
-    font-size: 20px;
+    font-size: 10px;
+    text-align: left;
   }
   .nav-caption,
   .sidebar-bottom {
