@@ -5,6 +5,11 @@ import { readAllPages } from "./backup-service";
 export const providers = { meta_ads: "Meta Ads", google_ads: "Google Ads", posthog: "PostHog", metricool: "Metricool",
   smartlead: "Smartlead", linkedin_ads: "LinkedIn Ads", tiktok_ads: "TikTok Ads", other: "Otra plataforma" } as const;
 export type Provider = keyof typeof providers;
+export function channelProvider(channel:unknown):Provider{
+  if(typeof channel==='string'&&Object.hasOwn(providers,channel))return channel as Provider;
+  if(['web_app','mobile_ios','mobile_android'].includes(String(channel)))return 'posthog';
+  return 'other';
+}
 export type Scope = { workspace_id: string; project_id: string; experiment_id: string };
 export type ExperimentSpec = Scope & { code: string; status: string; budget: number | null; currency: string;
   budget_period: "daily" | "total"; planned_start: string | null; planned_end: string | null; timezone: string; updated_at: string };

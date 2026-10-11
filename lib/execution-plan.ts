@@ -21,7 +21,7 @@ export const executionSchema={type:'object',additionalProperties:false,required:
 }};
 export function parseChannel(value:unknown):Channel|null {
   if(value===null || value===undefined || value==='') return null;
-  if(typeof value!=='string' || !(value in channels)) throw new Error('Selecciona un canal válido.');
+  if(typeof value!=='string' || !Object.hasOwn(channels,value)) throw new Error('Selecciona un canal válido.');
   return value as Channel;
 }
 export function emptyExecution():ExecutionPlan {
@@ -32,7 +32,7 @@ export function parseExecution(value:unknown):ExecutionPlan {
   const row=value as ExecutionPlan;
   const nullableText=(input:unknown,max=4000)=>{if(input===null)return null;if(typeof input!=='string' || input.length>max)throw new Error('Revisa los textos de la configuración.');return input;};
   const bounded=(input:unknown,min:number,max:number,integer=false)=>{if(input===null)return null;if(typeof input!=='number'||!Number.isFinite(input)||input<min||input>max||(integer&&!Number.isInteger(input)))throw new Error('Revisa el presupuesto, duración y reparto de variantes.');return input;};
-  if(row.goal!==null && !(typeof row.goal==='string' && row.goal in goals)) throw new Error('El objetivo de ejecución no es válido.');
+  if(row.goal!==null && !(typeof row.goal==='string' && Object.hasOwn(goals,row.goal))) throw new Error('El objetivo de ejecución no es válido.');
   const destination=nullableText(row.destination,2000);
   if(destination){const url=new URL(destination);if(url.protocol!=='https:'||url.username||url.password)throw new Error('La URL de destino debe usar HTTPS sin credenciales.');}
   const currency=nullableText(row.currency,3);if(currency && !/^[A-Z]{3}$/.test(currency))throw new Error('Usa una moneda de tres letras, como USD o EUR.');

@@ -125,6 +125,30 @@ test("complete migration chain preserves existing teams, invitation-only access 
     await assert.rejects(db.query('select save_experiment_preparation($1,$2)',[JSON.stringify(preparation),saved.updated_at]));
     await assert.rejects(db.query('select save_experiment_preparation($1,$2)',[JSON.stringify({...preparation,title:'Must roll back',fields:{...preparation.fields,execution_config:JSON.stringify({...plan,variants:[plan.variants[0],plan.variants[0]]})}}),resaved.updated_at]));
     assert.equal(await scalar<string>('select title as value from records where id=$1',[experiment]),'Preparado');
+    const metaRequest=randomUUID();
+    const fingerprint='a'.repeat(64);
+    assert.equal(await scalar('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1)) as value',[experiment,metaRequest,fingerprint]),metaRequest);
+    await assert.rejects(db.query('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1))',[experiment,randomUUID(),fingerprint]),/ya fue solicitada/);
+    await assert.rejects(db.query("update meta_campaign_preparations set status='rejected' where experiment_id=$1",[experiment]));
+    await as(owner);
+    await assert.rejects(db.query("select finish_meta_campaign($1,'linked','456','Campaña')",[metaRequest])); // another actor cannot finish it
+    await as(editor);
+    await db.query("select finish_meta_campaign($1,'linked','456','Campaña pausada')",[metaRequest]);
+    assert.equal(await scalar("select observed_status as value from external_resources where experiment_id=$1 and external_id='456'",[experiment]),'paused');
+    await assert.rejects(db.query("select finish_meta_campaign($1,'rejected')",[metaRequest]));
+    await as(outsider);
+    assert.equal((await db.query('select * from meta_campaign_preparations')).rows.length,0);
+    await assert.rejects(db.query('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1))',[experiment,randomUUID(),fingerprint]));
+    await as(editor);
+    await db.query("delete from external_resources where experiment_id=$1 and external_id='456'",[experiment]); // restore the shared fixture counts
+    const newPrepared=randomUUID();
+    await db.query('select save_experiment_preparation($1,null)',[JSON.stringify({...preparation,id:newPrepared})]);
+    assert.equal(await scalar<number>('select count(*)::int as value from experiment_variants where experiment_id=$1',[newPrepared]),2);
+    const uncertainRequest=randomUUID();
+    await db.query('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1))',[newPrepared,uncertainRequest,fingerprint]);
+    await db.query("select finish_meta_campaign($1,'uncertain')",[uncertainRequest]);
+    await assert.rejects(db.query('select reserve_meta_campaign($1,$2,$3,(select updated_at from records where id=$1))',[newPrepared,randomUUID(),fingerprint]),/ya fue solicitada/);
+    await db.query('delete from records where id=$1',[newPrepared]);
     const learning = await record("learning", experiment);
     const comment = await scalar("insert into record_comments(workspace_id,record_id,author_id,author_name,body) values($1,$2,$3,'Forged','Evidencia') returning id as value", [w, goal, outsider]);
     assert.equal(await scalar("select author_id as value from record_comments where id=$1", [comment]), editor);

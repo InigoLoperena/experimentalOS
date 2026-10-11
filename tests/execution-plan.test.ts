@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyExecution,parseChannel,parseExecution,executionFromFields} from '../lib/execution-plan';
-import {applyPreparation,parsePreparation,preparationKeys} from '../lib/ai-preparation';
+import {applyPreparation,parsePreparation,preparationKeys,requiredPreparation} from '../lib/ai-preparation';
 import {cleanExperimentFields} from '../lib/experiments';
 import {validateAiMedia} from '../lib/ai-media';
 import {attachmentFileType} from '../lib/attachments';
@@ -15,6 +15,8 @@ test('execution proposals preserve the chosen channel and unknown human settings
   assert.equal(cleanExperimentFields(fields).execution_config,fields.execution_config);
   for(const channel of ['web_app','mobile_ios','mobile_android','app_store','google_play','meta_ads','google_ads','metricool','smartlead'])assert.equal(parseChannel(channel),channel);
   assert.throws(()=>parseChannel('made_up'));
+  assert.throws(()=>parseChannel('constructor'));
+  assert.ok(requiredPreparation({...proposal,channel:'meta_ads'},0).missing.some(row=>row.includes('creatividades')));
 });
 test('invalid financial values, duplicate variants and unsafe destinations are rejected',()=>{
   const base=emptyExecution();

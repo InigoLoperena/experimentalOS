@@ -42,3 +42,22 @@ export function humanSuccessCriterion(proposal: Preparation, current: unknown): 
   const criterion=typeof current==='string' && current.trim() ? current : null;
   return {...proposal,fields:{...proposal.fields,success_criteria:criterion},missing:criterion ? proposal.missing : [...new Set([...proposal.missing,'Define el criterio de éxito y su umbral antes de ejecutar el experimento.'])]};
 }
+
+export function requiredPreparation(proposal:Preparation,mediaCount:number):Preparation{
+  const missing=[...proposal.missing];const plan=proposal.execution;
+  if(!proposal.channel)missing.push('Selecciona el canal principal.');
+  if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
+  if(!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
+  if(!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
+  if(plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
+  if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){
+    if(plan?.daily_budget===null||!plan)missing.push('Confirma el presupuesto diario total.');
+    if(!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
+    if(!plan?.duration_days)missing.push('Confirma la duración.');
+    if(!plan?.location)missing.push('Confirma la ubicación del público.');
+    if(!mediaCount)missing.push('Adjunta y asigna las creatividades a las variantes.');
+    if(!plan?.variants.length || plan.variants.some(v=>!v.headline||!v.body))missing.push('Completa titulares y textos de las variantes.');
+    if(proposal.channel==='meta_ads')missing.push('Antes de crear en Meta: verificar la página, segmentación y permisos de escritura.');
+  }
+  return {...proposal,missing:[...new Set(missing)].slice(0,20)};
+}

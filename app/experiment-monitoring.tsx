@@ -5,6 +5,8 @@ import { ArrowUpRight, Download, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
 import { MetaMonitoring } from './meta-monitoring';
+import {MetaPreparation} from './meta-preparation';
+import {channelProvider} from '@/lib/monitoring';
 import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricsCsvTemplate, parseMetricsCsv,
   periodRows, providers, safeResourceUrl, validateObservation,
   type Monitoring, type Observation, type Provider, type CsvMetric } from "@/lib/monitoring";
@@ -24,7 +26,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [variant, setVariant] = useState({ label: "", description: "", control: false, allocation: "50" });
-  const [resource, setResource] = useState({ provider: "meta_ads" as Provider, type: "campaign", id: "", url: "", label: "", variant: "" });
+  const [resource, setResource] = useState({ provider: channelProvider(experiment.fields.channel), type: "campaign", id: "", url: "", label: "", variant: "" });
   const [metric, setMetric] = useState({ resource: "", key: "clicks", unit: "count" as Observation["unit"], value: "", currency: "USD", start: today(), end: today(), notes: "" });
   const [period, setPeriod] = useState({ start: today(), end: today() });
   const [csv, setCsv] = useState<CsvMetric[] | null>(null);
@@ -93,6 +95,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
     {error && <p className="error" role="alert">{error}</p>}
     {message && <p className="notice" role="status">{message}</p>}
     <p className="small">Prepara aquí el experimento y vincula sus campañas. La publicación se realiza manualmente en la plataforma externa.</p>
+    {!demo&&editable&&<MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/>}
     <details className="monitoring-block">
       <summary>Preparación · {statusLabels[data.spec.status] || data.spec.status}</summary>
       <form className="monitoring-form" onSubmit={e => { e.preventDefault(); const form=new FormData(e.currentTarget); void run(async () => {
