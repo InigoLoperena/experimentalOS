@@ -9,7 +9,7 @@ import type {MetaSelection} from '@/lib/meta-build';
 type Preview={key:string;label:string;preview:string;width:number;height:number;upscaled:boolean};
 type Review={fingerprint:string;account:{name:string;id:string};name:string;objective:string;optimization:string;currency:string;total:number;start:string|null;end:string|null;previews:Preview[];write_available:boolean;selection:MetaSelection;steps:{key:string;kind:string;label:string;budget?:number}[]};
 type Run={id:string;selection:MetaSelection;created_at:string};
-export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated}:{experiment:Item;locked:boolean;onBusy:(busy:boolean)=>void;onCreated:()=>Promise<void>}){
+export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnArrival=false}:{experiment:Item;locked:boolean;onBusy:(busy:boolean)=>void;onCreated:()=>Promise<void>;openOnArrival?:boolean}){
  let plan:ReturnType<typeof executionFromFields>=null;
  let planError='';
  try{plan=executionFromFields(experiment.fields);}catch{planError='La configuración guardada no es válida. Revisa y guarda la ficha antes de preparar Meta.';}
@@ -22,6 +22,8 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated}:{experi
  const [cityQuery,setCityQuery]=useState(''),[cities,setCities]=useState<{key:string;name:string;region:string;country:string}[]>([]);
  const [identity,setIdentity]=useState<{page:{id:string;name:string;verified:boolean};instagram:{id:string;username:string}|null;instagram_accounts:{id:string;username:string}[];pixels:{id:string;name:string}[];warnings:string[]}|null>(null);
  const flight=useRef(false),active=useRef(true),stop=useRef(false);
+ const panel=useRef<HTMLDetailsElement>(null);
+ useEffect(()=>{if(openOnArrival&&panel.current){panel.current.open=true;panel.current.scrollIntoView({block:'start'});panel.current.querySelector('summary')?.focus();}},[openOnArrival]);
  useEffect(()=>{active.current=true;return()=>{active.current=false;stop.current=true;};},[]);
  async function api(action:string,extra:Record<string,unknown>={}){
   const session=await supabase!.auth.getSession();if(!session.data.session)throw new Error('Inicia sesión para continuar.');
@@ -62,7 +64,7 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated}:{experi
  }
  if(experiment.fields.channel!=='meta_ads')return null;
  if(planError)return <p className="error" role="alert">{planError}</p>;
- return <details className="monitoring-block" onToggle={e=>{if(e.currentTarget.open&&!loaded&&!flight.current)void task(load);}}><summary>Preparar campaña, conjunto o anuncio con creatividades</summary>
+ return <><button type="button" className="btn primary" disabled={busy||locked} onClick={()=>{if(panel.current){panel.current.open=true;panel.current.scrollIntoView({block:'start'});panel.current.querySelector('summary')?.focus();}}}>Enviar a Meta · revisar configuración</button><details ref={panel} className="monitoring-block" onToggle={e=>{if(e.currentTarget.open&&!loaded&&!flight.current)void task(load);}}><summary>Preparar campaña, conjunto o anuncio con creatividades</summary>
   <p className="small">Usa la configuración guardada de la ficha. La IA la propone desde «Editar ficha → Preparar con IA»; aquí revisas los parámetros reales antes de enviarlos a Meta. Los originales siguen siendo adjuntos privados.</p>
   <fieldset disabled={busy||locked} className="monitoring-grid">
    <label>Qué preparar<select value={selection.mode} onChange={e=>update({...selection,mode:e.target.value as MetaSelection['mode'],parent_id:e.target.value==='campaign'?null:''})}><option value="campaign">Nueva campaña con conjuntos y anuncios</option><option value="adset">Conjuntos y anuncios en una campaña pausada existente</option><option value="ad">Un anuncio en un conjunto pausado existente</option></select></label>
@@ -97,10 +99,10 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated}:{experi
    <div className="meta-previews">{review.previews.map(p=><figure key={p.key}><img src={p.preview} alt={`Recorte a revisar: ${p.label}`} width={280}/><figcaption>{p.label}<br/>{p.width} × {p.height}{p.upscaled&&' · imagen ampliada: revisa nitidez'}</figcaption></figure>)}</div>
    <label className="check"><input type="checkbox" disabled={busy||locked} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Apruebo todos los recortes y esta configuración. Autorizo enviar estos materiales y crear los recursos pausados en esta cuenta.</label>
    {!review.write_available&&<p className="notice">Falta configurar el token de preparación en Integraciones.</p>}
-   <button type="button" className="btn primary" disabled={busy||locked||!confirmed||!review.write_available} onClick={()=>void task(async()=>{const result=await api('begin',{selection:review.selection,fingerprint:review.fingerprint,confirmed,request_id:crypto.randomUUID()});setRunId(result.run_id);await execute(result.run_id);})}>Crear preparación pausada en Meta</button>
+   <button type="button" className="btn primary" disabled={busy||locked||!confirmed||!review.write_available} onClick={()=>void task(async()=>{const result=await api('begin',{selection:review.selection,fingerprint:review.fingerprint,confirmed,request_id:crypto.randomUUID()});setRunId(result.run_id);await execute(result.run_id);})}>Enviar a Meta · crear recursos pausados</button>
   </section>}
   {!!runs.length&&<div className="monitoring-block"><h4>Preparaciones guardadas</h4>{runs.map(r=><p key={r.id}>{new Date(r.created_at).toLocaleString()} · {r.selection.mode}<button type="button" className="btn" disabled={busy||locked} onClick={()=>void task(async()=>{setSelection(r.selection);setRunId(r.id);await execute(r.id);})}>Continuar preparación aprobada</button></p>)}</div>}
   {busy&&runId&&<button type="button" className="btn" onClick={()=>{stop.current=true;}}>Detener al terminar este paso</button>}
   {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="error" role="alert">{error}</p>}
- </details>;
+ </details></>;
 }

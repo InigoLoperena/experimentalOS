@@ -4,6 +4,8 @@ La aplicación trabaja en local y se sincroniza con `InigoLoperena/experimentalO
 
 ## Flujo implementado
 
+Acceso desde el formulario: después de «Rellenar formulario para revisar», «Guardar y revisar envío a Meta» guarda la ficha y sus adjuntos y abre directamente la preparación. También está disponible «Enviar a Meta · revisar configuración» en la ficha guardada. Ninguno de esos accesos crea recursos externos: el envío se realiza tras revisar parámetros y recortes, aprobarlos y pulsar «Enviar a Meta · crear recursos pausados». La activación se realiza manualmente en Ads Manager.
+
 1. En la ficha, seleccionar Meta Ads y describir el experimento con imágenes o vídeos. OpenAI Responses devuelve una propuesta estructurada, preguntas y recomendaciones; las respuestas permiten mejorarla sin guardar todavía la ficha.
 2. Revisar objetivo, público, duración, presupuesto diario total, variantes, textos, CTA y criterio de éxito. La IA propone nombres exactos de materiales por variante; asignaciones ambiguas requieren elección manual. Guardar conserva los originales privados y las variantes existentes.
 3. En preparación de Meta, elegir campaña nueva, conjuntos en una campaña pausada existente o un anuncio en un conjunto pausado. Buscar ciudad en Meta o indicar países; confirmar edades y ubicaciones reales. La descripción de intereses de la ficha no se convierte silenciosamente en segmentación.

@@ -18,8 +18,8 @@ const unitLabels = { count: "Recuento", currency: "Importe", ratio: "Proporción
 const resourceLabels: Record<string,string> = {campaign:"Campaña",adset:"Conjunto de anuncios",ad:"Anuncio",post:"Publicación",experiment:"Experimento",other:"Otro"};
 const today = () => new Date().toISOString().slice(0,10);
 
-export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
-  experiment: Item; editable: boolean; demo: boolean; onBusy: (busy: boolean) => void;
+export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMeta=false }: {
+  experiment: Item; editable: boolean; demo: boolean; onBusy: (busy: boolean) => void;openMeta?:boolean;
 }) {
   const [data, setData] = useState<Monitoring | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
     {error && <p className="error" role="alert">{error}</p>}
     {message && <p className="notice" role="status">{message}</p>}
     <p className="small">Prepara aquí el experimento y vincula sus campañas. La publicación se realiza manualmente en la plataforma externa.</p>
-    {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
+    {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} openOnArrival={openMeta} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
     <details className="monitoring-block">
       <summary>Preparación · {statusLabels[data.spec.status] || data.spec.status}</summary>
       <form className="monitoring-form" onSubmit={e => { e.preventDefault(); const form=new FormData(e.currentTarget); void run(async () => {

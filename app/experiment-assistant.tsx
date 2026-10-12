@@ -57,7 +57,7 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
       {!!proposal.recommendations?.length&&<><h4>Recomendaciones para revisar</h4><ul>{proposal.recommendations.map((value,index)=><li key={index}>{value}</li>)}</ul></>}
       {!!proposal.questions?.length&&<><h4>La IA necesita tus respuestas</h4><ol>{proposal.questions.map((value,index)=><li key={index}>{value}</li>)}</ol><label>Responde para mejorar la propuesta<textarea value={answers} maxLength={2000} disabled={busy||disabled} onChange={e=>setAnswers(e.target.value)}/></label><button type="button" className="btn" disabled={busy||disabled||!answers.trim()} onClick={()=>void prepare()}>Actualizar propuesta con mis respuestas</button></>}
       <button type="button" className="btn primary" disabled={disabled || busy} onClick={() => { onApply({...draft,title:proposal.title,fields:applyPreparation(draft.fields,proposal)});setProposal(null); }}>Rellenar formulario para revisar</button>
-      <p className="small">Los datos no se guardan hasta pulsar «Guardar ficha». La IA no modifica el responsable, las relaciones ni los IDs.</p>
+      <p className="small">Rellena el formulario para revisar y después guarda la ficha.{draft.fields.channel==='meta_ads'&&' Usa «Guardar y revisar envío a Meta» para pasar a la revisión de campaña y creatividades antes de enviarlas.'} La IA no modifica el responsable, las relaciones ni los IDs.</p>
     </div>}
   </details>;
 }

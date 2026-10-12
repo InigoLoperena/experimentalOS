@@ -388,6 +388,7 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
+  const [metaPreparationTarget,setMetaPreparationTarget]=useState<string|null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
   useEffect(()=>setDraftFiles([]),[draft?.id]);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
@@ -937,7 +938,7 @@ export default function Home() {
       updated_by: user?.id || null,
     });
   }
-  async function save() {
+  async function save(prepareMeta=false) {
     if (!draft || saving || attachmentsBusy || assistantBusy) return;
     if(!can(draft.kind,allItems.some(i=>i.id===draft.id)?'edit':'create')){setError('No tienes permiso para guardar esta ficha.');return;}
     if (!demo && !schemaReady) {
@@ -1051,6 +1052,7 @@ export default function Home() {
       setDraft(null);
       tell("Cambios guardados");
       await load();
+      setMetaPreparationTarget(prepareMeta&&record.kind==='experiment'&&record.fields.channel==='meta_ads'?record.id:null);
       if (supportsAttachments(record.kind)) setSelected(normalizeExperiment(r.data[0] as Item));
     }
     setSaving(false);
@@ -2464,7 +2466,7 @@ export default function Home() {
                 <FieldDetails record={selected} fields={experimentSections.primary} />
                 <ExecutionDetails key={selected.id} experiment={selected}/>
                 <PostHogResults experiment={selected} project={currentProject} />
-                {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
+                {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected} openMeta={metaPreparationTarget===selected.id}
                   editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
                 <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
                 {links}
@@ -2574,7 +2576,8 @@ export default function Home() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void save();
+              const submitter=(e.nativeEvent as SubmitEvent).submitter;
+              void save(submitter instanceof HTMLButtonElement&&submitter.dataset.prepareMeta==='true');
             }}
           >
             <div className="dialog-head">
@@ -2696,6 +2699,7 @@ export default function Home() {
               <button type="submit" className="btn primary" disabled={saving || attachmentsBusy || assistantBusy}>
                 {saving ? "Guardando…" : "Guardar ficha"}
               </button>
+              {draft.kind==='experiment'&&draft.fields.channel==='meta_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-meta="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y revisar envío a Meta</button>}
             </div>
           </form>
         )}

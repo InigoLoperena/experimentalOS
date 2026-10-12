@@ -1860,6 +1860,7 @@ legend {
 }
 .dialog-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   padding: 18px 26px;
