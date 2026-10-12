@@ -870,9 +870,19 @@ export default function Home() {
         tell("Define primero la North Star Metric del proyecto antes de crear un objetivo.");
         return;
       }
-      // The database hierarchy requires a real north_star record as the goal parent.
-      // Projects created with the newer project-level North Star field may not have one yet.
-      resolvedParentId = goalParent(resolvedParentId, items);
+      const inputMetric = goiSection === "input_metrics" || (!goiSection && view === "input_metrics");
+      const requestedParent = items.find((item) => item.id === resolvedParentId);
+      if (requestedParent?.kind === "goal") {
+        if (!inputMetric || requestedParent.fields.goi_section === "input_metrics") {
+          tell("Una Input Metric puede depender de la North Star o de un Objetivo, nunca de otra Input Metric.");
+          return;
+        }
+        // An input metric may be nested under an objective to visualize discovery branches.
+        resolvedParentId = requestedParent.id;
+      } else {
+        // Default: objectives and input metrics are direct children of the North Star.
+        resolvedParentId = goalParent(resolvedParentId, items);
+      }
     }
 
     if ((kind === "opportunity" || kind === "idea") && !resolvedParentId) {
@@ -1932,9 +1942,17 @@ export default function Home() {
                             {itemCard(g)}
                             <details open className="goal-content">
                               <summary>
-                                <ChevronRight size={14} /> Oportunidades-problemas
+                                <ChevronRight size={14} /> {section.key === "objectives" ? "Input Metrics y oportunidades-problemas" : "Oportunidades-problemas"}
                               </summary>
+                              {section.key === "objectives" && items
+                                .filter((i) => i.kind === "goal" && i.fields.goi_section === "input_metrics" && i.parent_id === g.id)
+                                .map(branch)}
                               {items.filter((i) => i.parent_id === g.id && i.kind === "opportunity").map(branch)}
+                              {section.key === "objectives" && can("goal", "create") && (
+                                <button className="add-node" onClick={() => create("goal", g.id, "input_metrics")}>
+                                  <Plus size={14} /> Añadir Input Metric
+                                </button>
+                              )}
                               {can("opportunity", "create") && (
                                 <button className="add-node" onClick={() => create("opportunity", g.id)}>
                                   <Plus size={14} /> Añadir oportunidad-problema
@@ -2622,7 +2640,7 @@ export default function Home() {
               <div>
                 <span className="eyebrow">
                   {allItems.some((i) => i.id === draft.id) ? "EDITAR" : "CREAR"}{" "}
-                  {kinds[draft.kind].toUpperCase()}
+                  {draft.kind === "goal" && draft.fields.goi_section === "input_metrics" ? "INPUT METRIC" : kinds[draft.kind].toUpperCase()}
                 </span>
                 <h2>{draft.title || "Nueva ficha"}</h2>
               </div>
@@ -2662,6 +2680,21 @@ export default function Home() {
                         {m.name}
                       </option>
                     ))}
+                  </select>
+                </label>
+              )}
+              {draft.kind === "goal" && (
+                <label>
+                  {draft.fields.goi_section === "input_metrics" ? "Depende de (North Star u Objetivo)" : "Depende de North Star Metric"}
+                  <select
+                    value={draft.parent_id || ""}
+                    onChange={(e) => setDraft({ ...draft, parent_id: e.target.value || null })}
+                  >
+                    {!storedNsm && <option value="">North Star del proyecto (se creará automáticamente)</option>}
+                    {storedNsm && <option value={storedNsm.id}>North Star Metric: {storedNsm.title}</option>}
+                    {draft.fields.goi_section === "input_metrics" && goals
+                      .filter((g) => g.fields.goi_section !== "input_metrics" && g.id !== draft.id)
+                      .map((g) => <option key={g.id} value={g.id}>Objetivo: {g.title}</option>)}
                   </select>
                 </label>
               )}
