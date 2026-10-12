@@ -2722,7 +2722,7 @@ nav button,
 .record-parent-type {
   flex-shrink: 0;
   font-weight: 650;
-  color: var(--text);
+  color: var(--ink);
 }
 .record-parent-name {
   display: inline-block;
