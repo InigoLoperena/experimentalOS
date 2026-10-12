@@ -2653,3 +2653,7 @@ nav button,
 .privacy-page h1 { color: var(--red); font-size: clamp(1.8rem, 5vw, 2.6rem); }
 .privacy-page h2 { color: var(--lime); margin-top: 32px; font-size: 1.25rem; }
 .privacy-page p { margin: 16px 0; }
+
+
+/* Distintivo de investigación ficticia, sin resultados reales. */
+.demo-record-tag { display: inline-flex; align-items: center; width: fit-content; border: 1px solid #b48b27; border-radius: 999px; padding: 3px 7px; color: #a56b0a; background: #fff6de; font-size: 10px; font-weight: 700; line-height: 1.2; }
