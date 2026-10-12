@@ -47,7 +47,7 @@ export type Activity = {
 export const kinds: Record<Kind, string> = {
   north_star: "North Star",
   goal: "Objetivo",
-  opportunity: "Oportunidad",
+  opportunity: "Oportunidad-problema",
   idea: "Idea",
   experiment: "Experimento",
   learning: "Aprendizaje",
@@ -67,7 +67,9 @@ export const parents: Record<Kind, Kind | null> = {
   project: null,
 };
 export function goalParent(parentId: string | null, items: Item[]): string | null {
-  return parentId || items.find(item => item.kind === "north_star")?.id || null;
+  // Goals and Input Metrics are siblings: both must be children of the North Star.
+  const selectedNorthStar = items.find(item => item.id === parentId && item.kind === "north_star");
+  return selectedNorthStar?.id || items.find(item => item.kind === "north_star")?.id || null;
 }
 export function score(f: Fields) {
   return (
