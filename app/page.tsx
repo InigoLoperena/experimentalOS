@@ -20,6 +20,7 @@ import {
   Search,
   Star,
   Target,
+  BarChart3,
   Users,
   X,
   LayoutGrid,
@@ -261,6 +262,15 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas" };
+function goalVisualClass(item: Item): "objective" | "input-metric" | "" {
+  if (item.kind !== "goal") return "";
+  return item.fields.goi_section === "input_metrics" ? "input-metric" : "objective";
+}
+function GoalTypeIcon({ item, size = 16 }: { item: Item; size?: number }) {
+  return goalVisualClass(item) === "input-metric"
+    ? <BarChart3 size={size} aria-hidden="true" />
+    : <Target size={size} aria-hidden="true" />;
+}
 function IconFor({ kind }: { kind: Kind }) {
   const I =
     kind === "north_star"
@@ -1254,9 +1264,18 @@ export default function Home() {
     if (!["opportunity", "idea", "experiment"].includes(item.kind)) return null;
     const parent = items.find((record) => record.id === item.parent_id);
     if (!parent) return null;
+    const parentGoal = parent.kind === "goal";
+    const parentStyle = parentGoal ? goalVisualClass(parent) : "";
     return (
-      <span className="record-parent-pill" title={parent.title}>
-        <ChevronRight size={17} aria-hidden="true" />
+      <span
+        className={`record-parent-pill ${parentStyle}`.trim()}
+        title={parent.title}
+      >
+        {parentGoal ? (
+          <GoalTypeIcon item={parent} size={17} />
+        ) : (
+          <ChevronRight size={17} aria-hidden="true" />
+        )}
         <span className="record-parent-name">{parent.title}</span>
       </span>
     );
@@ -1266,15 +1285,15 @@ export default function Home() {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
         <div className="row">
-          <span className={"kind " + i.kind}>
-            <IconFor kind={i.kind} />
+          <span className={i.kind === "goal" ? `kind ${goalVisualClass(i)}` : "kind " + i.kind}>
+            {i.kind === "goal" ? <GoalTypeIcon item={i} /> : <IconFor kind={i.kind} />}
             {i.kind === "goal" && i.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[i.kind]}
           </span>
           {i.kind === "opportunity" && i.fields.focus && (
             <span className="focus">Prioritaria</span>
           )}
         </div>
-        <strong>{i.title}</strong>
+        <strong className={i.kind === "goal" ? `record-goal-title ${goalVisualClass(i)}` : undefined}>{i.title}</strong>
         {parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
@@ -1636,8 +1655,12 @@ export default function Home() {
               </button>
               {id === "map" && (
                 <div className="nav-subsections">
-                  <button className={view === "goals" ? "active" : ""} onClick={() => setView("goals")}>{viewLabels.goals}</button>
-                  <button className={view === "input_metrics" ? "active" : ""} onClick={() => setView("input_metrics")}>{viewLabels.input_metrics}</button>
+                  <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => setView("goals")}>
+                    <Target size={16} aria-hidden="true" />{viewLabels.goals}
+                  </button>
+                  <button className={`nav-goi-subsection input-metric ${view === "input_metrics" ? "active" : ""}`.trim()} onClick={() => setView("input_metrics")}>
+                    <BarChart3 size={16} aria-hidden="true" />{viewLabels.input_metrics}
+                  </button>
                   <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>{viewLabels.opportunities}</button>
                   <button className={view === "ideas" ? "active" : ""} onClick={() => setView("ideas")}>Ideas</button>
                 </div>
@@ -1940,7 +1963,12 @@ export default function Home() {
                   <section className={"goi-peer-section goi-peer-" + section.key} key={section.key}>
                     <div className="goi-peer-heading">
                       <div>
-                        <h3>{section.title}</h3>
+                        <h3 className="goi-peer-title">
+                          {section.key === "input_metrics"
+                            ? <BarChart3 size={20} aria-hidden="true" />
+                            : <Target size={20} aria-hidden="true" />}
+                          {section.title}
+                        </h3>
                         <p>Hijos directos de North Star Metric</p>
                       </div>
                       {can("goal", "create") && nsm && (
@@ -2465,8 +2493,8 @@ export default function Home() {
         {selected && (
           <div className="detail-content">
             <div className="row">
-              <span className={"kind " + selected.kind}>
-                <IconFor kind={selected.kind} />
+              <span className={selected.kind === "goal" ? `kind ${goalVisualClass(selected)}` : "kind " + selected.kind}>
+                {selected.kind === "goal" ? <GoalTypeIcon item={selected} /> : <IconFor kind={selected.kind} />}
                 {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
               </span>
               <button
@@ -2484,7 +2512,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            <h2>{selected.title}</h2>
+            <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>
             {parentTag(selected)}
             <div className="row detail-meta">
               {selected.owner_id && (
