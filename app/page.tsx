@@ -2379,6 +2379,7 @@ export default function Home() {
           {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Innovation System · Imagine Builder</span>
+            <a href="/privacy-policy">Política de privacidad</a>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
               {publicMode ? "Acceder al equipo" : "Exportar copia completa"}
             </button>
