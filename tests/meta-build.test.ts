@@ -5,7 +5,7 @@ import {buildMetaRecipe,parseMetaSelection,metaStepPayload,nextMetaStep,digest,t
 import {emptyExecution} from '../lib/execution-plan';
 import {emptyMeta} from '../lib/meta-options';
 import {renderMetaImage,privateMetaFile} from '../lib/meta-media';
-import {writeMetaStep,metaVideoReady} from '../lib/meta-write';
+import {writeMetaStep,metaVideoReady,metaPost} from '../lib/meta-write';
 import {MetaCreationError} from '../lib/meta-preparation';
 import {metaMetrics,metaIdentity} from '../lib/meta-ads';
 import {item} from './service-fixture';
@@ -18,6 +18,11 @@ const variants=[{id:'a',label:'A'},{id:'b',label:'B'}] as Variant[];
 const selection:MetaSelection={mode:'campaign',parent_id:null,start_at:'2030-01-01T12:00:00.000Z',category:'NONE',meta:{...emptyMeta(),objective:'traffic',countries:['US'],age_min:18,age_max:65,placements:['feed','story','reels']},assignments:['A','B'].flatMap(variant=>(['feed','story','reels'] as const).map(placement=>({variant,placement,attachment_id:id,thumbnail_id:null,crop:'centre' as const})))};
 const connection={accountId:'123',token:'private-test',pageId:'456',instagramId:'789',revision:'v1'};
 const build=(s=selection)=>buildMetaRecipe(exp,'EXP-GREENHUNT-0042',s,attachments,variants,connection,0);
+
+test('Meta development mode rejection explains recovery without echoing provider data',async()=>{
+ const fetcher=(async()=>Response.json({error:{code:100,error_subcode:1885183,error_user_title:'Ads creative post was created by an app that is in development mode',error_user_msg:'private-provider-detail'}},{status:400})) as typeof fetch;
+ await assert.rejects(metaPost(connection,'adcreatives',new URLSearchParams(),fetcher),error=>error instanceof MetaCreationError&&!error.uncertain&&error.message.includes('modo desarrollo')&&!error.message.includes('private-provider-detail'));
+});
 
 test('approval fingerprint survives JSONB object key ordering while detecting actual changes',()=>{
  const original={recipe:build(),approved:{v0_story_media:'hash1',v0_feed_media:'hash2'}};
