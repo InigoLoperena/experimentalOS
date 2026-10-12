@@ -2499,12 +2499,18 @@ nav button,
 .monitoring-block summary { cursor: pointer; font-weight: 650; color: #d2e8ff; padding: 4px 0; }
 .monitoring-block[open] summary { margin-bottom: 16px; }
 .monitoring-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; border: 0; padding: 0; margin: 14px 0; min-width: 0; }
-.monitoring-grid label, .monitoring-import label { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: #e2e7df; }
+.monitoring-grid label, .monitoring-import label { display: grid; gap: 6px; align-content: start; min-width: 0; font-size: 13px; color: #e2e7df; }
 .monitoring-grid input, .monitoring-grid select, .monitoring-grid textarea, .monitoring-import input { width: 100%; min-width: 0; background: var(--field); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
 .monitoring-grid textarea { min-height: 75px; resize: vertical; }
 .monitoring-wide { grid-column: 1/-1; }
 .monitoring-grid .checkbox-label { display: flex; align-items: center; gap: 8px; }
 .monitoring-grid .checkbox-label input { width: auto; }
+.monitoring-block .check { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0; line-height: 1.5; }
+.monitoring-block .check input { flex: 0 0 18px; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--lime); }
+.meta-previews { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,200px),1fr)); gap: 16px; margin: 16px 0; }
+.meta-previews figure { margin: 0; min-width: 0; }
+.monitoring-block figure img { max-width: 100%; height: auto; border-radius: 8px; }
+.monitoring-block figcaption { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .monitoring-entry { padding: 12px 0; border-bottom: 1px solid #49504e; overflow-wrap: anywhere; }
 .monitoring-entry p { margin: 6px 0; white-space: pre-wrap; }
 .monitoring-entry .project-link { display: flex; margin-top: 8px; color: #b8d9ff; }
