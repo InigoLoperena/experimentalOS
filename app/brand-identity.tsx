@@ -9,7 +9,7 @@ export function BrandIdentity() {
         alt="Xperiments"
       />
       <span className="product-title">
-        Experimental Innovation System
+        Experimental Innovation OS
       </span>
     </span>
   );
