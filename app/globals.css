@@ -2657,3 +2657,42 @@ nav button,
 
 /* Distintivo de investigación ficticia, sin resultados reales. */
 .demo-record-tag { display: inline-flex; align-items: center; width: fit-content; border: 1px solid #b48b27; border-radius: 999px; padding: 3px 7px; color: #a56b0a; background: #fff6de; font-size: 10px; font-weight: 700; line-height: 1.2; }
+
+/* GOI Tree: Objetivos and Input Metrics share the same level below North Star. */
+.goi-peer-levels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+.goi-peer-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  border-radius: 12px;
+}
+.goi-peer-section .goi-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.goi-peer-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.goi-peer-heading h3 { font-size: 17px; margin: 0; }
+.goi-peer-heading p,
+.goi-peer-empty { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.goi-peer-empty { margin: 10px 0 0; }
+@media (max-width: 1100px) {
+  .goi-peer-levels { grid-template-columns: 1fr; }
+  .goi-peer-section .goi-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+@media (max-width: 650px) {
+  .goi-peer-section .goi-grid { grid-template-columns: 1fr; }
+  .goi-peer-section { padding: 12px; }
+}
