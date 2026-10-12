@@ -20,7 +20,7 @@ const connection={accountId:'123',token:'private-test',pageId:'456',instagramId:
 const build=(s=selection)=>buildMetaRecipe(exp,'EXP-GREENHUNT-0042',s,attachments,variants,connection,0);
 
 test('Meta development mode rejection explains recovery without echoing provider data',async()=>{
- const fetcher=(async()=>Response.json({error:{code:100,error_subcode:1885183,error_user_title:'Ads creative post was created by an app that is in development mode',error_user_msg:'private-provider-detail'}},{status:400})) as typeof fetch;
+ const fetcher=(async()=>Response.json({error:{code:100,error_subcode:1885183,error_user_title:'La aplicación está en desarrollo',error_user_msg:'private-provider-detail'}},{status:400})) as typeof fetch;
  await assert.rejects(metaPost(connection,'adcreatives',new URLSearchParams(),fetcher),error=>error instanceof MetaCreationError&&!error.uncertain&&error.message.includes('modo desarrollo')&&!error.message.includes('private-provider-detail'));
 });
 
