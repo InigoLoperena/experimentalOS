@@ -1354,7 +1354,7 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].map((f) => (
+  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" || ["web_app", "mobile_ios", "mobile_android"].includes(String(draft.fields.channel))).map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 <label
@@ -1455,7 +1455,7 @@ export default function Home() {
                     </>
                   )}
                 </label>
-                {draft.kind === "experiment" && f.key === "ease" && <div className="full">{links}</div>}
+                {draft.kind === "experiment" && f.key === "tags" && <><div className="full">{links}</div><ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>{!publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}</>}
                 </Fragment>
               ));
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
@@ -2465,13 +2465,13 @@ export default function Home() {
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={experimentSections.primary} />
+                {links}
                 <ExecutionDetails key={selected.id} experiment={selected}/>
                 <PostHogResults experiment={selected} project={currentProject} />
                 {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected} openMeta={metaPreparationTarget===selected.id}
                   editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
                 <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
-                {links}
-                <FieldDetails record={selected} fields={experimentSections.additional} />
+
                 {files}
               </> : <><FieldDetails record={selected} fields={schemas[selected.kind]} />{links}{files}</>}
             </RecordAttachments> : <FieldDetails record={selected} fields={schemas[selected.kind]} />}
@@ -2600,8 +2600,6 @@ export default function Home() {
               </button>
             </div>
             <div className="form-body">
-              {draft.kind==='experiment'&&<ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>}
-              {draft.kind==="experiment" && !publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
               <label className="full">
                 Nombre
                 <input
