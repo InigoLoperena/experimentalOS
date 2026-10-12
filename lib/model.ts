@@ -67,8 +67,8 @@ export const parents: Record<Kind, Kind | null> = {
   project: null,
 };
 export function goalParent(parentId: string | null, items: Item[]): string | null {
-  // By default both kinds are siblings under North Star. An explicitly selected
-  // Objective parent for a nested Input Metric is handled by the create flow.
+  // Objetivos and Input Metrics must ALWAYS be direct children of North Star.
+  // An Objetivo is not a valid parent for an Input Metric (or another Objetivo).
   const selectedNorthStar = items.find(item => item.id === parentId && item.kind === "north_star");
   return selectedNorthStar?.id || items.find(item => item.kind === "north_star")?.id || null;
 }
