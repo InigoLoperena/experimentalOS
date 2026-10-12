@@ -2696,3 +2696,43 @@ nav button,
   .goi-peer-section .goi-grid { grid-template-columns: 1fr; }
   .goi-peer-section { padding: 12px; }
 }
+
+/* Etiqueta contextual reutilizable en GOI Tree, listados y fichas.
+   Indica el tipo y nombre del nodo del que depende cada registro. */
+.record-parent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 5px 9px;
+  margin: 0 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  vertical-align: middle;
+  text-align: left;
+}
+.record-parent-pill > svg {
+  flex-shrink: 0;
+}
+.record-parent-type {
+  flex-shrink: 0;
+  font-weight: 650;
+  color: var(--text);
+}
+.record-parent-name {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.record-parent-prefix { flex-shrink: 0; }
+.record-card .record-parent-pill { display: flex; width: fit-content; }
+.table-title .record-parent-pill { display: flex; width: fit-content; margin: 5px 0; }
+.detail-content > .record-parent-pill { margin-bottom: 12px; }
