@@ -142,3 +142,5 @@ Las pruebas PostgreSQL usan PGlite y cubren migración de datos antiguos, North 
 - [Growth Plan Template](https://docs.google.com/spreadsheets/d/1PEyxWM5RNL4rRzcIz8ehBPCAJGVwwGZgEjXpWpFf62o/edit?gid=1171375705).
 
 La organización por proyectos, las fichas simplificadas y los roles son decisiones de esta aplicación solicitadas por el equipo. No se ha leído el libro completo. Los datos se miden y documentan manualmente; no hay sincronización automática con herramientas externas.
+
+<!-- Diagnóstico de TypeScript del despliegue Vercel: archivo de configuración CI. -->
