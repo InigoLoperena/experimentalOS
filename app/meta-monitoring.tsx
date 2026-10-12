@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Item } from '@/lib/model';
 import type { MetaAccount, MetaCampaign, MetaReport } from '@/lib/meta-ads';
-import { metricLabels, type ExternalResource, type CsvMetric } from '@/lib/monitoring';
+import { metricTitle, type ExternalResource, type CsvMetric } from '@/lib/monitoring';
 
 type Props = {experiment:Item; resources:ExternalResource[]; editable:boolean; locked:boolean;
   onChoose:(campaign:MetaCampaign)=>void; onReview:(metrics:CsvMetric[])=>void; onBusy:(busy:boolean)=>void};
@@ -81,7 +81,7 @@ export function MetaMonitoring({experiment,resources,editable,locked,onChoose,on
       <button type="submit" className="btn">Consultar resultados de Meta</button>
     </fieldset></form>}
     {report && <div><p><strong>{report.name}</strong> · {report.status}</p><p className="small">Consultado {new Date(report.fetched_at).toLocaleString('es')}. Periodo en la zona horaria de la cuenta.</p>
-      <div className="monitoring-table"><table><thead><tr><th>Métrica</th><th>Valor</th><th>Periodo / fuente</th></tr></thead><tbody>{report.metrics.map(row=><tr key={row.metric}><td>{row.metric==='clicks'?'Clics (todos)':metricLabels[row.metric]||row.metric}</td><td>{row.value.toLocaleString('es')} {row.currency || ''}</td><td>{row.period_start} → {row.period_end}<br/><span className="small">{row.notes}</span></td></tr>)}</tbody></table></div>
+      <div className="monitoring-table"><table><thead><tr><th>Métrica</th><th>Valor</th><th>Periodo / fuente</th></tr></thead><tbody>{report.metrics.map(row=><tr key={row.metric}><td>{metricTitle(row.metric,row.notes)}</td><td>{row.value.toLocaleString('es')} {row.currency || ''}</td><td>{row.period_start} → {row.period_end}<br/><span className="small">{row.notes}</span></td></tr>)}</tbody></table></div>
       {!report.metrics.length && <p className="notice">Meta no devolvió métricas para este periodo. No se guardan ceros ni se borran resultados anteriores.</p>}
       {editable && report.resource_id && report.metrics.length>0 && <button type="button" className="btn primary" disabled={busy || locked || !linked.some(value=>value.id===report.resource_id)} onClick={()=>onReview(report.metrics)}>Revisar importación de resultados</button>}
       {!report.resource_id && report.metrics.length>0 && <p className="notice">Vincula esta campaña al experimento para revisar y guardar sus resultados.</p>}

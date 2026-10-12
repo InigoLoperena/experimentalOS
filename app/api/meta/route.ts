@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticatedClient, authorizedProject, ApiError } from '@/lib/server-access';
-import { metaAccount, metaCampaigns, metaReport,metaJson,metaId } from '@/lib/meta-ads';
+import { metaAccount, metaCampaigns, metaReport,metaJson,metaId,metaIdentity } from '@/lib/meta-ads';
 import {resolvedMetaConnection} from '@/lib/integration-service';
 
 export const runtime = 'nodejs';
@@ -32,10 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({cities:result.data.map((city:{key:unknown;name:string;region:string;country_name:string})=>({key:metaId(city.key),name:String(city.name).slice(0,200),region:String(city.region||'').slice(0,200),country:String(city.country_name||'').slice(0,200)}))},{headers});
     }
     if(body.action==='identity'){
-      if(!connection.pageId)throw new ApiError('Añade la página de Facebook en Integraciones.',400);
-      const page=await metaJson(metaId(connection.pageId),{fields:'id,name,instagram_business_account{id,username}'},connection.token);
-      const pixels=await metaJson(`act_${connection.accountId}/adspixels`,{fields:'id,name',limit:'100'},connection.token);
-      return NextResponse.json({page:{id:page.id,name:page.name},instagram:page.instagram_business_account||null,pixels:pixels.data||[]},{headers});
+      return NextResponse.json(await metaIdentity(connection),{headers});
     }
     if (body.action === 'preview') {
       const report = await metaReport(connection,body.external_id,'campaign',body.start,body.end);

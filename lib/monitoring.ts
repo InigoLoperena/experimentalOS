@@ -69,6 +69,17 @@ export function periodRows(observations: Observation[], start: string, end: stri
 export const metricLabels: Record<string,string> = { impressions: "Impresiones", clicks: "Clics", spend: "Gasto",
   conversions: "Conversiones", reach: "Alcance", open_google_maps: "Clics en abrir Google Maps" };
 
+export function metricTitle(metric:string,notes=''){
+  if(metricLabels[metric])return metric==='clicks'&&notes.includes('Meta')?'Clics (todos)':metricLabels[metric];
+  const key=/^(action|value|video25|video50|video75|video100)_(.+)_[a-f0-9]{8}$/.exec(metric);
+  if(!key)return metric;
+  const action=/Meta \w+ · ([a-zA-Z0-9_.-]+);/.exec(notes)?.[1]||key[2];
+  if(key[1].startsWith('video'))return `Vídeo visto al ${key[1].slice(5)}%`;
+  const names:Record<string,string>={link_click:'Clics en enlace',landing_page_view:'Visitas a la página de destino',post_engagement:'Interacciones con anuncios',page_engagement:'Interacciones con la página',video_view:'Visualizaciones de vídeo',lead:'Leads',purchase:'Compras',complete_registration:'Registros completos'};
+  const label=names[action]||`Evento Meta: ${action}`;
+  return key[1]==='value'?`Valor · ${label}`:label;
+}
+
 export type CsvMetric = { external_id: string; metric: string; unit: Observation["unit"]; currency: string | null;
   value: number; period_start: string; period_end: string; notes: string };
 

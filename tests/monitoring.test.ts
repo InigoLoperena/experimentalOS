@@ -1,8 +1,15 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseMetricsCsv,metricsCsvTemplate,csvObservationPayload,safeResourceUrl,periodRows,type ExternalResource,type Observation} from '../lib/monitoring';
+import {parseMetricsCsv,metricsCsvTemplate,csvObservationPayload,safeResourceUrl,periodRows,metricTitle,type ExternalResource,type Observation} from '../lib/monitoring';
 import type {Item} from '../lib/model';
 import {parsePreparation,applyPreparation,preparationKeys,humanSuccessCriterion} from '../lib/ai-preparation';
+
+test('provider metrics display human labels while retaining distinct unknown event identities',()=>{
+ assert.equal(metricTitle('action_link_click_2404024e','Meta actions · link_click;'), 'Clics en enlace');
+ assert.equal(metricTitle('video100_video_view_1340de49'),'Vídeo visto al 100%');
+ assert.equal(metricTitle('value_omni_purchase_12345678','Meta action_values · omni_purchase;'),'Valor · Evento Meta: omni_purchase');
+ assert.equal(metricTitle('my_custom_metric'),'my_custom_metric');
+});
 
 test('CSV validates evidence, handles quoted notes, and refuses duplicate/invalid observations',()=>{
   const rows=parseMetricsCsv('\uFEFF'+metricsCsvTemplate.replace(/,\n/,',"Fuente, con comillas ""y""\nsegunda línea"\n'));

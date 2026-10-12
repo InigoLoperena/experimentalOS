@@ -7,7 +7,7 @@ import {emptyMeta} from '../lib/meta-options';
 import {renderMetaImage,privateMetaFile} from '../lib/meta-media';
 import {writeMetaStep,metaVideoReady} from '../lib/meta-write';
 import {MetaCreationError} from '../lib/meta-preparation';
-import {metaMetrics} from '../lib/meta-ads';
+import {metaMetrics,metaIdentity} from '../lib/meta-ads';
 import {item} from './service-fixture';
 import type {Attachment} from '../lib/attachments';
 import type {Variant} from '../lib/monitoring';
@@ -18,6 +18,21 @@ const variants=[{id:'a',label:'A'},{id:'b',label:'B'}] as Variant[];
 const selection:MetaSelection={mode:'campaign',parent_id:null,start_at:'2030-01-01T12:00:00.000Z',category:'NONE',meta:{...emptyMeta(),objective:'traffic',countries:['US'],age_min:18,age_max:65,placements:['feed','story','reels']},assignments:['A','B'].flatMap(variant=>(['feed','story','reels'] as const).map(placement=>({variant,placement,attachment_id:id,thumbnail_id:null,crop:'centre' as const})))};
 const connection={accountId:'123',token:'private-test',pageId:'456',instagramId:'789',revision:'v1'};
 const build=(s=selection)=>buildMetaRecipe(exp,'EXP-GREENHUNT-0042',s,attachments,variants,connection,0);
+
+test('asset discovery preserves accessible advertising identities when page permission is missing, but rejects expired credentials',async()=>{
+ const fetcher=(async(url:URL|string)=>{
+  const path=new URL(url).pathname;
+  if(path.endsWith('/act_123'))return Response.json({account_id:'123',name:'Cuenta',currency:'USD',timezone_name:'Europe/Madrid',account_status:1});
+  if(path.endsWith('/456'))return Response.json({error:{code:100}},{status:400});
+  if(path.endsWith('/instagram_accounts'))return Response.json({data:[{id:'789',username:'greenhunt'}]});
+  return Response.json({data:[{id:'321',name:'Píxel'}]});
+ }) as typeof fetch;
+ const result=await metaIdentity(connection,fetcher);
+ assert.equal(result.page.verified,false);assert.equal(result.instagram?.id,'789');assert.equal(result.pixels[0].id,'321');assert.equal(result.warnings.length,1);
+ let calls=0;
+ await assert.rejects(metaIdentity(connection,(async()=>{calls++;return Response.json({error:{code:190}},{status:400});}) as typeof fetch),/caducado/);
+ assert.equal(calls,1);
+});
 test('full paused recipe splits the total once, preserves variants and produces explicit placement payloads',()=>{
  const recipe=build();assert.equal(recipe.total,7000);assert.equal(recipe.steps.length,25);
  assert.equal(recipe.steps.filter(s=>s.kind==='adset').reduce((sum,s)=>sum+s.budget!,0),7000);

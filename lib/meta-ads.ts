@@ -31,7 +31,7 @@ export function metaPeriod(start: unknown, end: unknown) {
 
 // Fixed origin/version, GET only, bearer header, no following provider pagination URLs.
 export async function metaJson(path: string, params: Record<string,string>, token: string, fetcher: typeof fetch = fetch): Promise<Record<string, unknown>> {
-  if (path!=='search'&&!/^(act_)?\d{1,30}(\/(campaigns|insights|adsets|ads|thumbnails|adspixels))?$/.test(path)) throw new ApiError('El recurso de Meta no es válido.', 400);
+  if (path!=='search'&&!/^(act_)?\d{1,30}(\/(campaigns|insights|adsets|ads|thumbnails|adspixels|instagram_accounts))?$/.test(path)) throw new ApiError('El recurso de Meta no es válido.', 400);
   const url = new URL(`https://graph.facebook.com/v26.0/${path}`);
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value);
   let response: Response;
@@ -56,6 +56,35 @@ export async function metaAccount(connection: MetaConnection, fetcher: typeof fe
   if (row.account_id !== connection.accountId || typeof row.name !== 'string' || !/^[A-Z]{3}$/.test(String(row.currency)) || typeof row.timezone_name !== 'string')
     throw new ApiError('No se pudo verificar la identidad de la cuenta de Meta.', 502);
   return { id:connection.accountId, name:row.name, currency:String(row.currency), timezone:row.timezone_name, active:Number(row.account_status)===1 };
+}
+
+export async function metaIdentity(connection:MetaConnection & {pageId?:string;instagramId?:string},fetcher:typeof fetch=fetch){
+  if(!connection.pageId)throw new ApiError('Añade la página de Facebook en Integraciones.',400);
+  await metaAccount(connection,fetcher); // Expired credentials must not be mistaken for optional asset permissions.
+  const pageId=metaId(connection.pageId),warnings:string[]=[];
+  const [pageResult,instagramResult,pixelResult]=await Promise.allSettled([
+    metaJson(pageId,{fields:'id,name,instagram_business_account{id,username}'},connection.token,fetcher),
+    metaJson(`act_${connection.accountId}/instagram_accounts`,{fields:'id,username',limit:'100'},connection.token,fetcher),
+    metaJson(`act_${connection.accountId}/adspixels`,{fields:'id,name',limit:'100'},connection.token,fetcher),
+  ]);
+  let page={id:pageId,name:'Página configurada · acceso sin verificar',verified:false};
+  let instagram:{id:string;username:string}|null=null;
+  if(pageResult.status==='fulfilled'){
+    const row=pageResult.value;
+    if(row.id!==pageId||typeof row.name!=='string')throw new ApiError('Meta no confirmó la página configurada.',502);
+    page={id:pageId,name:row.name,verified:true};
+    const ig=row.instagram_business_account as {id?:unknown;username?:unknown}|undefined;
+    if(ig)instagram={id:metaId(ig.id),username:typeof ig.username==='string'?ig.username:'Sin nombre devuelto'};
+  }else warnings.push('No se pudo consultar la página. Revisa su asignación al usuario de integración y los permisos de lectura de página.');
+  let instagramAccounts:{id:string;username:string}[]=[];
+  if(instagramResult.status==='fulfilled'&&Array.isArray(instagramResult.value.data)){
+    instagramAccounts=instagramResult.value.data.map((ig:{id:unknown;username?:unknown})=>({id:metaId(ig.id),username:typeof ig.username==='string'?ig.username:'Sin nombre devuelto'}));
+    instagram ||= instagramAccounts.find(ig=>ig.id===connection.instagramId)|| (instagramAccounts.length===1?instagramAccounts[0]:null);
+  }else warnings.push('No se pudieron consultar las cuentas de Instagram publicitarias. Revisa sus activos y permisos en Meta.');
+  let pixels:{id:string;name:string}[]=[];
+  if(pixelResult.status==='fulfilled'&&Array.isArray(pixelResult.value.data))pixels=pixelResult.value.data.map((p:{id:unknown;name?:unknown})=>({id:metaId(p.id),name:typeof p.name==='string'?p.name:'Sin nombre devuelto'}));
+  else warnings.push('No se pudieron consultar los píxeles. Los objetivos de leads y ventas necesitan un píxel accesible.');
+  return {page,instagram,instagram_accounts:instagramAccounts,pixels,warnings};
 }
 
 export async function metaCampaigns(connection: MetaConnection, after = '', fetcher: typeof fetch = fetch) {

@@ -8,7 +8,7 @@ import { MetaMonitoring } from './meta-monitoring';
 import {MetaPreparation} from './meta-preparation';
 import {MetaCampaignBuilder} from './meta-campaign-builder';
 import {channelProvider} from '@/lib/monitoring';
-import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricsCsvTemplate, parseMetricsCsv,
+import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricTitle, metricsCsvTemplate, parseMetricsCsv,
   periodRows, providers, safeResourceUrl, validateObservation,
   type Monitoring, type Observation, type Provider, type CsvMetric } from "@/lib/monitoring";
 
@@ -206,7 +206,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
       <p className="small">Se muestran observaciones del periodo exacto seleccionado. Los periodos superpuestos y porcentajes no se suman.</p>
       <div className="monitoring-table"><table><thead><tr><th>Variante / recurso</th><th>Métrica</th><th>Valor</th><th>Fuente</th><th>Notas</th>{editable && <th>Acciones</th>}</tr></thead><tbody>
         {rows.map(value => { const linked=data.resources.find(row => row.id===value.resource_id); const associated=data.variants.find(row => row.id===linked?.variant_id);
-          return <tr key={value.id}><td>{associated?.label || "Sin variante"}<br/><span className="small">{linked?.label || linked?.external_id || "Recurso enlazado"}</span></td><td>{metricLabels[value.metric] || value.metric}</td>
+          return <tr key={value.id}><td>{associated?.label || "Sin variante"}<br/><span className="small">{linked?.label || linked?.external_id || "Recurso enlazado"}</span></td><td>{metricTitle(value.metric,value.notes)}</td>
             <td>{value.unit==="ratio" ? `${(Number(value.value)*100).toLocaleString("es",{maximumFractionDigits:2})} %` : `${Number(value.value).toLocaleString("es")}${value.currency ? ` ${value.currency}` : ""}`}</td>
             <td>{value.source==="csv" ? (value.notes.startsWith('Origen: Meta Insights API') ? 'Meta · importación revisada' : 'CSV importado') : value.source==="api" ? "API" : "Manual"}</td><td>{value.notes}</td>
             {editable && <td><button type="button" className="icon-button" aria-label={`Eliminar resultado ${value.metric}`} disabled={busy || value.source==="api"} onClick={() => {

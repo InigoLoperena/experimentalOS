@@ -45,7 +45,7 @@ export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelect
  let assignedBudget=0;
  for(const [i,v] of plan.variants.entries()){
   const saved=variants.find(row=>row.label===v.label);if(!saved)throw new ApiError('Guarda las variantes de la ficha antes de preparar Meta.',400);
-  const ctas:Record<string,string>={'saber más':'LEARN_MORE','más información':'LEARN_MORE','registrarse':'SIGN_UP','regístrate':'SIGN_UP','comprar':'SHOP_NOW','contactar':'CONTACT_US','descargar':'DOWNLOAD'};
+  const ctas:Record<string,string>={'saber más':'LEARN_MORE','más información':'LEARN_MORE','aprender más':'LEARN_MORE','visitar sitio':'LEARN_MORE','registrarse':'SIGN_UP','regístrate':'SIGN_UP','comprar':'SHOP_NOW','contactar':'CONTACT_US','descargar':'DOWNLOAD'};
   const cta=ctas[(v.call_to_action||'').toLowerCase()]||v.call_to_action;
   if(!v.headline||!v.body||!['LEARN_MORE','SIGN_UP','SHOP_NOW','CONTACT_US','DOWNLOAD','GET_QUOTE','SUBSCRIBE'].includes(cta||''))throw new ApiError(`Completa titular, texto y CTA de ${v.label}. Usa una llamada compatible, por ejemplo SIGN_UP o LEARN_MORE.`,400);
   for(const [p,placement] of options.placements.entries()){
