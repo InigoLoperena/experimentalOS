@@ -64,7 +64,7 @@ import {
   score,
   validate,
 } from "@/lib/model";
-type View = "experiments" | "projects" | "learning" | "team" | "integrations" | "map" | "goals" | "opportunities" | "ideas" | "method";
+type View = "experiments" | "projects" | "learning" | "team" | "integrations" | "map" | "goals" | "input_metrics" | "opportunities" | "ideas" | "method";
 type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
@@ -251,7 +251,7 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "integrations", label: "Integraciones", icon: Plug },
   { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
-const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos o input metrics", opportunities: "Oportunidades / problemas", ideas: "Ideas" };
+const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas" };
 function IconFor({ kind }: { kind: Kind }) {
   const I =
     kind === "north_star"
@@ -421,7 +421,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "goals", "opportunities", "ideas", "experiments", "learning"].includes(view);
+  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -429,7 +429,7 @@ export default function Home() {
         ? ["learning"]
         : view === "experiments"
           ? ["experiment"]
-          : view === "goals"
+          : view === "goals" || view === "input_metrics"
             ? ["goal"]
             : view === "opportunities"
               ? ["opportunity"]
@@ -948,6 +948,7 @@ export default function Home() {
       return;
     }
     let record = normalizeExperiment(draft);
+    if (record.kind === "goal" && view === "input_metrics") record = { ...record, fields: { ...record.fields, goi_section: "input_metrics" } };
     const problem = validate(record);
     if (problem) {
       setError(problem);
@@ -1591,6 +1592,7 @@ export default function Home() {
               {id === "map" && (
                 <div className="nav-subsections">
                   <button className={view === "goals" ? "active" : ""} onClick={() => setView("goals")}>{viewLabels.goals}</button>
+                  <button className={view === "input_metrics" ? "active" : ""} onClick={() => setView("input_metrics")}>{viewLabels.input_metrics}</button>
                   <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>{viewLabels.opportunities}</button>
                   <button className={view === "ideas" ? "active" : ""} onClick={() => setView("ideas")}>Ideas</button>
                 </div>
@@ -1972,11 +1974,11 @@ export default function Home() {
               </div>
             </>
           )}
-          {(["goals", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
+          {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
             <div className="cards-grid">
-              {items.filter(i => i.kind === (view === "goals" ? "goal" : view === "opportunities" ? "opportunity" : "idea")).map(itemCard)}
-              {!items.some(i => i.kind === (view === "goals" ? "goal" : view === "opportunities" ? "opportunity" : "idea")) && (
-                <Empty title={view === "goals" ? "Sin objetivos" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />
+              {items.filter(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")).map(itemCard)}
+              {!items.some(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")) && (
+                <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />
               )}
             </div>
           )}
