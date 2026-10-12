@@ -2482,7 +2482,7 @@ export default function Home() {
                 <IconFor kind={selected.kind} />
                 {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
               </span>
-              {(selected.fields.demo_data === true || (selected.kind === "experiment" && String(selected.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>
+              {(selected.fields.demo_data === true || (selected.kind === "experiment" && String(selected.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
