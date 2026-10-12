@@ -36,3 +36,18 @@ test('multimodal payload is bounded and cannot fetch arbitrary URLs',()=>{
   assert.equal(attachmentFileType({name:'creative.mp4',type:'video/mp4',size:100}).kind,'video');
   assert.throws(()=>attachmentFileType({name:'creative.mp4',type:'text/html',size:100}));
 });
+
+test('bare campaign domains work with image proposals while malformed destinations remain rejected',()=>{
+  const proposal=parsePreparation({title:'Dos anuncios',fields:Object.fromEntries(preparationKeys.map(k=>[k,null])),channel:'meta_ads',execution:{...emptyExecution(),destination:'greenhunt.net'},missing:[],assumptions:[]});
+  const current={channel:'meta_ads',execution_config:JSON.stringify({...emptyExecution(),destination:' greenhunt.net/landing?variant=a#map '})};
+  assert.equal(executionFromFields(current)?.destination,'https://greenhunt.net/landing?variant=a#map');
+  assert.equal(executionFromFields(cleanExperimentFields(current))?.destination,'https://greenhunt.net/landing?variant=a#map');
+  assert.equal(proposal.execution?.destination,'https://greenhunt.net/');
+  assert.equal(executionFromFields(applyPreparation(current,proposal))?.destination,'https://greenhunt.net/');
+  const images=['fdfdfgdfd.jpg','sasasa.PNG'].map(name=>({name,kind:'image',data:'data:image/jpeg;base64,/9j/AAAA',timestamp:null}));
+  assert.equal(validateAiMedia(images).length,2);
+  for(const destination of ['greenhunt','/landing','https://','greenhunt.net/a b','user:pass@greenhunt.net','https://user:pass@greenhunt.net','http://greenhunt.net','javascript:alert(1)','data:text/plain,test']){
+    assert.throws(()=>parseExecution({...emptyExecution(),destination}),/Revisa la URL de destino/);
+  }
+  assert.equal(parseExecution({...emptyExecution(),destination:'  '}).destination,null);
+});

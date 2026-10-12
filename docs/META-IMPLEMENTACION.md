@@ -50,3 +50,9 @@ Algunas páginas de Meta Developers devolvieron HTTP 429. Se contrastaron las op
 - [Sharp: recorte y adaptación de imágenes](https://sharp.pixelplumbing.com/api-resize/)
 
 Se mantiene Graph API v26.0, ya utilizada por la conexión piloto. Cambios de versión requieren volver a verificar payloads y una prueba con recursos pausados.
+
+## Corrección de URL de destino · 12 de octubre de 2026
+
+Se reprodujo «Invalid URL» en un borrador con destino `greenhunt.net`: el análisis estricto rechazaba la dirección sin protocolo antes de enviar la petición de IA. Preparar y guardar ahora convierten dominios sin protocolo en HTTPS; las direcciones malformadas, protocolos inseguros y credenciales se rechazan con un mensaje en español. El campo permite escribir el dominio sin que la validación HTML impida guardarlo.
+
+El prompt real del usuario con las dos imágenes seleccionadas generó una propuesta con dos variantes al corregir el destino. Se dejó abierta sin guardar ni crear recursos externos. Esta prueba verifica por primera vez el envío real de esas dos imágenes a OpenAI; el envío de vídeos a OpenAI y la creación completa de anuncios en Meta siguen pendientes de comprobación real. La corrección pasó 64 pruebas y compilación de producción.

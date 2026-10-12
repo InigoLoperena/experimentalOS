@@ -30,14 +30,25 @@ export function parseChannel(value:unknown):Channel|null {
 export function emptyExecution():ExecutionPlan {
   return {goal:null,destination:null,audience:null,location:null,daily_budget:null,currency:null,duration_days:null,variants:[]};
 }
+export function executionDestination(value:string|null):string|null {
+  const input=value?.trim();
+  if(!input)return null;
+  // Accept a pasted domain, but never reinterpret protocols, credentials or relative paths as destinations.
+  const bareDomain=/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,63}(?:[/?#]|$)/i.test(input);
+  try {
+    if(/\s/.test(input))throw new Error();
+    const url=new URL(bareDomain?`https://${input}`:input);
+    if(url.protocol!=='https:'||url.username||url.password||!url.hostname)throw new Error();
+    return url.href;
+  }catch{throw new Error('Revisa la URL de destino: escribe un dominio como greenhunt.net o una dirección HTTPS completa, sin espacios ni credenciales.');}
+}
 export function parseExecution(value:unknown):ExecutionPlan {
   if(!value || typeof value!=='object' || Array.isArray(value)) throw new Error('La configuración del experimento no es válida.');
   const row=value as ExecutionPlan;
   const nullableText=(input:unknown,max=4000)=>{if(input===null)return null;if(typeof input!=='string' || input.length>max)throw new Error('Revisa los textos de la configuración.');return input;};
   const bounded=(input:unknown,min:number,max:number,integer=false)=>{if(input===null)return null;if(typeof input!=='number'||!Number.isFinite(input)||input<min||input>max||(integer&&!Number.isInteger(input)))throw new Error('Revisa el presupuesto, duración y reparto de variantes.');return input;};
   if(row.goal!==null && !(typeof row.goal==='string' && Object.hasOwn(goals,row.goal))) throw new Error('El objetivo de ejecución no es válido.');
-  const destination=nullableText(row.destination,2000);
-  if(destination){const url=new URL(destination);if(url.protocol!=='https:'||url.username||url.password)throw new Error('La URL de destino debe usar HTTPS sin credenciales.');}
+  const destination=executionDestination(nullableText(row.destination,2000));
   const currency=nullableText(row.currency,3);if(currency && !/^[A-Z]{3}$/.test(currency))throw new Error('Usa una moneda de tres letras, como USD o EUR.');
   if(!Array.isArray(row.variants)||row.variants.length>6) throw new Error('Prepara hasta seis variantes por experimento.');
   const variants=row.variants.map(v=>{

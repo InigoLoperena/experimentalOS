@@ -14,7 +14,7 @@ export function ExperimentExecution({draft,disabled,onChange}:{draft:Item;disabl
     <details><summary>Configuración y variantes para ejecutar</summary>
       <fieldset className="monitoring-grid" disabled={disabled}>
         <label>Objetivo de ejecución<select value={plan.goal||''} onChange={e=>update({...plan,goal:e.target.value as ExecutionPlan['goal']||null})}><option value="">Pendiente</option>{Object.entries(goals).map(([k,label])=><option key={k} value={k}>{label}</option>)}</select></label>
-        <label>URL de destino<input type="url" placeholder="https://" maxLength={2000} value={plan.destination||''} onChange={e=>update({...plan,destination:e.target.value||null})}/></label>
+        <label>URL de destino<input type="text" inputMode="url" placeholder="greenhunt.net o https://…" maxLength={2000} value={plan.destination||''} onChange={e=>update({...plan,destination:e.target.value||null})}/></label>
         <label>Audiencia<textarea maxLength={4000} value={plan.audience||''} onChange={e=>update({...plan,audience:e.target.value||null})}/></label>
         <label>Ubicación<input maxLength={4000} placeholder="País, ciudad o zona" value={plan.location||''} onChange={e=>update({...plan,location:e.target.value||null})}/></label>
         <label>Presupuesto diario total<input type="number" min={0} max={1000000} step="0.01" value={plan.daily_budget??''} onChange={e=>update({...plan,daily_budget:e.target.value===''?null:Number(e.target.value)})}/></label>
@@ -32,7 +32,7 @@ export function ExperimentExecution({draft,disabled,onChange}:{draft:Item;disabl
       </fieldset>}
       {plan.variants.map((variant,index)=><fieldset key={index} className="monitoring-block" disabled={disabled}><legend>Variante {index+1}</legend><div className="monitoring-grid">{(['label','description','headline','body','call_to_action'] as const).map(key=><label key={key}>{({label:'Nombre',description:'Qué cambia',headline:'Titular',body:'Texto',call_to_action:'Llamada a la acción'})[key]}<textarea maxLength={key==='label'?40:key==='call_to_action'?120:key==='headline'?300:4000} value={variant[key]||''} onChange={e=>update({...plan,variants:plan.variants.map((v,i)=>i===index?{...v,[key]:e.target.value||null}:v)})}/></label>)}<label>Reparto de tráfico (%)<input type="number" min={0} max={100} step="0.01" value={variant.allocation??''} onChange={e=>update({...plan,variants:plan.variants.map((v,i)=>i===index?{...v,allocation:e.target.value===''?null:Number(e.target.value)}:v)})}/></label></div><button type="button" className="btn" onClick={()=>update({...plan,variants:plan.variants.filter((_,i)=>i!==index)})}>Retirar variante del borrador</button></fieldset>)}
       <button type="button" className="btn" disabled={disabled||plan.variants.length>=6} onClick={()=>update({...plan,variants:[...plan.variants,{label:`Variante ${plan.variants.length+1}`,description:null,headline:null,body:null,call_to_action:null,allocation:null}]})}>Añadir variante al borrador</button>
-      <p className="small">La IA rellena esta configuración para tu revisión. Guarda la ficha para conservarla. Todavía no crea ni publica recursos externos.</p>
+      <p className="small">Puedes introducir un dominio sin https://: lo completamos con HTTPS al preparar o guardar. La IA rellena esta configuración para tu revisión. Guarda la ficha para conservarla. Todavía no crea ni publica recursos externos.</p>
     </details>
   </section>;
 }
