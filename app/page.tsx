@@ -2026,6 +2026,7 @@ export default function Home() {
                             onClick={() => setSelected(e)}
                           >
                             {e.title}
+                            {String(e.fields.tags || "").includes("datos-demo") && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>}
                             <span>
                               {e.fields.metric || "Métrica pendiente"}
                             </span>
