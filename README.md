@@ -10,12 +10,12 @@ Consulta [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md) para las funcionalidades
 - **Proyectos:** crear y editar proyectos y abrir su GOI Tree.
 - **Aprendizajes:** documentación separada del experimento, con resultados, evidencia, conocimiento y siguientes pasos.
 - **Equipo:** usuarios, roles e invitaciones, sin perfiles de empresa.
-- **GOI Tree:** North Star → Goals y sub-Goals → Oportunidades → Ideas → Experimentos.
+- **GOI Tree:** North Star Metric → Objetivos e Input Metrics (dos categorías hermanas) → Oportunidades-problemas (de Objetivos o Input Metrics) → Ideas → Experimentos.
 - **Cómo utilizar Experimental OS:** explicaciones breves y enlaces a las fuentes.
 
 Experimentos, Aprendizajes y GOI Tree tienen un selector común de proyecto. Al cambiarlo, solo aparecen los registros de ese proyecto. Cada proyecto tiene una North Star propia y puede destacar un máximo de cinco oportunidades. No se permiten padres de otro proyecto, ciclos en el árbol ni traslados de registros entre proyectos. Los miembros del equipo mantienen sus roles en todos los proyectos.
 
-El árbol es desplegable. Los Goals son métricas de entrada que pueden influir en la North Star y admiten sub-Goals. Las oportunidades documentan problemas reales o mejoras por aprovechar. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de GOI Tree usando impacto × confianza × facilidad.
+El árbol es desplegable. Los Objetivos y las Input Metrics son dos categorías diferentes al mismo nivel, siempre hijas directas de la North Star Metric. Las Oportunidades-problemas pertenecen a un Objetivo o una Input Metric; cada Idea siempre pertenece a una Oportunidad-problema. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de GOI Tree usando impacto × confianza × facilidad.
 
 ## Ficha de experimento
 
