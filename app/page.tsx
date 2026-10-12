@@ -346,7 +346,7 @@ function projectLogo(value: unknown, title?: string) {
   const key = String(title || "").trim().toLowerCase();
   const projectLogos: Record<string, string> = {
     greenhunt: "/project-logos/greenhunt.png",
-    "greenhunt store": "/project-logos/greenhunt.png",
+    "greenhunt store": "/greenhunt-store-logo.png",
     booklinks: "/project-logos/booklinks.PNG",
     greenroute: "/project-logos/greenroute.PNG",
     smartjunk: "/project-logos/smartjunk.PNG",
@@ -360,12 +360,14 @@ function projectLogo(value: unknown, title?: string) {
 const defaultProjectDescriptions: Record<string, string> = {
   greenhunt:
     "Marketplace de economía circular para descubrir y compartir objetos reutilizables, ventas y oportunidades locales. Conecta oferta y demanda para dar una segunda vida a objetos que aún tienen valor.",
+  "greenhunt store":
+    "Tienda de productos y artículos vinculados a la economía circular de Greenhunt. Facilita descubrir y adquirir opciones para dar una nueva vida a los objetos.",
   greenroute:
     "Plataforma para optimizar rutas y operaciones de recogida, reduciendo kilómetros, tiempo y costes. Ayuda a los equipos de campo a planificar y ejecutar rutas más eficientes.",
   smartjunk:
     "Marketplace de recogida de muebles y objetos donde particulares publican solicitudes y recolectores o empresas pujan por realizarlas. Centraliza la contratación, coordinación y gestión de cada recogida.",
   booklinks:
-    "Plataforma para crear y compartir colecciones de enlaces organizadas de forma simple y accesible. Convierte recursos dispersos en listados útiles y fáciles de consultar.",
+    "Convierte los enlaces mencionados en publicaciones impresas en un listado digital accesible. Permite a los lectores consultar fácilmente todos los recursos de cada publicación.",
 };
 function projectDescription(project: Item) {
   return (
