@@ -10,7 +10,7 @@ export type MetaSelection={mode:'campaign'|'adset'|'ad';parent_id:string|null;st
 export type MetaStep={key:string;kind:'campaign'|'image'|'video'|'thumbnail'|'adset'|'creative'|'ad';label:string;variant_id:string|null;placement?:keyof typeof metaFormats;attachment?:Attachment;crop?:MetaSelection['assignments'][number]['crop'];variant?:{label:string;headline:string;body:string;cta:string};budget?:number};
 export type MetaRecipe={selection:MetaSelection;name:string;objective:string;optimization:string;destination:string;currency:string;total:number;start:string|null;end:string|null;page:string;instagram:string;pixel:string|null;steps:MetaStep[];revision:string;connection_revision:string;account_id:string};
 export type MetaStepResult={id?:string;hash?:string};
-export function digest(value:unknown){return createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value)).digest('hex');}
+export function digest(value:unknown){return createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value,(_key,current)=>current&&typeof current==='object'&&!Array.isArray(current)?Object.fromEntries(Object.keys(current).sort().map(key=>[key,current[key]])):current)).digest('hex');}
 export function parseMetaSelection(raw:unknown):MetaSelection{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new ApiError('Revisa las opciones de preparación.',400);
  const v=raw as MetaSelection;

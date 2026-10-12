@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
-import {buildMetaRecipe,parseMetaSelection,metaStepPayload,nextMetaStep,type MetaSelection} from '../lib/meta-build';
+import {buildMetaRecipe,parseMetaSelection,metaStepPayload,nextMetaStep,digest,type MetaSelection} from '../lib/meta-build';
 import {emptyExecution} from '../lib/execution-plan';
 import {emptyMeta} from '../lib/meta-options';
 import {renderMetaImage,privateMetaFile} from '../lib/meta-media';
@@ -18,6 +18,14 @@ const variants=[{id:'a',label:'A'},{id:'b',label:'B'}] as Variant[];
 const selection:MetaSelection={mode:'campaign',parent_id:null,start_at:'2030-01-01T12:00:00.000Z',category:'NONE',meta:{...emptyMeta(),objective:'traffic',countries:['US'],age_min:18,age_max:65,placements:['feed','story','reels']},assignments:['A','B'].flatMap(variant=>(['feed','story','reels'] as const).map(placement=>({variant,placement,attachment_id:id,thumbnail_id:null,crop:'centre' as const})))};
 const connection={accountId:'123',token:'private-test',pageId:'456',instagramId:'789',revision:'v1'};
 const build=(s=selection)=>buildMetaRecipe(exp,'EXP-GREENHUNT-0042',s,attachments,variants,connection,0);
+
+test('approval fingerprint survives JSONB object key ordering while detecting actual changes',()=>{
+ const original={recipe:build(),approved:{v0_story_media:'hash1',v0_feed_media:'hash2'}};
+ const reorder=(value:unknown):unknown=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reorder(item)])):value;
+ assert.equal(digest(original),digest(reorder(original)));
+ assert.notEqual(digest(original),digest({...original,approved:{...original.approved,v0_feed_media:'changed'}}));
+ assert.notEqual(digest(original),digest({...original,recipe:{...original.recipe,total:8000}}));
+});
 
 test('asset discovery preserves accessible advertising identities when page permission is missing, but rejects expired credentials',async()=>{
  const fetcher=(async(url:URL|string)=>{
