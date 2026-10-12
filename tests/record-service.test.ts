@@ -35,9 +35,10 @@ test("workspace loading reads every row beyond the server cap with stable orderi
   assert.deepEqual(mock.calls.map(c => c.range![0]), Array.from({ length: 13 }, (_, i) => i * 100));
 });
 
-test("subgoals retain their goal parent and first goals use their project's North Star", () => {
+test("GOI root objectives and input metrics default to their project North Star", () => {
   const ns = item("ns", "north_star"), goal = { ...item("g", "goal"), parent_id: "ns" };
-  assert.equal(goalParent("g", [ns, goal]), "g");
+  assert.equal(goalParent("g", [ns, goal]), "ns");
+  assert.equal(goalParent("ns", [ns, goal]), "ns");
   assert.equal(goalParent(null, [ns, goal]), "ns");
   assert.equal(goalParent(null, []), null);
   assert.equal(projectNorthStarRecord(item("p", "project", { north_star: "Compras semanales" })).project_id, "p");
