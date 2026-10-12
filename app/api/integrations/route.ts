@@ -4,11 +4,13 @@ import {type Connection,integrationProvider,integrationCatalog,integrationFields
 import {connectionSecrets,storedConnection} from '@/lib/integration-service';
 import {sealSecrets} from '@/lib/integration-secrets';
 import {metaAccount} from '@/lib/meta-ads';
+import {metricoolBrand} from '@/lib/metricool';
 import {posthogHost,posthogIdentifier} from '@/lib/posthog-api';
 export const runtime='nodejs';
 export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
 async function verify(row:Connection,secrets:Record<string,string>){
+ if(row.provider==='metricool'){const brand=await metricoolBrand({userId:row.config.user_id,blogId:row.config.blog_id,token:secrets.api_key});return `Marca comprobada: ${brand.name} · ${brand.timezone}.`;}
  if(row.provider==='meta_ads'){
   const account=await metaAccount({accountId:row.config.account_id,token:secrets.access_token});
   if(secrets.write_token)await metaAccount({accountId:row.config.account_id,token:secrets.write_token});
@@ -64,8 +66,8 @@ export async function POST(request:Request){
     }
    }
    const secrets={...previous,...Object.fromEntries(Object.entries(replacements).filter(([,v])=>String(v).trim()))};
-   const identity=provider==='meta_ads'?'account_id':provider==='posthog'?'project_id':null;
-   if(row&&identity&&(body.config?.[identity]!==row.config[identity]||(provider==='posthog'&&body.config?.host!==row.config.host))){
+   const identity=provider==='meta_ads'?'account_id':provider==='posthog'?'project_id':provider==='metricool'?'blog_id':null;
+   if(row&&identity&&(body.config?.[identity]!==row.config[identity]||(provider==='posthog'&&body.config?.host!==row.config.host)||(provider==='metricool'&&body.config?.user_id!==row.config.user_id))){
     const requiredSecret=provider==='meta_ads'?'access_token':'api_key';
     if(!String(replacements[requiredSecret]||'').trim())throw new ApiError('Al cambiar de cuenta o proyecto externo debes introducir una nueva clave para esa conexión.',400);
     if(provider==='meta_ads'&&!String(replacements.write_token||'').trim())delete secrets.write_token;

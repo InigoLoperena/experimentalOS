@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Download, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
+import {MetricoolMonitoring} from './metricool-monitoring';
 import { MetaMonitoring } from './meta-monitoring';
 import {MetaPreparation} from './meta-preparation';
 import {MetaCampaignBuilder} from './meta-campaign-builder';
@@ -199,6 +200,9 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMe
           if(resultsDetails.current) {resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}
         catch(err) {setError(err instanceof Error ? err.message : 'Revisa el vínculo antes de importar.');}}}/>}
 
+    {!demo && <MetricoolMonitoring experiment={experiment} resources={data.resources} editable={editable} locked={busy} onBusy={onBusy}
+      onChoose={post=>{setResourceEditing(null);setResource({provider:'metricool',type:'post',id:post.id,url:post.url||'',label:post.text.slice(0,200),variant:''});if(resourceDetails.current){resourceDetails.current.open=true;resourceDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}setMessage('Publicación preparada. Asigna una variante y pulsa Vincular recurso.');}}
+      onReview={metrics=>{try{csvObservationPayload(experiment,data.resources,metrics);setCsv(metrics);setError('');setMessage('Métricas de Metricool listas para revisar.');if(resultsDetails.current){resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}catch(err){setError(err instanceof Error?err.message:'Revisa el vínculo.');}}}/>}
     <details className="monitoring-block" open ref={resultsDetails}>
       <summary>Resultados · {data.observations.length} observaciones</summary>
       <div className="monitoring-grid"><label>Desde<input type="date" value={period.start} onChange={e => setPeriod({ ...period,start:e.target.value })}/></label>
