@@ -1635,9 +1635,7 @@ export default function Home() {
         </a>
         <div className="sidebar-product-identity" aria-label="Experimental Innovation OS">
           <span>Experimental</span>
-          <span>Innovation</span>
-          <span className="accent">OS</span>
-          <span className="identity-stripes" aria-hidden="true"><i /><i /><i /></span>
+          <span className="identity-subtitle">Innovation OS</span>
         </div>
         <nav>
           {nav.map(({ id, label, icon: I }) => (

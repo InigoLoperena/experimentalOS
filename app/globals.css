@@ -2650,16 +2650,9 @@ nav button,
   line-height: 1.08;
   letter-spacing: -0.45px;
 }
-.sidebar-product-identity .accent { color: #fa3654; }
-.sidebar-product-identity .identity-stripes {
-  display: flex;
-  gap: 0;
-  margin-top: 11px;
-  height: 3px;
+.sidebar-product-identity .identity-subtitle {
+  white-space: nowrap;
 }
-.sidebar-product-identity .identity-stripes i:nth-child(1) { display: block; width: 22px; background: #a8ff33; }
-.sidebar-product-identity .identity-stripes i:nth-child(2) { display: block; width: 15px; background: #1f7edb; }
-.sidebar-product-identity .identity-stripes i:nth-child(3) { display: block; width: 15px; background: #fa3654; }
 
 @media (max-width: 800px) {
   .sidebar-product-identity { width: max-content; max-width: 100%; margin: 0 0 15px; }
