@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "Experimental Operative System · Imagine Builder",
+  title: "Experimental Innovation OS · Imagine Builder",
   description:
-    "Experimental Operative System de Imagine Builder: proyectos, North Star, GOI Tree, experimentos y aprendizajes en un espacio compartido.",
+    "Experimental Innovation OS de Imagine Builder: proyectos, North Star, GOI Tree, experimentos y aprendizajes en un espacio compartido.",
   icons: { icon: "/favicon.svg" },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
