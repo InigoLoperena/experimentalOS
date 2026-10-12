@@ -2740,3 +2740,69 @@ nav button,
 .record-card .record-parent-pill,
 .table-title .record-parent-pill { display: flex; width: fit-content; }
 .detail-content > .record-parent-pill { margin-bottom: 12px; }
+
+
+/* Identidad visual compartida entre las tarjetas, el árbol y sus etiquetas padre. */
+:root {
+  --objective-accent: #b7ff4c;
+  --objective-soft: rgba(183, 255, 76, 0.10);
+  --input-metric-accent: #82c6ff;
+  --input-metric-soft: rgba(130, 198, 255, 0.11);
+}
+.kind.objective,
+.record-goal-title.objective,
+.goi-peer-objectives .goi-peer-title {
+  color: var(--objective-accent);
+}
+.kind.input-metric,
+.record-goal-title.input-metric,
+.goi-peer-input_metrics .goi-peer-title {
+  color: var(--input-metric-accent);
+}
+.goi-peer-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.goi-peer-objectives {
+  border-color: rgba(183, 255, 76, 0.26);
+}
+.goi-peer-input_metrics {
+  border-color: rgba(130, 198, 255, 0.29);
+}
+.record-parent-pill.objective {
+  color: var(--objective-accent);
+  border-color: rgba(183, 255, 76, 0.35);
+  background: var(--objective-soft);
+}
+.record-parent-pill.input-metric {
+  color: var(--input-metric-accent);
+  border-color: rgba(130, 198, 255, 0.38);
+  background: var(--input-metric-soft);
+}
+.record-parent-pill.objective > svg,
+.record-parent-pill.input-metric > svg {
+  color: inherit;
+}
+.sidebar nav .nav-subsections .nav-goi-subsection {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.objective {
+  color: var(--objective-accent);
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.input-metric {
+  color: var(--input-metric-accent);
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.objective.active,
+.sidebar nav .nav-subsections .nav-goi-subsection.objective:hover {
+  background: var(--objective-soft);
+  border-color: rgba(183, 255, 76, 0.30);
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.input-metric.active,
+.sidebar nav .nav-subsections .nav-goi-subsection.input-metric:hover {
+  background: var(--input-metric-soft);
+  border-color: rgba(130, 198, 255, 0.30);
+}
