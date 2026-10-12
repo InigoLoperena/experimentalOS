@@ -1241,6 +1241,29 @@ export default function Home() {
       .toLowerCase()
       .includes(filter.toLowerCase()),
   );
+  function parentTag(item: Item) {
+    if (!["opportunity", "idea", "experiment"].includes(item.kind)) return null;
+    const parent = items.find((record) => record.id === item.parent_id);
+    if (!parent) return null;
+    const parentType =
+      parent.kind === "goal"
+        ? parent.fields.goi_section === "input_metrics"
+          ? "Input Metric"
+          : "Objetivo"
+        : kinds[parent.kind];
+    return (
+      <span
+        className="record-parent-pill"
+        title={`Hijo de ${parentType}: ${parent.title}`}
+      >
+        <ChevronRight size={13} aria-hidden="true" />
+        <span className="record-parent-prefix">Hijo de</span>
+        <strong className="record-parent-type">{parentType}</strong>
+        <span className="record-parent-name">{parent.title}</span>
+      </span>
+    );
+  }
+
   function itemCard(i: Item) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
@@ -1255,6 +1278,7 @@ export default function Home() {
           )}
         </div>
         <strong>{i.title}</strong>
+        {parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && (
           <span className="small record-owner">
@@ -2066,6 +2090,7 @@ export default function Home() {
                             onClick={() => setSelected(e)}
                           >
                             {e.title}
+                            {parentTag(e)}
                             {String(e.fields.tags || "").includes("datos-demo") && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>}
                             <span>
                               {e.fields.metric || "Métrica pendiente"}
@@ -2474,6 +2499,7 @@ export default function Home() {
                 .join(" / ")}
             </div>
             <h2>{selected.title}</h2>
+            {parentTag(selected)}
             <div className="row detail-meta">
               <span>
                 Responsable:{" "}
