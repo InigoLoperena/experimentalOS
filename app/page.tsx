@@ -223,7 +223,7 @@ function ExperimentalBookBanner() {
       <img src={experimentalBookCover} alt="Portada de La Empresa Experimental" />
       <div className="experimental-book-copy">
         <p>
-          Experimental Innovation System está basado en la metodología del libro
+          Experimental Innovation OS está basado en la metodología del libro
           <strong> La Empresa Experimental</strong> de Product Hackers.
         </p>
         <div className="experimental-book-links">
@@ -842,7 +842,7 @@ export default function Home() {
     }
     setCommentBusy(false);
   }
-  function create(kind: Kind, parent_id: string | null = null) {
+  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics") {
     if(!can(kind,'create')){tell('No tienes permiso para crear este tipo de ficha.');return;}
     if (!workspace) return;
     if (!demo && !schemaReady) {
@@ -881,7 +881,7 @@ export default function Home() {
       if (!candidates.length) {
         tell(
           kind === "opportunity"
-            ? "Crea primero un objetivo en este proyecto antes de crear una oportunidad."
+            ? "Crea primero un objetivo o una Input Metric en este proyecto antes de crear una oportunidad."
             : "Crea primero una oportunidad en este proyecto antes de crear una idea.",
         );
         return;
@@ -931,6 +931,9 @@ export default function Home() {
       fields: {
         ...defaults,
         ...contextFields,
+        ...(kind === "goal"
+          ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
+          : {}),
         ...(kind === "experiment"
           ? {
               impact: 5,
@@ -957,7 +960,11 @@ export default function Home() {
       return;
     }
     let record = normalizeExperiment(draft);
-    if (record.kind === "goal" && view === "input_metrics") record = { ...record, fields: { ...record.fields, goi_section: "input_metrics" } };
+    // Keep the chosen GOI section when editing from the tree or another view.
+    // Only a newly created goal without a category defaults to "objectives".
+    if (record.kind === "goal" && !record.fields.goi_section) {
+      record = { ...record, fields: { ...record.fields, goi_section: "objectives" } };
+    }
     const problem = validate(record);
     if (problem) {
       setError(problem);
@@ -1576,12 +1583,12 @@ export default function Home() {
             setView("map");
           }}
         >
-          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation System" />
+          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation OS" />
         </a>
-        <div className="sidebar-product-identity" aria-label="Experimental Innovation System">
+        <div className="sidebar-product-identity" aria-label="Experimental Innovation OS">
           <span>Experimental</span>
           <span>Innovation</span>
-          <span className="accent">System</span>
+          <span className="accent">OS</span>
           <span className="identity-stripes" aria-hidden="true"><i /><i /><i /></span>
         </div>
         <nav>
@@ -1892,51 +1899,66 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <h2>GOI Tree · {currentProject.title}</h2>
-                  <p>Objetivos · Input Metrics · oportunidades-problemas · ideas · experimentos</p>
+                  <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Ideas → Experimentos</p>
                 </div>
-                {can('goal','create') && nsm && (
-                  <Action onClick={() => create("goal")}>
-                    <Plus size={16} /> Nuevo Objetivo
-                  </Action>
-                )}
               </div>
-              <div className="goi-grid">
-                {goals
-                  .filter((g) => !g.parent_id || (storedNsm && g.parent_id === storedNsm.id))
-                  .map((g) => (
-                    <section className="goal-column" key={g.id}>
-                      {itemCard(g)}
-                      <details open className="goal-content">
-                        <summary>
-                          <ChevronRight size={14} /> Input Metrics y oportunidades
-                        </summary>
-                        {items.filter((i) => i.parent_id === g.id).map(branch)}
-                        {can('goal','create') && (
-                          <button
-                            className="add-node"
-                            onClick={() => create("goal", g.id)}
-                          >
-                            <Plus size={14} /> Añadir sub-Goal
-                          </button>
-                        )}
-                        {can('opportunity','create') && (
-                          <button
-                            className="add-node"
-                            onClick={() => create("opportunity", g.id)}
-                          >
-                            <Plus size={14} /> Añadir oportunidad
-                          </button>
-                        )}
-                      </details>
-                    </section>
-                  ))}
+              <div className="goi-peer-levels">
+                {([
+                  { key: "objectives", title: "Objetivos", action: "Nuevo objetivo" },
+                  { key: "input_metrics", title: "Input Metrics", action: "Nueva Input Metric" },
+                ] as const).map((section) => (
+                  <section className={"goi-peer-section goi-peer-" + section.key} key={section.key}>
+                    <div className="goi-peer-heading">
+                      <div>
+                        <h3>{section.title}</h3>
+                        <p>Hijos directos de North Star Metric</p>
+                      </div>
+                      {can("goal", "create") && nsm && (
+                        <Action onClick={() => create("goal", null, section.key)}>
+                          <Plus size={16} /> {section.action}
+                        </Action>
+                      )}
+                    </div>
+                    <div className="goi-grid">
+                      {goals
+                        .filter((g) =>
+                          (storedNsm ? g.parent_id === storedNsm.id : !g.parent_id) &&
+                          (section.key === "input_metrics"
+                            ? g.fields.goi_section === "input_metrics"
+                            : g.fields.goi_section !== "input_metrics")
+                        )
+                        .map((g) => (
+                          <section className="goal-column" key={g.id}>
+                            {itemCard(g)}
+                            <details open className="goal-content">
+                              <summary>
+                                <ChevronRight size={14} /> Oportunidades-problemas
+                              </summary>
+                              {items.filter((i) => i.parent_id === g.id && i.kind === "opportunity").map(branch)}
+                              {can("opportunity", "create") && (
+                                <button className="add-node" onClick={() => create("opportunity", g.id)}>
+                                  <Plus size={14} /> Añadir oportunidad-problema
+                                </button>
+                              )}
+                            </details>
+                          </section>
+                        ))}
+                    </div>
+                    {!goals.some((g) =>
+                      (storedNsm ? g.parent_id === storedNsm.id : !g.parent_id) &&
+                      (section.key === "input_metrics"
+                        ? g.fields.goi_section === "input_metrics"
+                        : g.fields.goi_section !== "input_metrics")
+                    ) && (
+                      <p className="goi-peer-empty">
+                        {section.key === "input_metrics"
+                          ? "Todavía no hay Input Metrics asociadas a la North Star."
+                          : "Todavía no hay Objetivos asociados a la North Star."}
+                      </p>
+                    )}
+                  </section>
+                ))}
               </div>
-              {nsm && !goals.length && (
-                <Empty
-                  title="Encuentra las palancas de crecimiento"
-                  text="Añade Goals medibles que puedan mover tu North Star."
-                />
-              )}
               <div className="section-heading">
                 <div>
                   <h2>Orden de ejecución</h2>
@@ -2392,7 +2414,7 @@ export default function Home() {
           {view === "method" && <Method />}
           {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
-            <span>Experimental Innovation System · Imagine Builder</span>
+            <span>Experimental Innovation OS · Imagine Builder</span>
             <a href="/privacy-policy">Política de privacidad</a>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
               {publicMode ? "Acceder al equipo" : "Exportar copia completa"}
@@ -2645,7 +2667,7 @@ export default function Home() {
               )}
               {draft.kind !== "experiment" && draft.kind !== "goal" && parents[draft.kind] && (
                 <label>
-                  {kinds[parents[draft.kind]!] + " al que pertenece"}
+                  {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
                     required={draft.kind !== "learning"}
                     value={draft.parent_id || ""}
@@ -2663,7 +2685,9 @@ export default function Home() {
                       )
                       .map((i) => (
                         <option key={i.id} value={i.id}>
-                          {i.title}
+                          {draft.kind === "opportunity" && i.kind === "goal"
+                            ? (i.fields.goi_section === "input_metrics" ? "Input Metric: " : "Objetivo: ") + i.title
+                            : i.title}
                         </option>
                       ))}
                   </select>
@@ -2821,7 +2845,7 @@ function Auth({
       </div>
       <div className="auth-card">
         <div className="auth-mobile-brand"><BrandIdentity /></div>
-        <span className="eyebrow">EXPERIMENTAL INNOVATION SYSTEM</span>
+        <span className="eyebrow">EXPERIMENTAL INNOVATION OS</span>
         {invitation && (
           <div className="notice">
             <strong>Estás invitado a unirte al equipo {invitation.team_name}</strong>
