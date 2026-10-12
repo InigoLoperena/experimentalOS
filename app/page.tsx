@@ -128,7 +128,16 @@ const schemas: Record<Kind, Field[]> = {
     },
     { key: "source", label: "Fuente de datos" },
   ],
-  goal: [],
+  goal: [
+    { key: "description", label: "Descripción / resultado buscado", type: "textarea" },
+    { key: "metric", label: "Indicador / KPI" },
+    { key: "baseline", label: "Valor inicial", type: "number" },
+    { key: "current", label: "Valor actual", type: "number" },
+    { key: "target", label: "Valor objetivo", type: "number" },
+    { key: "unit", label: "Unidad de medida" },
+    { key: "source", label: "Fuente / método de medición" },
+    { key: "period", label: "Periodo" },
+  ],
   opportunity: [
     {
       key: "evidence",
@@ -1221,13 +1230,15 @@ export default function Home() {
         <div className="row">
           <span className={"kind " + i.kind}>
             <IconFor kind={i.kind} />
-            {kinds[i.kind]}
+            {i.kind === "goal" && i.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[i.kind]}
           </span>
+          {(i.fields.demo_data === true || (i.kind === "experiment" && String(i.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Datos ficticios</span>}
           {i.kind === "opportunity" && i.fields.focus && (
             <span className="focus">Prioritaria</span>
           )}
         </div>
         <strong>{i.title}</strong>
+        {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && (
           <span className="small record-owner">
             Responsable: {i.owner_id ? author(i.owner_id) : "Sin asignar"}
@@ -1881,7 +1892,7 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <h2>GOI Tree · {currentProject.title}</h2>
-                  <p>Objetivos · oportunidades · ideas · experimentos</p>
+                  <p>Objetivos · Input Metrics · oportunidades-problemas · ideas · experimentos</p>
                 </div>
                 {can('goal','create') && nsm && (
                   <Action onClick={() => create("goal")}>
@@ -1897,7 +1908,7 @@ export default function Home() {
                       {itemCard(g)}
                       <details open className="goal-content">
                         <summary>
-                          <ChevronRight size={14} /> Oportunidades y subobjetivos
+                          <ChevronRight size={14} /> Input Metrics y oportunidades
                         </summary>
                         {items.filter((i) => i.parent_id === g.id).map(branch)}
                         {can('goal','create') && (
@@ -2403,8 +2414,9 @@ export default function Home() {
             <div className="row">
               <span className={"kind " + selected.kind}>
                 <IconFor kind={selected.kind} />
-                {kinds[selected.kind]}
+                {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
               </span>
+              {(selected.fields.demo_data === true || (selected.kind === "experiment" && String(selected.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
