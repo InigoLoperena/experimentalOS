@@ -24,7 +24,7 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
   const notes: string[] = [];
   const table = <T>(name: string, select: string, order = "id") => readAllPages<T>((from, to) =>
     client.from(name).select(select, { count: "exact" }).eq("workspace_id", workspaceId).order(order).range(from, to) as unknown as PromiseLike<Response<T>>);
-  const [records, rawMembers, audit, attachments, comments, specs, variants, resources, observations] = await Promise.all([
+  const [records, rawMembers, audit, attachments, comments, specs, variants, resources, observations, preparations, runs, steps, connections] = await Promise.all([
     table<Item>("records", "*"),
     table<Member & { profiles: { name: string; avatar_url?: string | null } | null }>("members", "*,profiles(*)", "user_id"),
     table<Record<string, unknown>>("audit_log", "*"),
@@ -40,10 +40,16 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
     table<Record<string, unknown>>("experiment_variants", "*"),
     table<Record<string, unknown>>("external_resources", "*"),
     table<Record<string, unknown>>("metric_observations", "*"),
+    table<Record<string, unknown>>("meta_campaign_preparations", "*", "experiment_id"),
+    table<Record<string, unknown>>("meta_preparation_runs", "*"),
+    table<Record<string, unknown>>("meta_preparation_steps", "*", "request_id"),
+    table<Record<string, unknown>>("integration_connections", "*"),
   ]);
   const ids = new Set(records.map(r => r.id));
-  return { schema_version: 5, exported_at: new Date().toISOString(), workspace_id: workspaceId, records,
+  notes.push("Las claves y tokens de integraciones no se exportan; configura los secretos por separado al restaurar.");
+  return { schema_version: 6, exported_at: new Date().toISOString(), workspace_id: workspaceId, records,
     members: rawMembers.map(m => ({ ...m, name: m.profiles?.name || "Miembro", avatar_url: m.profiles?.avatar_url || null })),
     audit, attachments: attachments.filter(a => ids.has(a.record_id)), comments: comments.filter(c => ids.has(String(c.record_id))), notes,
-    monitoring: { experiment_specs: specs, experiment_variants: variants, external_resources: resources, metric_observations: observations } };
+    monitoring: { experiment_specs: specs, experiment_variants: variants, external_resources: resources, metric_observations: observations,
+      meta_campaign_preparations: preparations, meta_preparation_runs: runs, meta_preparation_steps: steps, integration_connections: connections } };
 }

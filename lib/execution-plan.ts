@@ -1,4 +1,5 @@
 import type { Fields } from './model';
+import {metaOptionsSchema,parseMetaOptions,type MetaOptions} from './meta-options';
 
 export const channels = {
   web_app:'Web app', mobile_ios:'App móvil · iOS', mobile_android:'App móvil · Android',
@@ -9,15 +10,17 @@ export const channels = {
 export type Channel = keyof typeof channels;
 export const goals = {traffic:'Tráfico',installs:'Instalaciones',leads:'Contactos o registros',sales:'Ventas o conversiones',engagement:'Interacción',product:'Comportamiento de producto',store:'Conversión de la ficha de la app'} as const;
 export type ExecutionPlan = {
+  meta?:MetaOptions|null;
   goal:keyof typeof goals|null; destination:string|null; audience:string|null; location:string|null;
   daily_budget:number|null; currency:string|null; duration_days:number|null;
-  variants:{label:string;description:string|null;headline:string|null;body:string|null;call_to_action:string|null;allocation:number|null}[];
+  variants:{label:string;description:string|null;headline:string|null;body:string|null;call_to_action:string|null;allocation:number|null;media_names?:string[]}[];
 };
 const text={type:['string','null']};
-export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants'],properties:{
+export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants','meta'],properties:{
+  meta:{anyOf:[metaOptionsSchema,{type:'null'}]},
   goal:{type:['string','null'],enum:[...Object.keys(goals),null]},destination:text,audience:text,location:text,
   daily_budget:{type:['number','null']},currency:text,duration_days:{type:['integer','null']},
-  variants:{type:'array',items:{type:'object',additionalProperties:false,required:['label','description','headline','body','call_to_action','allocation'],properties:{label:{type:'string'},description:text,headline:text,body:text,call_to_action:text,allocation:{type:['number','null']}}}},
+  variants:{type:'array',items:{type:'object',additionalProperties:false,required:['label','description','headline','body','call_to_action','allocation','media_names'],properties:{label:{type:'string'},description:text,headline:text,body:text,call_to_action:text,allocation:{type:['number','null']},media_names:{type:'array',items:{type:'string'}}}}},
 }};
 export function parseChannel(value:unknown):Channel|null {
   if(value===null || value===undefined || value==='') return null;
@@ -37,10 +40,13 @@ export function parseExecution(value:unknown):ExecutionPlan {
   if(destination){const url=new URL(destination);if(url.protocol!=='https:'||url.username||url.password)throw new Error('La URL de destino debe usar HTTPS sin credenciales.');}
   const currency=nullableText(row.currency,3);if(currency && !/^[A-Z]{3}$/.test(currency))throw new Error('Usa una moneda de tres letras, como USD o EUR.');
   if(!Array.isArray(row.variants)||row.variants.length>6) throw new Error('Prepara hasta seis variantes por experimento.');
-  const variants=row.variants.map(v=>({label:nullableText(v.label,40) || '',description:nullableText(v.description),headline:nullableText(v.headline,300),body:nullableText(v.body),call_to_action:nullableText(v.call_to_action,120),allocation:bounded(v.allocation,0,100)}));
+  const variants=row.variants.map(v=>{
+    if(v.media_names!==undefined&&(!Array.isArray(v.media_names)||v.media_names.length>4||v.media_names.some(n=>typeof n!=='string'||n.length>250)))throw new Error('Revisa los nombres de materiales de las variantes.');
+    return {label:(nullableText(v.label,40) || '').trim(),description:nullableText(v.description),headline:nullableText(v.headline,300),body:nullableText(v.body),call_to_action:nullableText(v.call_to_action,120),allocation:bounded(v.allocation,0,100),...(v.media_names!==undefined?{media_names:v.media_names}:{})};
+  });
   if(variants.some(v=>!v.label.trim())||new Set(variants.map(v=>v.label.trim().toLowerCase())).size!==variants.length)throw new Error('Cada variante necesita un nombre distinto.');
   if(variants.every(v=>v.allocation!==null)&&variants.length && Math.abs(variants.reduce((sum,v)=>sum+v.allocation!,0)-100)>0.01)throw new Error('El reparto completo de las variantes debe sumar 100%.');
-  return {goal:row.goal,destination,audience:nullableText(row.audience),location:nullableText(row.location),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants};
+  return {goal:row.goal,destination,audience:nullableText(row.audience),location:nullableText(row.location),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants,...(row.meta!==undefined?{meta:parseMetaOptions(row.meta)}:{})};
 }
 export function executionFromFields(fields:Fields):ExecutionPlan|null {
   if(!fields.execution_config)return null;

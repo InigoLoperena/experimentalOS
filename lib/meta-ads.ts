@@ -1,6 +1,7 @@
 import type { Item } from './model';
 import { ApiError } from './server-access';
 import { validateObservation, type CsvMetric } from './monitoring';
+import {createHash} from 'node:crypto';
 
 export type MetaCampaign = { id: string; name: string; status: string; url: string };
 export type MetaAccount = { id: string; name: string; currency: string; timezone: string; active: boolean };
@@ -30,7 +31,7 @@ export function metaPeriod(start: unknown, end: unknown) {
 
 // Fixed origin/version, GET only, bearer header, no following provider pagination URLs.
 export async function metaJson(path: string, params: Record<string,string>, token: string, fetcher: typeof fetch = fetch): Promise<Record<string, unknown>> {
-  if (!/^(act_)?\d{1,30}(\/(campaigns|insights))?$/.test(path)) throw new ApiError('El recurso de Meta no es válido.', 400);
+  if (path!=='search'&&!/^(act_)?\d{1,30}(\/(campaigns|insights|adsets|ads|thumbnails|adspixels))?$/.test(path)) throw new ApiError('El recurso de Meta no es válido.', 400);
   const url = new URL(`https://graph.facebook.com/v26.0/${path}`);
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value);
   let response: Response;
@@ -79,7 +80,7 @@ export function metaMetrics(rows: unknown, accountId: string, externalId: string
   if (!row || row.account_id !== accountId || row[`${type}_id`] !== externalId || typeof row.date_start !== 'string' || typeof row.date_stop !== 'string' ||
       row.date_start !== start || row.date_stop !== end || !/^[A-Z]{3}$/.test(String(row.account_currency)))
     throw new ApiError('La cuenta, recurso o periodo del informe no coincide con la consulta.', 502);
-  return ['impressions','clicks','reach','spend'].flatMap(metric => {
+  const base=['impressions','clicks','reach','spend'].flatMap(metric => {
     if (row[metric] == null) return [];
     if (!/^\d+(\.\d+)?$/.test(String(row[metric]))) throw new ApiError('Meta devolvió una métrica no válida.', 502);
     const value: CsvMetric = {external_id:externalId,metric,value:Number(row[metric]),unit:metric==='spend'?'currency':'count',currency:metric==='spend'?String(row.account_currency):null,
@@ -88,6 +89,21 @@ export function metaMetrics(rows: unknown, accountId: string, externalId: string
     try { validateObservation(value); } catch { throw new ApiError('Meta devolvió una métrica no válida.', 502); }
     return [value];
   });
+  // Keep each provider action distinct: aliases/overlapping attribution are not additive.
+  for(const [field,prefix] of [['actions','action'],['action_values','value'],['video_p25_watched_actions','video25'],['video_p50_watched_actions','video50'],['video_p75_watched_actions','video75'],['video_p100_watched_actions','video100']] as const){
+    if(row[field]==null)continue;
+    if(!Array.isArray(row[field])||(row[field] as unknown[]).length>200)throw new ApiError('Meta devolvió acciones no válidas.',502);
+    const seen=new Set<string>();
+    for(const entry of row[field] as {action_type?:unknown;value?:unknown}[]){
+      if(!entry||typeof entry.action_type!=='string'||! /^[a-zA-Z0-9_.-]{1,160}$/.test(entry.action_type)||! /^\d+(\.\d+)?$/.test(String(entry.value)))throw new ApiError('Meta devolvió acciones no válidas.',502);
+      if(seen.has(entry.action_type))throw new ApiError('Meta devolvió acciones duplicadas. No se importaron datos.',502);seen.add(entry.action_type);
+      const key=`${prefix}_${entry.action_type.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,40)}_${createHash('sha256').update(entry.action_type).digest('hex').slice(0,8)}`;
+      const value=Number(entry.value),money=field==='action_values';
+      const metric:CsvMetric={external_id:externalId,metric:key,value,unit:money?'currency':Number.isInteger(value)?'count':'number',currency:money?String(row.account_currency):null,period_start:start,period_end:end,notes:`Meta ${field} · ${entry.action_type}; cuenta ${accountId}; consultado ${fetchedAt}. Atribución predeterminada de Meta. Eventos y aliases pueden solaparse: no sumar ni inferir causalidad. Ausencia no significa cero.`};
+      try{validateObservation(metric);}catch{throw new ApiError('Meta devolvió una métrica no válida.',502);}base.push(metric);
+    }
+  }
+  return base;
 }
 
 export async function metaReport(connection: MetaConnection, externalId: string, type: string, start: string, end: string, fetcher: typeof fetch = fetch) {
@@ -96,7 +112,7 @@ export async function metaReport(connection: MetaConnection, externalId: string,
   const period = metaPeriod(start,end);
   const detail = await metaJson(externalId,{fields:'id,name,account_id,effective_status'},connection.token,fetcher);
   if (detail.id !== externalId || detail.account_id !== connection.accountId || typeof detail.name !== 'string') throw new ApiError('Este recurso no pertenece a la cuenta de Meta autorizada.',403);
-  const result = await metaJson(`${externalId}/insights`,{fields:`account_id,${type}_id,account_currency,date_start,date_stop,impressions,clicks,reach,spend`,time_range:JSON.stringify(period),limit:'2'},connection.token,fetcher);
+  const result = await metaJson(`${externalId}/insights`,{fields:`account_id,${type}_id,account_currency,date_start,date_stop,impressions,clicks,reach,spend,actions,action_values,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions`,time_range:JSON.stringify(period),action_report_time:'conversion',limit:'2'},connection.token,fetcher);
   const fetchedAt = new Date().toISOString();
   return {name:detail.name,status:String(detail.effective_status || 'UNKNOWN'),metrics:metaMetrics(result.data,connection.accountId,externalId,type,start,end,fetchedAt),fetched_at:fetchedAt};
 }

@@ -3,7 +3,7 @@ import type { Attachment } from "./attachments";
 import { experimentFields } from "./experiments";
 
 export type Backup = {
-  schema_version: 4 | 5; exported_at: string; workspace_id: string;
+  schema_version: 4 | 5 | 6; exported_at: string; workspace_id: string;
   records: Item[]; members: Member[]; attachments: Attachment[];
   audit: Record<string, unknown>[]; notes: string[];
   comments?: Record<string, unknown>[];

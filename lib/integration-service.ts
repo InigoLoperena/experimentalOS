@@ -34,7 +34,7 @@ export async function resolvedMetaConnection(client:SupabaseClient,project:Item)
  const row=await storedConnection(client,project.workspace_id,'meta_ads',project.id);
  if(!row)throw new ApiError('Configura Meta Ads para este proyecto en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);
- return {accountId:row.config.account_id,token:secrets.access_token,writeToken:secrets.write_token};
+ return {accountId:row.config.account_id,token:secrets.access_token,writeToken:secrets.write_token,pageId:row.config.page_id,instagramId:row.config.instagram_id,pixelId:row.config.pixel_id,revision:row.updated_at};
 }
 export async function resolvedOpenAIKey(client:SupabaseClient,workspace:string){
  const row=await storedConnection(client,workspace,'openai',null);

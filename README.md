@@ -1,6 +1,6 @@
 # Experimental OS
 
-Plataforma de experimentación por proyectos. El piloto utiliza el workspace de Imagine Builder; los datos, miembros y permisos están aislados por workspace. Next.js + TypeScript, GitHub y Vercel; Supabase aporta cuentas, sesiones y base de datos. El acceso sigue siendo por invitación.
+Plataforma de experimentación por proyectos. El piloto utiliza el workspace de Imagine Builder; los datos, miembros y permisos están aislados por workspace. Next.js + TypeScript, GitHub y Vercel; Supabase aporta cuentas, sesiones y base de datos. Una cuenta nueva puede crear su propio equipo privado; entrar en un equipo existente requiere invitación. El registro no concede acceso a Imagine Builder.
 
 Consulta [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md) para las funcionalidades nuevas, las migraciones aplicadas, los límites y el orden de las siguientes entregas.
 
@@ -23,7 +23,7 @@ Incluye nombre, responsable, contexto, hipótesis, métrica principal, criterio 
 
 El proyecto se toma del selector de la vista; no es otro campo del formulario. Si el experimento se crea desde una idea del árbol, su vínculo se conserva automáticamente. También se pueden crear experimentos independientes desde su lista.
 
-Los campos sencillos se conservan. Crear/Editar permite seleccionar un canal principal: web, app iOS/Android, ficha App Store/Google Play o plataforma de adquisición. La IA prepara configuración, hipótesis y textos de variantes para revisión humana. La ficha añade preparación y resultados: código estable, presupuesto y fechas previstos, variantes, campañas externas y métricas manuales/CSV. Para Meta hay una primera operación de campaña vacía y pausada, disponible solo tras configurar el token de escritura y confirmar la revisión. No activa publicidad ni realiza inferencia estadística automáticamente.
+Los campos sencillos se conservan. Crear/Editar permite seleccionar un canal principal: web, app iOS/Android, ficha App Store/Google Play o plataforma de adquisición. La IA prepara configuración, hipótesis y textos de variantes, hace preguntas y permite incorporar respuestas para revisión humana. La ficha añade preparación y resultados: código estable, presupuesto y fechas previstos, variantes, campañas externas y métricas manuales/CSV. Meta permite preparar campañas, conjuntos y anuncios pausados con imágenes recortadas y aprobadas o vídeos MP4 con portada, y vincula sus IDs. Consulta [los objetivos admitidos, configuración y límites](docs/META-IMPLEMENTACION.md). La publicación sigue siendo manual; no se realiza inferencia estadística automáticamente.
 
 Para documentar lo descubierto, abre el experimento y pulsa **Documentar aprendizaje**. El aprendizaje se guarda en una ficha separada dentro del mismo proyecto; también puede crearse directamente en Aprendizajes.
 

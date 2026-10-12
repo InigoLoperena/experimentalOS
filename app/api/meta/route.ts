@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticatedClient, authorizedProject, ApiError } from '@/lib/server-access';
-import { metaAccount, metaCampaigns, metaReport } from '@/lib/meta-ads';
+import { metaAccount, metaCampaigns, metaReport,metaJson,metaId } from '@/lib/meta-ads';
 import {resolvedMetaConnection} from '@/lib/integration-service';
 
 export const runtime = 'nodejs';
@@ -25,6 +25,18 @@ export async function POST(request: Request) {
       return NextResponse.json({available:true},{headers});
     }
     const connection = await resolvedMetaConnection(client,project);
+    if(body.action==='cities'){
+      if(typeof body.query!=='string'||body.query.trim().length<2||body.query.length>100)throw new ApiError('Escribe el nombre de una ciudad.',400);
+      const result=await metaJson('search',{type:'adgeolocation',location_types:'["city"]',q:body.query.trim(),limit:'20'},connection.token);
+      if(!Array.isArray(result.data))throw new ApiError('Meta no devolvió ciudades válidas.',502);
+      return NextResponse.json({cities:result.data.map((city:{key:unknown;name:string;region:string;country_name:string})=>({key:metaId(city.key),name:String(city.name).slice(0,200),region:String(city.region||'').slice(0,200),country:String(city.country_name||'').slice(0,200)}))},{headers});
+    }
+    if(body.action==='identity'){
+      if(!connection.pageId)throw new ApiError('Añade la página de Facebook en Integraciones.',400);
+      const page=await metaJson(metaId(connection.pageId),{fields:'id,name,instagram_business_account{id,username}'},connection.token);
+      const pixels=await metaJson(`act_${connection.accountId}/adspixels`,{fields:'id,name',limit:'100'},connection.token);
+      return NextResponse.json({page:{id:page.id,name:page.name},instagram:page.instagram_business_account||null,pixels:pixels.data||[]},{headers});
+    }
     if (body.action === 'preview') {
       const report = await metaReport(connection,body.external_id,'campaign',body.start,body.end);
       return NextResponse.json({resource_id:null,...report},{headers});

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
 import { MetaMonitoring } from './meta-monitoring';
 import {MetaPreparation} from './meta-preparation';
+import {MetaCampaignBuilder} from './meta-campaign-builder';
 import {channelProvider} from '@/lib/monitoring';
 import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricsCsvTemplate, parseMetricsCsv,
   periodRows, providers, safeResourceUrl, validateObservation,
@@ -95,7 +96,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy }: {
     {error && <p className="error" role="alert">{error}</p>}
     {message && <p className="notice" role="status">{message}</p>}
     <p className="small">Prepara aquí el experimento y vincula sus campañas. La publicación se realiza manualmente en la plataforma externa.</p>
-    {!demo&&editable&&<MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/>}
+    {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
     <details className="monitoring-block">
       <summary>Preparación · {statusLabels[data.spec.status] || data.spec.status}</summary>
       <form className="monitoring-form" onSubmit={e => { e.preventDefault(); const form=new FormData(e.currentTarget); void run(async () => {

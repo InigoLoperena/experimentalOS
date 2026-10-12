@@ -28,7 +28,7 @@ export function MetaPreparation({experiment,locked,onBusy,onCreated}:{experiment
   }
   if(experiment.fields.channel!=='meta_ads')return null;
   const blocked=!!review?.previous&&review.previous.status!=='rejected';
-  return <details className="monitoring-block"><summary>Preparar campaña pausada en Meta Ads</summary>
+  return <details className="monitoring-block"><summary>Crear solo una campaña vacía pausada · tráfico</summary>
     <p className="small">Primer paso para campañas de tráfico a una web: crear una campaña vacía y pausada con el código del experimento y guardar su ID automáticamente. Los anuncios, las creatividades, la segmentación y el presupuesto se completarán después en Meta. Esta operación no activa publicidad.</p>
     <label className="check"><input type="checkbox" disabled={busy||locked} checked={categoryConfirmed} onChange={e=>{setCategoryConfirmed(e.target.checked);setReview(null);setConfirmed(false);}}/>Confirmo que no es publicidad de categorías especiales (vivienda, empleo, crédito, política u otras reguladas por Meta).</label>
     <button className="btn" type="button" disabled={busy||locked||!categoryConfirmed} onClick={()=>void run('review')}>{busy?'Consultando Meta…':'Revisar preparación y cuenta'}</button>

@@ -72,9 +72,14 @@ test("the full-data service scopes every query to the authenticated workspace an
   } } as unknown as SupabaseClient;
   tables.experiment_specs=[{experiment_id:'e',workspace_id:'w',project_id:'p',code:'EXP-P-0001'}];
   tables.experiment_variants=[]; tables.external_resources=[]; tables.metric_observations=[{id:'m',workspace_id:'w',experiment_id:'e',metric:'clicks',value:12}];
+  tables.meta_campaign_preparations=[]; tables.meta_preparation_runs=[];
+  tables.meta_preparation_steps=[{request_id:'request',run_id:'run',status:'succeeded',result:{id:'123'}}];
+  tables.integration_connections=[{id:'connection',provider:'meta',config:{account_id:'123'}}];
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 9); assert.ok(queries.every(q => q.scope === "w"));
-  assert.equal(backup.schema_version,5); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  assert.equal(queries.length, 13); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(backup.schema_version,6); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  assert.equal(backup.monitoring?.meta_preparation_steps[0].request_id,'request');
+  assert.ok(backup.notes.some(note=>note.includes('no se exportan')));
   assert.ok(backupCsv(backup).includes('EXP-P-0001')); assert.equal(JSON.parse(backupJson(backup)).monitoring.metric_observations[0].metric,'clicks');
   assert.equal(queries.find(q => q.name === "members")?.select, "*,profiles(*)");
   assert.deepEqual(backup.records, sampleBackup.records); assert.deepEqual(backup.audit, sampleBackup.audit);
