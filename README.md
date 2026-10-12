@@ -15,7 +15,7 @@ Consulta [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md) para las funcionalidades
 
 Experimentos, Aprendizajes y GOI Tree tienen un selector común de proyecto. Al cambiarlo, solo aparecen los registros de ese proyecto. Cada proyecto tiene una North Star propia y puede destacar un máximo de cinco oportunidades. No se permiten padres de otro proyecto, ciclos en el árbol ni traslados de registros entre proyectos. Los miembros del equipo mantienen sus roles en todos los proyectos.
 
-El árbol es desplegable. Los Objetivos y las Input Metrics son dos categorías diferentes al mismo nivel, siempre hijas directas de la North Star Metric. Las Oportunidades-problemas pertenecen a un Objetivo o una Input Metric; cada Idea siempre pertenece a una Oportunidad-problema. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de GOI Tree usando impacto × confianza × facilidad.
+El árbol es desplegable. Por defecto, los Objetivos y las Input Metrics son dos categorías hermanas, ambas hijas directas de la North Star Metric. Para representar ramas de investigación, también se pueden anidar varias Input Metrics debajo de un mismo Objetivo sin cambiar su categoría. Varias Oportunidades-problemas pueden depender directamente de un Objetivo o de una Input Metric; cada Idea siempre pertenece a una Oportunidad-problema, y una oportunidad puede tener varias Ideas. Las ideas conservan contexto, evidencia, KPI, etapa del Product Hackers Canvas y priorización ICE. Una idea puede originar varios experimentos. El orden de ejecución se muestra dentro de GOI Tree usando impacto × confianza × facilidad.
 
 ## Ficha de experimento
 
