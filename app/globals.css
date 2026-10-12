@@ -2655,9 +2655,6 @@ nav button,
 .privacy-page p { margin: 16px 0; }
 
 
-/* Distintivo de investigación ficticia, sin resultados reales. */
-.demo-record-tag { display: inline-flex; align-items: center; width: fit-content; border: 1px solid #b48b27; border-radius: 999px; padding: 3px 7px; color: #a56b0a; background: #fff6de; font-size: 10px; font-weight: 700; line-height: 1.2; }
-
 /* GOI Tree: Objetivos and Input Metrics share the same level below North Star. */
 .goi-peer-levels {
   display: grid;
@@ -2697,42 +2694,32 @@ nav button,
   .goi-peer-section { padding: 12px; }
 }
 
-/* Etiqueta contextual reutilizable en GOI Tree, listados y fichas.
-   Indica el tipo y nombre del nodo del que depende cada registro. */
+/* Etiqueta del elemento padre: solo flecha y título, legible en tarjetas y listados. */
 .record-parent-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   max-width: 100%;
   min-width: 0;
-  padding: 5px 9px;
-  margin: 0 0 8px;
+  padding: 7px 10px;
+  margin: 5px 0 12px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--surface-raised);
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.35;
-  vertical-align: middle;
-  text-align: left;
-}
-.record-parent-pill > svg {
-  flex-shrink: 0;
-}
-.record-parent-type {
-  flex-shrink: 0;
-  font-weight: 650;
   color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+  text-align: left;
+  vertical-align: middle;
 }
+.record-parent-pill > svg { flex: 0 0 auto; color: var(--muted); }
 .record-parent-name {
-  display: inline-block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
-.record-parent-prefix { flex-shrink: 0; }
-.record-card .record-parent-pill { display: flex; width: fit-content; }
-.table-title .record-parent-pill { display: flex; width: fit-content; margin: 5px 0; }
+.record-card .record-parent-pill,
+.table-title .record-parent-pill { display: flex; width: fit-content; }
 .detail-content > .record-parent-pill { margin-bottom: 12px; }

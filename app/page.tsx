@@ -450,6 +450,7 @@ export default function Home() {
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const loadVersion = useRef(0);
+  const lastAutoRefresh = useRef(0);
   const role = publicMode
     ? "viewer"
     : demo
@@ -753,6 +754,24 @@ export default function Home() {
       if (workspace) void load(workspace);
     }
   }, [workspace?.id, demo]);
+  // The tree can change from an external agent or another browser session.
+  // Fetch fresh records when returning to this tab instead of keeping an old snapshot.
+  useEffect(() => {
+    if (demo || !workspace) return;
+    const refreshOnReturn = () => {
+      if (document.visibilityState !== "visible" || draft || saving) return;
+      const now = Date.now();
+      if (now - lastAutoRefresh.current < 2000) return;
+      lastAutoRefresh.current = now;
+      void load(workspace);
+    };
+    window.addEventListener("focus", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    return () => {
+      window.removeEventListener("focus", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+    };
+  }, [workspace?.id, demo, draft, saving, publicMode]);
   useEffect(() => {
     if (draft) {
       dialog.current?.showModal();
@@ -1235,20 +1254,9 @@ export default function Home() {
     if (!["opportunity", "idea", "experiment"].includes(item.kind)) return null;
     const parent = items.find((record) => record.id === item.parent_id);
     if (!parent) return null;
-    const parentType =
-      parent.kind === "goal"
-        ? parent.fields.goi_section === "input_metrics"
-          ? "Input Metric"
-          : "Objetivo"
-        : kinds[parent.kind];
     return (
-      <span
-        className="record-parent-pill"
-        title={`Hijo de ${parentType}: ${parent.title}`}
-      >
-        <ChevronRight size={13} aria-hidden="true" />
-        <span className="record-parent-prefix">Hijo de</span>
-        <strong className="record-parent-type">{parentType}</strong>
+      <span className="record-parent-pill" title={parent.title}>
+        <ChevronRight size={17} aria-hidden="true" />
         <span className="record-parent-name">{parent.title}</span>
       </span>
     );
@@ -1262,7 +1270,6 @@ export default function Home() {
             <IconFor kind={i.kind} />
             {i.kind === "goal" && i.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[i.kind]}
           </span>
-          {(i.fields.demo_data === true || (i.kind === "experiment" && String(i.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Datos ficticios</span>}
           {i.kind === "opportunity" && i.fields.focus && (
             <span className="focus">Prioritaria</span>
           )}
@@ -1270,10 +1277,8 @@ export default function Home() {
         <strong>{i.title}</strong>
         {parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
-        {["goal", "opportunity", "idea"].includes(i.kind) && (
-          <span className="small record-owner">
-            Responsable: {i.owner_id ? author(i.owner_id) : "Sin asignar"}
-          </span>
+        {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
+          <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
         )}
         {i.kind === "kr" && (
           <>
@@ -1295,9 +1300,7 @@ export default function Home() {
         )}
         {i.kind === "experiment" && (
           <div className="row">
-            <span className="small">
-              {i.owner_id ? author(i.owner_id) : "Sin asignar"}
-            </span>
+            {i.owner_id && <span className="small">{author(i.owner_id)}</span>}
             <span className="small">ICE {score(i.fields)}</span>
           </div>
         )}
@@ -1925,6 +1928,9 @@ export default function Home() {
                   <h2>GOI Tree · {currentProject.title}</h2>
                   <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Ideas → Experimentos</p>
                 </div>
+                <Action onClick={() => void load()} disabled={loading}>
+                  <RefreshCw size={16} /> Actualizar árbol
+                </Action>
               </div>
               <div className="goi-peer-levels">
                 {([
@@ -1956,7 +1962,7 @@ export default function Home() {
                             {itemCard(g)}
                             <details open className="goal-content">
                               <summary>
-                                <ChevronRight size={14} /> Oportunidades-problemas
+                                <ChevronRight size={14} /> Oportunidades-problemas ({items.filter((i) => i.parent_id === g.id && i.kind === "opportunity").length})
                               </summary>
                               {items.filter((i) => i.parent_id === g.id && i.kind === "opportunity").map(branch)}
                               {can("opportunity", "create") && (
@@ -2073,14 +2079,13 @@ export default function Home() {
                           >
                             {e.title}
                             {parentTag(e)}
-                            {String(e.fields.tags || "").includes("datos-demo") && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>}
                             <span>
                               {e.fields.metric || "Métrica pendiente"}
                             </span>
                           </button>
                         </td>
                         <td>
-                          {e.owner_id ? author(e.owner_id) : "Sin asignar"}
+                          {e.owner_id ? author(e.owner_id) : "—"}
                         </td>
                         <td>
                           <strong>{score(e.fields)}</strong>
@@ -2464,7 +2469,6 @@ export default function Home() {
                 <IconFor kind={selected.kind} />
                 {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
               </span>
-              {(selected.fields.demo_data === true || (selected.kind === "experiment" && String(selected.fields.tags || "").includes("datos-demo"))) && <span className="demo-record-tag">Propuesta ficticia · Sin ejecutar</span>}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
@@ -2483,10 +2487,9 @@ export default function Home() {
             <h2>{selected.title}</h2>
             {parentTag(selected)}
             <div className="row detail-meta">
-              <span>
-                Responsable:{" "}
-                {selected.owner_id ? author(selected.owner_id) : "Sin asignar"}
-              </span>
+              {selected.owner_id && (
+                <span>Responsable: {author(selected.owner_id)}</span>
+              )}
               {selected.kind !== "experiment" && selected.fields.status && (
                 <Badge state={selected.fields.status} />
               )}
