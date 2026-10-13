@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {smartleadCampaigns,smartleadReport,smartleadMetrics} from '../lib/smartlead';
-import {smartleadSequence,smartleadVerifyDraft,smartleadWrite,SmartleadWriteError,type SmartleadRecipe} from '../lib/smartlead-build';
+import {smartleadSequence,smartleadHtml,smartleadVerifyDraft,smartleadWrite,SmartleadWriteError,type SmartleadRecipe} from '../lib/smartlead-build';
 const connection={key:'test-secret',revision:'2026-10-12'};
 const recipe:SmartleadRecipe={name:'EXP-Test',revision:'1',connection_revision:'2',variants:[{id:'a',label:'A',subject:'Hello',body:'Version A',allocation:50},{id:'b',label:'B',subject:'Hi',body:'Version B',allocation:50}]};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status});
@@ -18,11 +18,11 @@ test('Smartlead reports explicit UTC periods and rejects rows from other campaig
  assert.throws(()=>smartleadMetrics({sent:-1},'123','2026-10-01','2026-10-08'));
 });
 test('A/B draft uses one first step with two variants, no activation or recipients',()=>{
- const payload=smartleadSequence(recipe);assert.equal(payload.sequences.length,1);assert.equal(payload.sequences[0].seq_number,1);assert.equal(payload.sequences[0].seq_variants.length,2);assert.equal(payload.sequences[0].seq_variants.reduce((n,v)=>n+v.distribution,0),100);
+ const payload=smartleadSequence(recipe);assert.equal(payload.length,1);assert.equal(payload[0].seq_number,1);assert.equal(payload[0].variants.length,2);assert.equal(payload[0].variant_distribution_type,'MANUALLY_EQUAL');assert.equal(smartleadHtml('<script>'),'<p>&lt;script&gt;</p>');
  assert.ok(!JSON.stringify(payload).includes('ACTIVE'));
 });
 test('Draft confirmation reads back both variants and rejects missing content or active campaigns',async()=>{
- const fetcher=(async(url:URL)=>url.pathname.endsWith('/sequences')?reply({success:true,data:[{seq_number:1,sequence_variants:recipe.variants.map(v=>({subject:v.subject,email_body:v.body}))}]}):reply({id:123,status:'DRAFTED'})) as typeof fetch;
+ const fetcher=(async(url:URL)=>url.pathname.endsWith('/sequences')?reply({success:true,data:[{seq_number:1,sequence_variants:recipe.variants.map(v=>({subject:v.subject,email_body:smartleadHtml(v.body)}))}]}):reply({id:123,status:'DRAFTED'})) as typeof fetch;
  assert.equal((await smartleadVerifyDraft(connection,'123',recipe,fetcher)).id,'123');
  await assert.rejects(smartleadVerifyDraft(connection,'123',recipe,(async()=>reply({id:123,status:'ACTIVE'})) as typeof fetch));
  await assert.rejects(smartleadVerifyDraft(connection,'123',recipe,(async(url:URL)=>url.pathname.endsWith('/sequences')?reply({data:[{seq_number:1,sequence_variants:[]}]}):reply({id:123,status:'DRAFTED'})) as typeof fetch));

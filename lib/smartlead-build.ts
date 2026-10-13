@@ -8,7 +8,8 @@ export function smartleadRecipe(experiment:Item,code:string,variants:Variant[],c
  const plan=executionFromFields(experiment.fields);
  if(experiment.fields.channel!=='smartlead'||!plan||plan.variants.length!==2)throw new ApiError('Prepara exactamente dos variantes de correo y guarda la ficha.',400);
  const prepared=plan.variants.map(v=>{const bound=variants.find(x=>x.label===v.label);if(!bound||!v.headline?.trim()||/[\r\n]/.test(v.headline)||v.headline.length>200||!v.body?.trim())throw new ApiError('Cada variante necesita un asunto, texto y vínculo guardado.',400);return {id:bound.id,label:v.label,subject:v.headline.trim(),body:v.body.trim(),allocation:v.allocation??50};});
- if(prepared.some(v=>v.allocation<=0)||Math.abs(prepared.reduce((n,v)=>n+v.allocation,0)-100)>0.01)throw new ApiError('El reparto de las dos variantes debe sumar 100%.',400);
+ if(prepared.some(v=>v.allocation!==50))throw new ApiError('Esta primera preparación de Smartlead utiliza reparto igual: 50% por variante.',400);
+ if(prepared[0].subject===prepared[1].subject&&prepared[0].body===prepared[1].body)throw new ApiError('Las dos variantes deben probar contenidos diferentes.',400);
  return {name:`${code} · ${experiment.title}`.slice(0,200),revision:experiment.updated_at,connection_revision:connection.revision,variants:prepared};
 }
 export class SmartleadWriteError extends ApiError {constructor(message:string,public uncertain:boolean){super(message,502);}}
@@ -22,16 +23,16 @@ export async function smartleadWrite(c:SmartleadConnection,path:string,body:unkn
  return result;
 }
 export function smartleadSequence(recipe:SmartleadRecipe){
- const v=recipe.variants[0];
- return {sequences:[{id:null,seq_number:1,subject:v.subject,email_body:v.body,seq_delay_details:{delay_in_days:0},seq_variants:recipe.variants.map((v,i)=>({variant_id:i===0?'A':'B',subject:v.subject,email_body:v.body,distribution:v.allocation}))}]};
+ return [{seq_number:1,seq_delay_details:{delay_in_days:0},variant_distribution_type:'MANUALLY_EQUAL',variants:recipe.variants.map((v,i)=>({variant_label:i===0?'A':'B',subject:v.subject,email_body:smartleadHtml(v.body)}))}];
 }
+export function smartleadHtml(text:string){return '<p>'+text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\r?\n/g,'<br>')+'</p>';}
 export async function smartleadVerifyDraft(c:SmartleadConnection,id:string,recipe:SmartleadRecipe,fetcher:typeof fetch=fetch){
  const campaign=await smartleadRequest(c,`campaigns/${smartleadId(id)}`,{},fetcher);
  if(String(campaign.id)!==id||!['DRAFTED','DRAFT'].includes(campaign.status))throw new ApiError('La campaña no está confirmada como borrador. Revisa Smartlead.',502);
  const result=await smartleadRequest(c,`campaigns/${id}/sequences`,{},fetcher);
  const rows=Array.isArray(result)?result:result.data;
  const sequence=Array.isArray(rows)&&rows.length===1?rows[0]:null;
- const variants=sequence?.sequence_variants??sequence?.seq_variants;
- if(!sequence||sequence.seq_number!==1||!Array.isArray(variants)||variants.length!==2||recipe.variants.some(v=>!variants.some((x:any)=>x.subject===v.subject&&x.email_body===v.body)))throw new ApiError('Smartlead no confirmó las dos variantes guardadas. Conserva el ID y revisa el borrador; no repitas la creación.',502);
+ const variants=sequence?.sequence_variants??sequence?.variants??sequence?.seq_variants;
+ if(!sequence||sequence.seq_number!==1||!Array.isArray(variants)||variants.length!==2||recipe.variants.some(v=>!variants.some((x:any)=>x.subject===v.subject&&x.email_body===smartleadHtml(v.body))))throw new ApiError('Smartlead no confirmó las dos variantes guardadas. Conserva el ID y revisa el borrador; no repitas la creación.',502);
  return {type:'campaign',id,label:recipe.name,variant:null};
 }
