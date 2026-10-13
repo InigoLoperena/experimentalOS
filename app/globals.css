@@ -2986,11 +2986,17 @@ nav button,
  .ai-intro-copy .ai-chat-intro{font-size:14px;line-height:1.55}
 }
 
-/* GOI Tree navigation: search for opportunities, yellow idea bulb. */
+/* GOI Tree: opportunity/problem = red; idea = yellow (label and icon). */
+.sidebar nav .nav-subsections .nav-goi-subsection.opportunity {
+  color: var(--red-text);
+}
 .sidebar nav .nav-subsections .nav-goi-subsection.opportunity > svg {
-  color: var(--blue-text);
+  color: inherit;
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.idea {
+  color: #ffd84d;
 }
 .sidebar nav .nav-subsections .nav-goi-subsection.idea > svg {
-  color: #ffd84d;
+  color: inherit;
   fill: rgba(255, 216, 77, .18);
 }
