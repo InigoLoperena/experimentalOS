@@ -2879,3 +2879,37 @@ nav button,
 .ai-research-guide-link:hover{color:var(--lime)}
 .ai-followup-entry{margin:14px 0 12px}
 @media(max-width:500px){.ai-text-entry>textarea{min-height:116px}.ai-text-entry-actions{right:9px;bottom:9px}}
+
+/* Independent public, printable research methodology guide. */
+.research-guide{max-width:1020px;margin:0 auto;padding:36px 28px 90px;line-height:1.72}
+.research-top{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:30px;font-size:13px}
+.research-top span{font-size:11px;letter-spacing:1.4px;color:var(--muted);font-weight:750}
+.research-guide a{text-underline-offset:3px}
+.research-guide a:hover{color:var(--lime)}
+.research-hero{padding:36px 32px;background:var(--surface);border-radius:18px;border:1px solid var(--border);margin-bottom:30px}
+.research-hero h1{font-size:clamp(27px,4.5vw,43px);line-height:1.15;color:var(--red);letter-spacing:-1px;margin:10px 0 18px}
+.research-hero>p:not(.eyebrow){font-size:16px;color:var(--ink);max-width:780px}
+.research-principle{padding:14px 18px;margin-top:24px;background:var(--field);border-left:3px solid var(--lime);border-radius:8px;font-size:14px}
+.research-index{display:flex;flex-wrap:wrap;gap:10px 18px;margin:16px 0 38px;padding:20px;border:1px solid var(--border);border-radius:12px}
+.research-index strong{width:100%;color:var(--ink)}
+.research-index a{font-size:13px;white-space:nowrap}
+.research-guide section{padding:25px 0;border-top:1px solid var(--border);scroll-margin-top:20px}
+.research-guide h2{font-size:clamp(21px,3.2vw,27px);color:var(--red);margin:0 0 18px}
+.research-guide h3{font-size:17px;margin:22px 0 10px;color:var(--ink)}
+.research-guide p{margin:11px 0;color:var(--ink)}
+.research-guide li{margin:8px 0;color:var(--ink)}
+.research-guide ul,.research-guide ol{padding-left:24px}
+.research-guide .research-table-wrap{width:100%;overflow-x:auto;margin:18px 0}
+.research-guide table{width:100%;border-collapse:collapse;min-width:590px;font-size:13px;line-height:1.55}
+.research-guide th,.research-guide td{border:1px solid var(--border);padding:12px;vertical-align:top;text-align:left}
+.research-guide th{background:var(--surface-raised);color:var(--lime);font-weight:700}
+.research-guide td{background:var(--surface)}
+.research-template{margin:18px 0;padding:18px 20px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.research-template>strong{color:var(--lime)}
+.research-template p{margin:8px 0;font-size:14px}
+.research-guide pre{padding:15px;border:1px solid var(--border);border-radius:10px;background:var(--field);white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6}
+.research-resources a{font-weight:700}
+.research-end-note{padding:16px;border-radius:8px;background:var(--surface)}
+.research-back{display:inline-block;margin-top:24px;font-weight:700}
+@media(max-width:600px){.research-guide{padding:22px 16px 60px}.research-hero{padding:24px 20px}.research-top{align-items:flex-start;flex-direction:column}.research-index a{white-space:normal}}
+@media print{.research-guide{max-width:none;padding:0;color:#111}.research-guide p,.research-guide li{color:#111}.research-hero,.research-template,.research-guide th,.research-guide td{color:#111;background:#fff;border-color:#bbb}.research-top,.research-index,.research-back{display:none}.research-guide h1,.research-guide h2{color:#a00021}.research-guide a{color:#153d8a}}
