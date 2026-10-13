@@ -16,7 +16,7 @@ export class SmartleadWriteError extends ApiError {constructor(message:string,pu
 // No automatic retries, no activation, recipients or sender assignment.
 export async function smartleadWrite(c:SmartleadConnection,path:string,body:unknown,fetcher:typeof fetch=fetch){
  const url=new URL(`https://server.smartlead.ai/api/v1/${path}`);url.searchParams.set('api_key',c.key);
- let response;try{response=await fetcher(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(12000)});}catch{throw new SmartleadWriteError('Smartlead no confirmó el envío. Comprueba sus borradores antes de repetir.',true);}
+ let response;try{response=await fetcher(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});}catch{throw new SmartleadWriteError('Smartlead no confirmó el envío. Comprueba sus borradores antes de repetir.',true);}
  const result=await response.json().catch(()=>null);
  if(!response.ok)throw new SmartleadWriteError(response.status===429?'Smartlead limita las solicitudes.':'Smartlead rechazó la preparación.',response.status>=500||response.status<400);
  if(!result||result.ok===false||result.success===false||result.error)throw new SmartleadWriteError('Smartlead no confirmó la preparación.',true);

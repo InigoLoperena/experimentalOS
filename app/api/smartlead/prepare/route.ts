@@ -10,6 +10,7 @@ export const runtime='nodejs';
 export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
 export async function POST(request:Request){
+ const started=Date.now();
  let resources:{type:string;id:string;label:string;variant:null}[]=[];
  try{
   const {client}=await authenticatedClient(request),raw=await request.text();
@@ -28,6 +29,7 @@ export async function POST(request:Request){
   await smartleadCampaigns(connection);
   if(body.action==='review')return NextResponse.json({fingerprint,recipe},{headers});
   if(body.confirmed!==true||body.fingerprint!==fingerprint||typeof body.request_id!=='string'||! /^[0-9a-f-]{36}$/i.test(body.request_id))throw new ApiError('Revisa y confirma la preparación actual antes de enviarla.',409);
+  if(Date.now()-started>15000)throw new ApiError('La comprobación tardó demasiado. No se enviaron cambios; vuelve a revisar.',503);
   const reserved=await client.rpc('reserve_smartlead',{p_id:body.request_id,p_experiment:experiment.id,p_fingerprint:fingerprint,p_revision:experiment.updated_at,p_account:digest({revision:connection.revision})});
   if(reserved.error)throw new ApiError('Ya existe una preparación enviada o pendiente. Comprueba Smartlead antes de repetir.',409);
   try{
