@@ -74,8 +74,8 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
   if(proposal.channel!=='google_play' && plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
   if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){
     if(plan?.daily_budget===null||!plan)missing.push('Confirma el presupuesto diario total.');
-    if(!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
-    if(!plan?.duration_days)missing.push('Confirma la duración.');
+    if(proposal.channel!=='meta_ads'&&!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
+    if(proposal.channel!=='meta_ads'&&!plan?.duration_days)missing.push('Confirma la duración.');
     if(!plan?.location)missing.push('Confirma la ubicación del público.');
     if(!mediaCount)missing.push('Adjunta y asigna las creatividades a las variantes.');
     if(!plan?.variants.length || plan.variants.some(v=>!v.headline||!v.body))missing.push('Completa titulares y textos de las variantes.');

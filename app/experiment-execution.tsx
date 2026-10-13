@@ -13,7 +13,7 @@ export function ExperimentExecution({draft,disabled,onChange}:{draft:Item;disabl
   return <section className="full monitoring-block" aria-label="Canal y configuración del experimento">
     <label>Canal principal<select disabled={disabled} value={String(draft.fields.channel||'')} onChange={e=>onChange({...draft,fields:{...draft.fields,channel:e.target.value}})}><option value="">Seleccionar canal…</option>{Object.entries(channels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
     <p className="small">Un canal principal, varias variantes y campañas. Puedes preparar el experimento antes de conectar la plataforma.</p>
-    {draft.fields.channel && <details key={String(draft.fields.channel)} open><summary>Configuración de {channels[draft.fields.channel as keyof typeof channels]}</summary>
+    {draft.fields.channel && draft.fields.channel!=='meta_ads' && <details key={String(draft.fields.channel)} open><summary>Configuración de {channels[draft.fields.channel as keyof typeof channels]}</summary>
       {draft.fields.channel==='google_play'&&<GooglePlayFields value={plan.play} disabled={disabled} onChange={play=>update({...plan,play})}/>}
       {draft.fields.channel==='meta_ads'&&<fieldset className="monitoring-block monitoring-grid" disabled={disabled}><legend>Parámetros de Meta para revisión</legend><label>Enlace del anuncio<input type="text" maxLength={2000} value={plan.destination??''} onChange={e=>update({...plan,destination:e.target.value===''?null:e.target.value})}/></label>
 <label>Inversión diaria total en Meta<input type="number" min="0" max="1000000" step="0.01" value={plan.daily_budget??''} onChange={e=>update({...plan,daily_budget:e.target.value===''?null:Number(e.target.value)})}/></label>

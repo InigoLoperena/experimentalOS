@@ -6,9 +6,9 @@ import type {Attachment} from './attachments';
 import type {Variant} from './monitoring';
 import {ApiError} from './server-access';
 
-export type MetaSelection={mode:'campaign'|'adset'|'ad';parent_id:string|null;start_at:string|null;meta:MetaOptions;category:'NONE';assignments:{variant:string;placement:keyof typeof metaFormats;attachment_id:string;thumbnail_id:string|null;crop:'centre'|'attention'|'north'|'south'}[]};
+export type MetaSelection={name_mode?:'exact';mode:'campaign'|'adset'|'ad';parent_id:string|null;start_at:string|null;meta:MetaOptions;category:'NONE';assignments:{variant:string;placement:keyof typeof metaFormats;attachment_id:string;thumbnail_id:string|null;crop:'centre'|'attention'|'north'|'south'}[]};
 export type MetaStep={key:string;kind:'campaign'|'image'|'video'|'thumbnail'|'adset'|'creative'|'ad';label:string;variant_id:string|null;placement?:keyof typeof metaFormats;attachment?:Attachment;crop?:MetaSelection['assignments'][number]['crop'];variant?:{label:string;headline:string;body:string;cta:string};budget?:number};
-export type MetaRecipe={selection:MetaSelection;name:string;objective:string;optimization:string;destination:string;currency:string;total:number;start:string|null;end:string|null;page:string;instagram:string;pixel:string|null;steps:MetaStep[];revision:string;connection_revision:string;account_id:string};
+export type MetaRecipe={selection:MetaSelection;name:string;objective:string;optimization:string;destination:string;currency:string;total:number;budget_period?:'daily';start:string|null;end:string|null;page:string;instagram:string;pixel:string|null;steps:MetaStep[];revision:string;connection_revision:string;account_id:string};
 export type MetaStepResult={id?:string;hash?:string};
 export function digest(value:unknown){return createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value,(_key,current)=>current&&typeof current==='object'&&!Array.isArray(current)?Object.fromEntries(Object.keys(current).sort().map(key=>[key,current[key]])):current)).digest('hex');}
 export function parseMetaSelection(raw:unknown):MetaSelection{
@@ -23,10 +23,14 @@ export function parseMetaSelection(raw:unknown):MetaSelection{
   return {variant:a.variant,placement:a.placement,attachment_id:a.attachment_id,thumbnail_id:a.thumbnail_id,crop:a.crop};
  });
  if(v.start_at!==null&&(typeof v.start_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v.start_at)||!Number.isFinite(Date.parse(v.start_at))))throw new ApiError('Selecciona una fecha y hora válidas.',400);
- return {mode:v.mode,parent_id:v.parent_id,start_at:v.start_at,category:'NONE',meta,assignments};
+ if(v.name_mode!==undefined&&v.name_mode!=='exact')throw new ApiError('Revisa el nombre de la campaña.',400);
+ return {...(v.name_mode?{name_mode:v.name_mode}:{}),mode:v.mode,parent_id:v.parent_id,start_at:v.start_at,category:'NONE',meta,assignments};
 }
-export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelection,attachments:Attachment[],variants:Variant[],connection:{accountId:string;pageId?:string;instagramId?:string;pixelId?:string;revision:string},now=Date.now()):MetaRecipe{
- const plan=executionFromFields(experiment.fields),options=selection.meta;
+export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelection,attachments:Attachment[],variants:Variant[],connection:{accountId:string;pageId?:string;instagramId?:string;pixelId?:string;revision:string;currency?:string},now=Date.now()):MetaRecipe{
+ const stored=executionFromFields(experiment.fields),options=selection.meta;
+ const plan=stored?{...stored,currency:stored.currency||connection.currency||null,variants:stored.variants.map(v=>({...v}))}:null;
+ if(plan&&plan.variants.length&&plan.variants.every(v=>v.allocation===null))plan.variants=plan.variants.map(v=>({...v,allocation:100/plan.variants.length}));
+ if(selection.name_mode==='exact'&&experiment.title.length>200)throw new ApiError('Acorta el nombre del experimento a 200 caracteres para conservarlo igual en Meta.',400);
  if(experiment.kind!=='experiment'||experiment.fields.channel!=='meta_ads'||!plan||!plan.destination||!plan.variants.length||!/^EXP-[A-Z0-9-]{1,100}$/.test(code))throw new ApiError('Guarda una ficha de Meta con destino, código y variantes.',400);
  if(!options.objective||!options.placements.length||options.age_min===null||options.age_max===null||(!options.countries.length&&!options.city_key))throw new ApiError('Confirma objetivo, ubicaciones, edades y países o ciudad.',400);
  if(!/^\d{1,30}$/.test(connection.pageId||'')||!/^\d{1,30}$/.test(connection.instagramId||''))throw new ApiError('Configura la página y la cuenta de Instagram en Integraciones.',400);
@@ -34,8 +38,8 @@ export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelect
  if(conversion&&(!/^\d{1,30}$/.test(connection.pixelId||'')||!options.conversion_event))throw new ApiError('Configura un píxel y selecciona el evento real para leads o ventas.',400);
  if(!['USD','EUR','GBP'].includes(plan.currency||''))throw new ApiError('Esta preparación admite USD, EUR o GBP; otras monedas necesitan validar sus unidades mínimas.',400);
  const createsBudget=selection.mode!=='ad';
- if(createsBudget&&(!plan.daily_budget||!plan.duration_days||!selection.start_at||Date.parse(selection.start_at)<now+300000))throw new ApiError('Confirma presupuesto, duración e inicio al menos cinco minutos en el futuro.',400);
- const total=Math.round((plan.daily_budget||0)*(plan.duration_days||0)*100);
+ if(createsBudget&&(!plan.daily_budget||!selection.start_at||Date.parse(selection.start_at)<now+300000))throw new ApiError('Indica el presupuesto diario en el prompt; el inicio propuesto debe estar al menos cinco minutos en el futuro.',400);
+ const total=Math.round((plan.daily_budget||0)*(plan.duration_days||1)*100);
  if(createsBudget&&(!Number.isSafeInteger(total)||total<100||total>100000000))throw new ApiError('Revisa el presupuesto total del periodo.',400);
  const allocations=plan.variants.map(v=>v.allocation);
  if(createsBudget&&(allocations.some(v=>v===null||v<=0)||Math.abs(allocations.reduce<number>((s,v)=>s+(v||0),0)-100)>0.01))throw new ApiError('Confirma un reparto positivo que sume 100% entre variantes.',400);
@@ -70,7 +74,7 @@ export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelect
   }
  }
  const mapping={traffic:['OUTCOME_TRAFFIC','LINK_CLICKS'],awareness:['OUTCOME_AWARENESS','REACH'],leads:['OUTCOME_LEADS','OFFSITE_CONVERSIONS'],sales:['OUTCOME_SALES','OFFSITE_CONVERSIONS'],engagement:['OUTCOME_ENGAGEMENT','POST_ENGAGEMENT']} as const;
- return {selection,name:`${code} · ${experiment.title}`.slice(0,160),objective:mapping[options.objective][0],optimization:mapping[options.objective][1],destination:plan.destination,currency:plan.currency!,total:createsBudget?total:0,start:createsBudget?selection.start_at:null,end:createsBudget?new Date(Date.parse(selection.start_at!)+plan.duration_days!*86400000).toISOString():null,page:connection.pageId!,instagram:connection.instagramId!,pixel:conversion?connection.pixelId!:null,steps,revision:experiment.updated_at,connection_revision:connection.revision,account_id:connection.accountId};
+ return {selection,name:selection.name_mode==='exact'?experiment.title:`${code} · ${experiment.title}`.slice(0,160),objective:mapping[options.objective][0],optimization:mapping[options.objective][1],destination:plan.destination,currency:plan.currency!,total:createsBudget?total:0,...(createsBudget&&!plan.duration_days?{budget_period:'daily' as const}:{}),start:createsBudget?selection.start_at:null,end:createsBudget&&plan.duration_days?new Date(Date.parse(selection.start_at!)+plan.duration_days!*86400000).toISOString():null,page:connection.pageId!,instagram:connection.instagramId!,pixel:conversion?connection.pixelId!:null,steps,revision:experiment.updated_at,connection_revision:connection.revision,account_id:connection.accountId};
 }
 export function metaStepPayload(recipe:MetaRecipe,step:MetaStep,results:Record<string,MetaStepResult>){
  const campaign=recipe.selection.mode==='campaign'?results.campaign?.id:recipe.selection.parent_id;
@@ -78,7 +82,7 @@ export function metaStepPayload(recipe:MetaRecipe,step:MetaStep,results:Record<s
  const options=recipe.selection.meta;
  const targeting={geo_locations:options.city_key?{cities:[{key:options.city_key}]}:{countries:options.countries},age_min:options.age_min,age_max:options.age_max,publisher_platforms:['facebook','instagram'],facebook_positions:[step.placement==='feed'?'feed':step.placement==='story'?'story':'facebook_reels'],instagram_positions:[step.placement==='feed'?'stream':step.placement==='story'?'story':'reels']};
  if(step.kind==='campaign')return {name:recipe.name,objective:recipe.objective,status:'PAUSED',special_ad_categories:[],is_adset_budget_sharing_enabled:false};
- if(step.kind==='adset')return {name:`${recipe.name} · ${step.label}`.slice(0,200),campaign_id:campaign,lifetime_budget:step.budget,billing_event:'IMPRESSIONS',optimization_goal:recipe.optimization,bid_strategy:'LOWEST_COST_WITHOUT_CAP',destination_type:recipe.optimization==='POST_ENGAGEMENT'?'ON_AD':'WEBSITE',start_time:recipe.start,end_time:recipe.end,targeting,status:'PAUSED',...(recipe.pixel?{promoted_object:{pixel_id:recipe.pixel,custom_event_type:options.conversion_event}}:{})};
+ if(step.kind==='adset')return {name:`${recipe.name} · ${step.label}`.slice(0,200),campaign_id:campaign,...(recipe.budget_period==='daily'?{daily_budget:step.budget}:{lifetime_budget:step.budget}),billing_event:'IMPRESSIONS',optimization_goal:recipe.optimization,bid_strategy:'LOWEST_COST_WITHOUT_CAP',destination_type:recipe.optimization==='POST_ENGAGEMENT'?'ON_AD':'WEBSITE',start_time:recipe.start,...(recipe.end?{end_time:recipe.end}:{}),targeting,status:'PAUSED',...(recipe.pixel?{promoted_object:{pixel_id:recipe.pixel,custom_event_type:options.conversion_event}}:{})};
  if(step.kind==='creative'){
   const media=recipe.steps.find(s=>s.key===`${prefix}_media`)!;
   const cta={type:step.variant!.cta,value:{link:recipe.destination}};

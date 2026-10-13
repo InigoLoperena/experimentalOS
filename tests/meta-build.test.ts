@@ -11,6 +11,7 @@ import {metaMetrics,metaIdentity} from '../lib/meta-ads';
 import {item} from './service-fixture';
 import type {Attachment} from '../lib/attachments';
 import type {Variant} from '../lib/monitoring';
+import {automaticMetaSelection} from '../lib/meta-auto-selection';
 const id='11111111-1111-4111-8111-111111111111';
 const exp={...item(id),fields:{channel:'meta_ads',execution_config:JSON.stringify({...emptyExecution(),goal:'traffic',destination:'https://example.org/register',daily_budget:10,currency:'USD',duration_days:7,variants:[{label:'A',description:'Control',headline:'Muebles gratuitos',body:'Descubre muebles',call_to_action:'SIGN_UP',allocation:50},{label:'B',description:'Prueba',headline:'Reutiliza',body:'Cuida tu ciudad',call_to_action:'LEARN_MORE',allocation:50}]})}};
 const attachments=[{id,record_id:id,workspace_id:'w',kind:'image',storage_path:`w/${id}/${id}.jpg`,size:100,mime_type:'image/jpeg',name:'foto.jpg',url:null}] as Attachment[];
@@ -18,6 +19,22 @@ const variants=[{id:'a',label:'A'},{id:'b',label:'B'}] as Variant[];
 const selection:MetaSelection={mode:'campaign',parent_id:null,start_at:'2030-01-01T12:00:00.000Z',category:'NONE',meta:{...emptyMeta(),objective:'traffic',countries:['US'],age_min:18,age_max:65,placements:['feed','story','reels']},assignments:['A','B'].flatMap(variant=>(['feed','story','reels'] as const).map(placement=>({variant,placement,attachment_id:id,thumbnail_id:null,crop:'centre' as const})))};
 const connection={accountId:'123',token:'private-test',pageId:'456',instagramId:'789',revision:'v1'};
 const build=(s=selection)=>buildMetaRecipe(exp,'EXP-GREENHUNT-0042',s,attachments,variants,connection,0);
+
+test('prompt-only preparation binds private images to variants and creates matching campaign name',()=>{
+ const second={...attachments[0],id:'22222222-2222-4222-8222-222222222222',name:'map.png'};
+ const plan={...emptyExecution(),meta:{...selection.meta,age_min:null,age_max:null},goal:'traffic' as const,destination:'https://example.org',daily_budget:10,duration_days:7,variants:[{label:'A',description:null,headline:'Play',body:'Save',call_to_action:'LEARN_MORE',allocation:null,media_names:['foto.jpg']},{label:'B',description:null,headline:'Map',body:'Find',call_to_action:'LEARN_MORE',allocation:null,media_names:['map.png']}]};
+ const automatic=automaticMetaSelection(plan,[second,...attachments],undefined,0);
+ assert.equal(automatic.assignments.length,6);assert.equal(automatic.assignments.filter(a=>a.variant==='B').every(a=>a.attachment_id===second.id),true);
+ assert.equal(automatic.meta.age_min,18);assert.equal(automatic.meta.age_max,65);
+ const recipe=buildMetaRecipe({...exp,title:'Exact experiment title',fields:{channel:'meta_ads',execution_config:JSON.stringify(plan)}},'EXP-GREENHUNT-0042',automatic,[...attachments,second],variants,{...connection,currency:'USD'},0);
+ assert.equal(recipe.name,'Exact experiment title');assert.equal(recipe.steps.filter(s=>s.kind==='ad').length,6);
+ assert.equal(recipe.steps.filter(s=>s.kind==='adset').reduce((sum,s)=>sum+s.budget!,0),7000);
+ assert.throws(()=>automaticMetaSelection({...plan,variants:[{...plan.variants[0],media_names:['missing.jpg']}]},attachments,undefined,0),/asignación única/);
+ assert.equal(plan.variants[0].allocation,null); // reviewed defaults never mutate the stored prompt proposal
+ const ongoing=buildMetaRecipe({...exp,fields:{channel:'meta_ads',execution_config:JSON.stringify({...plan,duration_days:null})}},'EXP-GREENHUNT-0042',automatic,[...attachments,second],variants,{...connection,currency:'USD'},0);
+ const payload=metaStepPayload(ongoing,ongoing.steps.find(s=>s.kind==='adset')!,{campaign:{id:'987'}}) as Record<string,unknown>;
+ assert.equal(ongoing.budget_period,'daily');assert.equal(ongoing.end,null);assert.ok(payload.daily_budget);assert.equal(payload.end_time,undefined);assert.equal(payload.lifetime_budget,undefined);
+});
 
 test('Meta development mode rejection explains recovery without echoing provider data',async()=>{
  const fetcher=(async()=>Response.json({error:{code:100,error_subcode:1885183,error_user_title:'La aplicación está en desarrollo',error_user_msg:'private-provider-detail'}},{status:400})) as typeof fetch;

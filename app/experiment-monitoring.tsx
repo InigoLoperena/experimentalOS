@@ -11,7 +11,6 @@ import {GooglePlayPreparation} from './google-play-preparation';
 import {SmartleadMonitoring} from './smartlead-monitoring';
 import {GoogleAdsMonitoring} from './google-ads-monitoring';
 import {GoogleAdsPreparation} from './google-ads-preparation';
-import {MetaPreparation} from './meta-preparation';
 import {MetaCampaignBuilder} from './meta-campaign-builder';
 import {channelProvider} from '@/lib/monitoring';
 import { csvObservationPayload, experimentScope, loadMonitoring, metricLabels, metricTitle, metricsCsvTemplate, parseMetricsCsv,
@@ -105,7 +104,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMe
     <GooglePlayPreparation key={experiment.id} experiment={experiment} code={data.spec.code}/>
     {!demo&&<SmartleadPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
     {!demo&&<GoogleAdsPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
-    {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} openOnArrival={openMeta} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
+    {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} openOnArrival={openMeta} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
     <details className="monitoring-block">
       <summary>Preparación · {statusLabels[data.spec.status] || data.spec.status}</summary>
       <form className="monitoring-form" onSubmit={e => { e.preventDefault(); const form=new FormData(e.currentTarget); void run(async () => {
