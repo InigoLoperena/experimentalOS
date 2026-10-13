@@ -19,6 +19,7 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
  const [attachments,setAttachments]=useState<Attachment[]>([]),[runs,setRuns]=useState<Run[]>([]),[runId,setRunId]=useState<string|null>(null);
  const [review,setReview]=useState<Review|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [loaded,setLoaded]=useState(false);
+ const [campaigns,setCampaigns]=useState<{external_id:string;label:string}[]>([]),[destinationChosen,setDestinationChosen]=useState(false);
 
 
  const flight=useRef(false),active=useRef(true),stop=useRef(false);
@@ -37,7 +38,7 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
  }
  async function load(){
   const value=await api('context');if(!active.current)return;
-  setAttachments(value.attachments);setRuns(value.runs);
+  setAttachments(value.attachments);setRuns(value.runs);setCampaigns(value.campaigns||[]);setDestinationChosen(!value.campaigns?.length);
   const next=automaticMetaSelection(plan,value.attachments,typeof experiment.fields.start==='string'?experiment.fields.start:undefined);setSelection(next);setLoaded(true);return next;
  }
  async function execute(id:string){
@@ -62,7 +63,8 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
   <p className="small">Si no indicaste edad o formatos, proponemos adultos de 18–65+ y Feed/Stories/Reels. El reparto pendiente se propone a partes iguales. El inicio técnico se prepara quince minutos después de la revisión si no hay una fecha futura. Revisa estos valores antes de enviar.</p>
   {plan?.variants.map(v=><div key={v.label} className="monitoring-block"><strong>{v.label}</strong><p>{v.headline}<br/>{v.body}</p><p className="small">Materiales: {selection.assignments.filter(a=>a.variant===v.label).map(a=>attachments.find(f=>f.id===a.attachment_id)?.name).filter((n,i,all)=>n&&all.indexOf(n)===i).join(', ')||'pendientes'}</p></div>)}
   <p className="small">Se respeta la asignación de archivos propuesta por la IA. Si no la indicó, una imagen se reutiliza; si hay tantos archivos como variantes, se asignan por orden de nombre. Todos los recortes se muestran antes de enviar. Nunca se crea solo una campaña vacía en este flujo.</p>
-  <button type="button" className="btn" disabled={busy||locked} onClick={()=>void task(async()=>{let proposed=loaded?selection:await load();if(!proposed)throw new Error('No se pudo preparar el borrador.');if(proposed.start_at&&Date.parse(proposed.start_at)<Date.now()+300000)proposed={...proposed,start_at:new Date(Date.now()+900000).toISOString()};setSelection(proposed);const value=await api('review',{selection:proposed});if(active.current){setReview(value);setConfirmed(false);}})}>Preparar resumen y previsualizaciones</button>
+  {!!campaigns.length&&<section className="notice"><p>Ya hay campañas vinculadas. Elige completar una para evitar duplicados:</p>{campaigns.map(c=><button key={c.external_id} type="button" className="btn" disabled={busy||locked} onClick={()=>{setSelection(previous=>({...previous,mode:'adset',parent_id:c.external_id}));setDestinationChosen(true);setReview(null);setConfirmed(false);}}>Completar campaña {c.external_id}</button>)}<button type="button" className="btn" disabled={busy||locked} onClick={()=>{setSelection(previous=>({...previous,mode:'campaign',parent_id:null}));setDestinationChosen(true);setReview(null);setConfirmed(false);}}>Crear otra campaña nueva</button>{destinationChosen&&<p>{selection.mode==='adset'?`Se prepararán anuncios en la campaña ${selection.parent_id}.`:'Se creará otra campaña, conservando las anteriores.'}</p>}</section>}
+  <button type="button" className="btn" disabled={busy||locked||(loaded&&!destinationChosen)} onClick={()=>void task(async()=>{let proposed=loaded?selection:await load();if(!proposed)throw new Error('No se pudo preparar el borrador.');if(proposed.start_at&&Date.parse(proposed.start_at)<Date.now()+300000)proposed={...proposed,start_at:new Date(Date.now()+900000).toISOString()};setSelection(proposed);const value=await api('review',{selection:proposed});if(active.current){setReview(value);setConfirmed(false);}})}>Preparar resumen y previsualizaciones</button>
   {review&&<section className="assistant-proposal"><h4>{review.name}</h4><p>Cuenta: {review.account.name}<br/>Objetivo: {review.objective}<br/>Presupuesto {review.budget_period==='daily'?'diario':'total'}: {review.total.toFixed(2)} {review.currency}<br/>Inicio: {review.start?new Date(review.start).toLocaleString():'Conjunto existente'} · Fin: {review.end?new Date(review.end).toLocaleString():'Conjunto existente'}</p>
    <p className="small">{review.steps.filter(s=>s.kind==='ad').length} anuncios con sus materiales. Los IDs se asociarán automáticamente a este experimento. Los públicos descritos como intereses no se aplican: se usa la zona y edad revisadas.</p>
    <div className="meta-previews">{review.previews.map(p=><figure key={p.key}><img src={p.preview} alt={p.label} width={280}/><figcaption>{p.label}<br/>{p.width} × {p.height}{p.upscaled&&' · ampliada: revisa nitidez'}</figcaption></figure>)}</div>

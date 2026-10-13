@@ -32,7 +32,9 @@ export async function POST(request:Request){
   if(body.action==='context'){
    const runs=await client.from('meta_preparation_runs').select('id,selection,created_at').eq('experiment_id',experiment.id).order('created_at',{ascending:false}).limit(20);
    if(runs.error)throw new ApiError('Falta activar la preparación completa en Supabase.',503);
-   return NextResponse.json({attachments,runs:runs.data},{headers});
+   const campaigns=await client.from('external_resources').select('external_id,label').eq('experiment_id',experiment.id).eq('workspace_id',project.workspace_id).eq('provider','meta_ads').eq('resource_type','campaign').not('external_id','is',null);
+   if(campaigns.error)throw new ApiError('No se pudieron comprobar las campañas anteriores.',503);
+   return NextResponse.json({attachments,runs:runs.data,campaigns:campaigns.data},{headers});
   }
   // Cropped preview uses private Storage under the requesting user's JWT, no external URL input.
   if(body.action==='preview'){
