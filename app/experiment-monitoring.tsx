@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
 import {MetricoolMonitoring} from './metricool-monitoring';
 import { MetaMonitoring } from './meta-monitoring';
+import {SmartleadPreparation} from './smartlead-preparation';
+import {SmartleadMonitoring} from './smartlead-monitoring';
 import {GoogleAdsMonitoring} from './google-ads-monitoring';
 import {GoogleAdsPreparation} from './google-ads-preparation';
 import {MetaPreparation} from './meta-preparation';
@@ -99,6 +101,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMe
     {error && <p className="error" role="alert">{error}</p>}
     {message && <p className="notice" role="status">{message}</p>}
     <p className="small">Prepara aquí el experimento y vincula sus campañas. La publicación se realiza manualmente en la plataforma externa.</p>
+    {!demo&&<SmartleadPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
     {!demo&&<GoogleAdsPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
     {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} openOnArrival={openMeta} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}
     <details className="monitoring-block">
@@ -206,6 +209,9 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMe
     {!demo && <GoogleAdsMonitoring experiment={experiment} resources={data.resources} editable={editable} locked={busy} onBusy={onBusy}
       onChoose={campaign=>{setResourceEditing(null);setResource({provider:'google_ads',type:'campaign',id:campaign.id,url:campaign.url,label:campaign.name,variant:''});if(resourceDetails.current){resourceDetails.current.open=true;resourceDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}setMessage('Campaña preparada. Asigna una variante y pulsa Vincular recurso.');}}
       onReview={metrics=>{try{csvObservationPayload(experiment,data.resources,metrics);setCsv(metrics);setError('');setMessage('Resultados de Google Ads listos para revisar.');if(resultsDetails.current){resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}catch(err){setError(err instanceof Error?err.message:'Revisa el vínculo.');}}}/>}
+    {!demo && <SmartleadMonitoring experiment={experiment} resources={data.resources} editable={editable} locked={busy} onBusy={onBusy}
+      onChoose={campaign=>{setResourceEditing(null);setResource({provider:'smartlead',type:'campaign',id:campaign.id,url:campaign.url,label:campaign.name,variant:''});if(resourceDetails.current){resourceDetails.current.open=true;resourceDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}setMessage('Campaña preparada. Asigna una variante y pulsa Vincular recurso.');}}
+      onReview={metrics=>{try{csvObservationPayload(experiment,data.resources,metrics);setCsv(metrics);setError('');setMessage('Resultados de Smartlead listos para revisar.');if(resultsDetails.current){resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}catch(err){setError(err instanceof Error?err.message:'Revisa el vínculo.');}}}/>}
     {!demo && <MetricoolMonitoring experiment={experiment} resources={data.resources} editable={editable} locked={busy} onBusy={onBusy}
       onChoose={post=>{setResourceEditing(null);setResource({provider:'metricool',type:'post',id:post.id,url:post.url||'',label:post.text.slice(0,200),variant:''});if(resourceDetails.current){resourceDetails.current.open=true;resourceDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}setMessage('Publicación preparada. Asigna una variante y pulsa Vincular recurso.');}}
       onReview={metrics=>{try{csvObservationPayload(experiment,data.resources,metrics);setCsv(metrics);setError('');setMessage('Métricas de Metricool listas para revisar.');if(resultsDetails.current){resultsDetails.current.open=true;resultsDetails.current.scrollIntoView({behavior:'smooth',block:'start'});}}catch(err){setError(err instanceof Error?err.message:'Revisa el vínculo.');}}}/>}

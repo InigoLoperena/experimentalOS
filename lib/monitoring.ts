@@ -66,7 +66,7 @@ export function periodRows(observations: Observation[], start: string, end: stri
   return observations.filter(row => row.period_start === start && row.period_end === end);
 }
 
-export const metricLabels: Record<string,string> = { impressions: "Impresiones", clicks: "Clics", spend: "Gasto",
+export const metricLabels: Record<string,string> = { emails_sent:"Correos enviados", email_opens:"Aperturas de correo", email_replies:"Respuestas de correo", email_bounces:"Rebotes", unique_leads:"Destinatarios únicos", unique_email_opens:"Destinatarios que abrieron", impressions: "Impresiones", clicks: "Clics", spend: "Gasto",
   conversions: "Conversiones", reach: "Alcance", open_google_maps: "Clics en abrir Google Maps" };
 
 export function metricTitle(metric:string,notes=''){
