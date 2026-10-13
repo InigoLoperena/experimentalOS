@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
     <main className="privacy-page">
       <a href="/">← Volver a Xperiments</a>
       <h1>Política de privacidad</h1>
-      <p>Última actualización: 12 de octubre de 2026.</p>
+      <p>Última actualización: 13 de octubre de 2026.</p>
       <p>Esta política describe el uso de datos en Xperiments (Experimental OS), una herramienta para preparar, monitorizar y documentar experimentos. El servicio es gestionado por Imagine Builder. Para consultas sobre privacidad, escribe a <a href="mailto:hello@greenhunt.net">hello@greenhunt.net</a>.</p>
 
       <h2>Datos que tratamos</h2>
@@ -25,6 +25,7 @@ export default function PrivacyPolicy() {
 
       <h2>Asistente de inteligencia artificial</h2>
       <p>Al solicitar una propuesta, enviamos a OpenAI tu solicitud y el contexto necesario del proyecto, junto con las imágenes o fotogramas seleccionados para ese análisis. La aplicación solicita que la respuesta no se almacene como historial en la API (store: false); los registros y plazos propios del proveedor dependen de sus condiciones. Las propuestas requieren revisión humana. Evita incluir datos sensibles o de terceros que no tengas autorización para compartir.</p>
+      <p>El dictado por voz es opcional y solicita permiso para usar el micrófono. Al terminar una grabación, se envía su audio a OpenAI para transcribirlo. Xperiments no guarda permanentemente ese audio. El texto se añade al campo para que lo revises; se envía al asistente o se guarda en una ficha solo cuando eliges hacerlo. La transcripción utiliza la API de audio y está sujeta a las condiciones y plazos de conservación del proveedor.</p>
 
       <h2>Proveedores y otras integraciones</h2>
       <p>Supabase proporciona la base de datos, autenticación y almacenamiento; Vercel aloja la aplicación; OpenAI procesa las solicitudes de IA. Las herramientas que conectes, como Meta o PostHog, reciben los datos necesarios para las operaciones que solicites. El tratamiento por esos proveedores se rige también por sus políticas. Según la ubicación de sus servicios, puede implicar procesamiento fuera de tu país.</p>

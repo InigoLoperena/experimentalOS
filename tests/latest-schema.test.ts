@@ -47,6 +47,13 @@ test("complete migration chain preserves existing teams, invitation-only access 
     assert.notEqual(ownSpace,w);
     assert.equal(await scalar("select member_role($1) as value",[ownSpace]),'owner');
     assert.equal(await scalar("select create_team('Repetir') as value"),ownSpace);
+    const audioRequest=randomUUID();
+    assert.equal(Number(await scalar('select reserve_ai_transcription($1,$2) as value',[ownSpace,audioRequest])),0.03);
+    assert.equal(Number(await scalar('select reserve_ai_chat($1,$2) as value',[ownSpace,randomUUID()])),0.06);
+    await assert.rejects(db.query('select reserve_ai_transcription($1,$2)',[ownSpace,audioRequest]),/ya fue procesada/);
+    await assert.rejects(db.query('select reserve_ai_transcription($1,$2)',[ownSpace,randomUUID()]),/15 segundos/);
+    await assert.rejects(db.query('select reserve_ai_transcription($1,$2)',[w,randomUUID()]),/acceso/);
+    await assert.rejects(db.query("select experimental_private.reserve_ai_usage($1,$2,'forged-model')",[ownSpace,randomUUID()]),/no autorizado/);
     await as(null);
     const preview = await scalar<Record<string, unknown>>("select get_invitation_preview($1) as value", [editorToken]);
     assert.deepEqual(Object.keys(preview).sort(), ["expires_at", "role", "team_name"]);
