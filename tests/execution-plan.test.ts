@@ -24,6 +24,11 @@ test('multimodal Meta proposals constrain text before generation and round-trip 
   const saved=executionFromFields(cleanExperimentFields(applyPreparation({channel:'meta_ads'},proposal)));
   assert.deepEqual(saved?.variants,variants);
   assert.equal(saved?.daily_budget,null); // A creative request never implicitly authorizes ad spend.
+  const incomplete=parsePreparation({...proposal,execution:{...proposal.execution!,variants:variants.map(v=>({...v,allocation:0}))}});
+  assert.deepEqual(incomplete.execution?.variants.map(v=>v.allocation),[null,null]);
+  assert.deepEqual(incomplete.execution?.variants.map(v=>v.body),variants.map(v=>v.body));
+  assert.ok(incomplete.missing.some(v=>v.includes('reparto')));
+  assert.throws(()=>parseExecution({...emptyExecution(),variants:variants.map(v=>({...v,allocation:0}))}),/100%/);
 });
 
 test('execution proposals preserve the chosen channel and unknown human settings',()=>{

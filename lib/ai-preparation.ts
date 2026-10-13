@@ -32,7 +32,15 @@ export function parsePreparation(value: unknown): Preparation {
   }
   if (fields.start && (!/^\d{4}-\d{2}-\d{2}$/.test(fields.start) || Number.isNaN(Date.parse(fields.start)) || new Date(fields.start).toISOString().slice(0,10)!==fields.start)) throw new Error('La fecha propuesta no es válida.');
   const list=(input: unknown) => { if (!Array.isArray(input) || input.length>20 || input.some(row => typeof row!=='string' || row.length>1000)) throw new Error('Las aclaraciones de la IA no son válidas.'); return input as string[]; };
-  return {title:candidate.title.trim(),fields,missing:list(candidate.missing),assumptions:list(candidate.assumptions),questions:list(candidate.questions||[]).slice(0,6),recommendations:list(candidate.recommendations||[]),channel:parseChannel(candidate.channel),execution:candidate.execution==null?null:parseExecution(candidate.execution)};
+  const missing=list(candidate.missing);
+  let execution=candidate.execution;
+  // An inconsistent AI traffic split is an unanswered setting, not grounds to lose all valid copy.
+  // Saved plans still use strict parseExecution validation; no percentages are silently invented.
+  if(execution&&Array.isArray(execution.variants)&&execution.variants.length&&execution.variants.every(v=>v&&typeof v.allocation==='number'&&Number.isFinite(v.allocation)&&v.allocation>=0&&v.allocation<=100)&&Math.abs(execution.variants.reduce((sum,v)=>sum+v.allocation!,0)-100)>0.01){
+    execution={...execution,variants:execution.variants.map(v=>({...v,allocation:null}))};
+    missing.push('Confirma el reparto entre variantes: los porcentajes propuestos no sumaban 100 % y se han dejado pendientes.');
+  }
+  return {title:candidate.title.trim(),fields,missing:[...new Set(missing)].slice(0,20),assumptions:list(candidate.assumptions),questions:list(candidate.questions||[]).slice(0,6),recommendations:list(candidate.recommendations||[]),channel:parseChannel(candidate.channel),execution:execution==null?null:parseExecution(execution)};
 }
 export function applyPreparation(current: Fields, proposal: Preparation): Fields {
   // Null means unknown: never erase existing user values or change record identity/ownership.
