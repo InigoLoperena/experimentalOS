@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {CheckCircle2,Database,FileUp,FlaskConical,Sparkles,Trash2,ExternalLink} from 'lucide-react';
-import {AIBrainChipIcon} from './ai-brain-chip-icon';
+import {AIBrainIcon} from './ai-brain-icon';
 import {supabase} from '@/lib/supabase';
 import {parseKnowledge,type ChatEntry,type Knowledge} from '@/lib/ai-memory';
 import type {Preparation} from '@/lib/ai-preparation';
@@ -74,13 +74,10 @@ export function StrategicAI({project,disabled,canImport,canDelete,canCreate,onPr
   {disabled&&<p className="notice">Inicia sesión en tu equipo para consultar la IA y su memoria privada.</p>}
   {!project&&<p className="notice">Crea o selecciona un proyecto para empezar.</p>}
   <div className="ai-columns"><div className="panel ai-chat">
-   <header className="ai-intro-header">
-    <div className="ai-intro-copy">
-     <h2><AIBrainChipIcon size={28}/> IA de {project?.title?.trim().toLowerCase()==='greenhunt'?'Green Hunt':project?.title||'tu proyecto'}</h2>
-     <p className="ai-chat-intro">Esta IA recuerda tus experimentos, datos cualitativos y cuantitativos, aprendizajes, métricas y el contexto que aportas a tus proyectos. Cuanta más información documentes, mejores consejos, hipótesis y oportunidades podrá proponerte. Aplica el método científico para descubrir qué necesita el mercado y encontrar tu modelo de negocio adecuado.</p>
-    </div>
-    <img className="ai-einstein-illustration" src="/einstein-thinking.webp" width={200} height={200} alt="Albert Einstein pensando junto a una probeta, una bombilla y una pizarra con E = mc²" loading="eager" decoding="async"/>
-   </header>
+   <div className="ai-intro-copy">
+    <h2><AIBrainIcon size={28}/> IA de {project?.title?.trim().toLowerCase()==='greenhunt'?'Green Hunt':project?.title||'tu proyecto'}</h2>
+    <p className="ai-chat-intro">Esta IA recuerda tus experimentos, datos cualitativos y cuantitativos, aprendizajes, métricas y el contexto que aportas a tus proyectos. Cuanta más información documentes, mejores consejos, hipótesis y oportunidades podrá proponerte. Aplica el método científico para descubrir qué necesita el mercado y encontrar tu modelo de negocio adecuado.</p>
+   </div>
    <div className="ai-messages" role="log" aria-label="Conversación con IA">{entries.map(entry=><article key={entry.id} className="ai-exchange"><div className="ai-question"><strong>Tú</strong><p>{entry.question}</p></div><div className="ai-answer"><strong><Sparkles size={15}/> IA</strong><p>{entry.answer}</p>{!!entry.sources.length&&<details><summary>Fuentes consultadas ({entry.sources.length})</summary>{entry.sources.map(row=><div className="ai-source" key={row.id}><button onClick={()=>row.kind.startsWith('import_')?void viewSource(row.id,row.project_id):onSource(row.record_id||row.id)}>{row.title}</button><small>{sourceKind(row.kind)} · {new Date(row.date).toLocaleDateString('es')} </small><p>{row.excerpt.slice(0,450)}</p></div>)}</details>}{entry.coverage.warning&&<p className="notice">{entry.coverage.warning} Revisa la ficha y utiliza Preparar con IA para completar los parámetros antes de ejecutar.</p>}{entry.proposal&&<div className="ai-proposal"><strong><FlaskConical size={17}/> {entry.proposal.title}</strong><p>{entry.proposal.fields.hypothesis}</p>{entry.proposal.questions?.map(q=><p key={q}>{q}</p>)}<button className="btn primary" disabled={!canCreate||busy||voiceBusy} onClick={()=>onProposal(entry.proposal!)}>Revisar y crear experimento</button><small>La ficha se guardará cuando tú lo confirmes.</small></div>}</div></article>)}{busy&&<p role="status">Consultando la memoria y preparando tu respuesta…</p>}<div ref={end}/></div>
    <AIPromptComposer id="strategic-question" projectId={projectId||null} purpose="chat" value={question} onChange={setQuestion} maxLength={6000} files={files} onFiles={setFiles} disabled={disabled||!project||busy||loading} voiceBusy={voiceBusy} onVoiceBusy={setVoiceBusy} busy={busy} placeholder={project?.title?'Pregunta a la IA de '+project.title+'…':'Pregunta a la IA…'} onSubmit={()=>void send()}/>
   </div><aside className="panel ai-memory"><h2><Database size={21}/> Memoria del proyecto</h2><p>Experimentos y aprendizajes se consultan directamente de tus fichas. Añade entrevistas, observaciones, investigaciones o tablas para dar más contexto.</p><button className="btn" disabled={disabled||!project||!canImport} onClick={()=>setShowImport(value=>!value)}><FileUp size={17}/>{showImport?'Cerrar importación':'Importar información'}</button><a className="ai-research-guide-link" href="/guia-investigacion" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> Guía de investigación cualitativa y cuantitativa</a>{!canImport&&!disabled&&<small>Necesitas permiso para crear aprendizajes para añadir información.</small>}

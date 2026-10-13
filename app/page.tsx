@@ -40,7 +40,7 @@ import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
 import { StrategicAI } from './strategic-ai';
-import { AIBrainChipIcon } from './ai-brain-chip-icon';
+import { AIBrainIcon } from './ai-brain-icon';
 import {applyPreparation,type Preparation} from '@/lib/ai-preparation';
 import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
 import {IntegrationSettings} from './integration-settings';
@@ -255,11 +255,11 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
   );
 }
 
-const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainChipIcon }[] = [
+const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
-  { id: "ai", label: "IA", icon: AIBrainChipIcon },
+  { id: "ai", label: "IA", icon: AIBrainIcon },
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
@@ -1758,6 +1758,7 @@ export default function Home() {
             </button>
           </div>
         </header>
+        {view === "ai" && <img className="ai-topright-mascot" src="/einstein-thinking-transparent.webp" width={135} height={123} alt="Albert Einstein pensando, con bombilla, probeta y una pizarra con E = mc²" loading="eager" decoding="async"/>}
         <main>
           {demo && (
             <div className="demo-banner">
