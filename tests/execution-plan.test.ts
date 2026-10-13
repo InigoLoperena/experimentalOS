@@ -1,10 +1,25 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {emptyExecution,parseChannel,parseExecution,executionFromFields} from '../lib/execution-plan';
+import {emptyExecution,parseChannel,parseExecution,executionFromFields,executionSchema,executionTextLimits} from '../lib/execution-plan';
 import {applyPreparation,parsePreparation,preparationKeys,requiredPreparation} from '../lib/ai-preparation';
 import {cleanExperimentFields} from '../lib/experiments';
 import {validateAiMedia} from '../lib/ai-media';
 import {attachmentFileType} from '../lib/attachments';
+
+test('multimodal Meta proposals constrain text before generation and round-trip English A/B narratives',()=>{
+  const schema=executionSchema.properties.variants.items.properties;
+  for(const key of ['label','description','headline','body','call_to_action'] as const){
+    assert.equal(schema[key].maxLength,executionTextLimits[key]);
+    const variant={label:'A',description:null,headline:null,body:null,call_to_action:null,allocation:null};
+    assert.throws(()=>parseExecution({...emptyExecution(),variants:[{...variant,[key]:'x'.repeat(executionTextLimits[key]+1)}]}),new RegExp(`${executionTextLimits[key]} caracteres`));
+    assert.equal(parseExecution({...emptyExecution(),variants:[{...variant,[key]:'x'.repeat(executionTextLimits[key])}]}).variants.length,1);
+  }
+  const variants=[{label:'A · Gamificación',description:'Play a game of saving furniture on the street by taking photos.',headline:'Play. Snap. Save furniture.',body:'Turn your walk into a furniture rescue mission. Take a photo and help give street finds a second life.',call_to_action:'LEARN_MORE',allocation:null,media_names:['fdfdfgdfd.jpg']},{label:'B · Muebles gratis',description:'Find free furniture on a map.',headline:'Free furniture. Nearby.',body:'Discover free furniture on the map and find your next street treasure with Greenhunt.',call_to_action:'LEARN_MORE',allocation:null,media_names:['sasasa.PNG']}];
+  const proposal=parsePreparation({title:'Greenhunt · dos narrativas en Instagram',fields:Object.fromEntries(preparationKeys.map(k=>[k,null])),channel:'meta_ads',execution:{...emptyExecution(),variants},missing:[],assumptions:[]});
+  const saved=executionFromFields(cleanExperimentFields(applyPreparation({channel:'meta_ads'},proposal)));
+  assert.deepEqual(saved?.variants,variants);
+  assert.equal(saved?.daily_budget,null); // A creative request never implicitly authorizes ad spend.
+});
 
 test('execution proposals preserve the chosen channel and unknown human settings',()=>{
   const old={...emptyExecution(),destination:'https://greenhunt.net/',daily_budget:10,currency:'USD'};

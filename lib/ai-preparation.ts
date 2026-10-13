@@ -3,12 +3,13 @@ import {channels,executionSchema,parseChannel,parseExecution,executionFromFields
 
 export const preparationKeys = ['context','hypothesis','metric','success_criteria','start','tags','secondary_metrics','audience','traffic_plan','risks'] as const;
 export type Preparation = { title: string; fields: Record<typeof preparationKeys[number], string | null>; missing: string[]; assumptions: string[]; questions?:string[]; recommendations?:string[]; channel?:Channel|null; execution?:ExecutionPlan|null };
-const text = { type: ['string','null'] };
+const text = { type: ['string','null'],maxLength:5000 };
+const listSchema={type:'array',maxItems:20,items:{type:'string',maxLength:1000}};
 export const preparationSchema = { type:'object',additionalProperties:false,required:['title','fields','missing','assumptions','channel','execution','questions','recommendations'],properties:{
-  questions:{type:'array',items:{type:'string'}},recommendations:{type:'array',items:{type:'string'}},
+  questions:{...listSchema,maxItems:6},recommendations:listSchema,
   channel:{type:['string','null'],enum:[...Object.keys(channels),null]},execution:{anyOf:[executionSchema,{type:'null'}]},
-  title:{type:'string'},fields:{type:'object',additionalProperties:false,required:[...preparationKeys],properties:Object.fromEntries(preparationKeys.map(key => [key,text]))},
-  missing:{type:'array',items:{type:'string'}},assumptions:{type:'array',items:{type:'string'}},
+  title:{type:'string',minLength:1,maxLength:300},fields:{type:'object',additionalProperties:false,required:[...preparationKeys],properties:Object.fromEntries(preparationKeys.map(key => [key,text]))},
+  missing:listSchema,assumptions:listSchema,
 } };
 export const preparationRequestSchema = {...preparationSchema,properties:{...preparationSchema.properties,fields:{...preparationSchema.properties.fields,
   properties:{...preparationSchema.properties.fields.properties,success_criteria:{type:'null'}}}}};
