@@ -22,7 +22,7 @@ test('provider settings reject arbitrary hosts, misplaced secrets, incomplete cr
  assert.throws(()=>validateIntegration('meta_ads',{account_id:'123'},{}),/Falta/);
  assert.throws(()=>validateIntegration('meta_ads',{account_id:'123'},{access_token:'token\nheader'}),/Revisa/);
  assert.throws(()=>validateIntegration('google_play',{package_name:'com.test.app'},{service_account:'null'}));
- const google=validateIntegration('google_ads',{customer_id:'123-456-7890',client_id:'client'},{client_secret:'secret',refresh_token:'refresh',developer_token:'developer'});
+ const google=validateIntegration('google_ads',{customer_id:'123-456-7890',client_id:'client'},{client_secret:'secret',refresh_token:'refresh'});
  assert.equal(google.config.customer_id,'1234567890');
  assert.throws(()=>validateIntegration('google_ads',{...google.config,customer_id:'123'},google.secrets),/10 dígitos/);
 });
