@@ -2985,3 +2985,12 @@ nav button,
  .ai-project-mascot{width:88px;margin-left:8px}
  .ai-intro-copy .ai-chat-intro{font-size:14px;line-height:1.55}
 }
+
+/* GOI Tree navigation: search for opportunities, yellow idea bulb. */
+.sidebar nav .nav-subsections .nav-goi-subsection.opportunity > svg {
+  color: var(--blue-text);
+}
+.sidebar nav .nav-subsections .nav-goi-subsection.idea > svg {
+  color: #ffd84d;
+  fill: rgba(255, 216, 77, .18);
+}

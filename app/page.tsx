@@ -1689,8 +1689,8 @@ export default function Home() {
                   <button className={`nav-goi-subsection input-metric ${view === "input_metrics" ? "active" : ""}`.trim()} onClick={() => navigateView("input_metrics")}>
                     <BarChart3 size={16} aria-hidden="true" />{viewLabels.input_metrics}
                   </button>
-                  <button className={view === "opportunities" ? "active" : ""} onClick={() => navigateView("opportunities")}>{viewLabels.opportunities}</button>
-                  <button className={view === "ideas" ? "active" : ""} onClick={() => navigateView("ideas")}>Ideas</button>
+                  <button className={`nav-goi-subsection opportunity ${view === "opportunities" ? "active" : ""}`.trim()} onClick={() => navigateView("opportunities")}><Search size={16} aria-hidden="true" />{viewLabels.opportunities}</button>
+                  <button className={`nav-goi-subsection idea ${view === "ideas" ? "active" : ""}`.trim()} onClick={() => navigateView("ideas")}><Lightbulb size={16} aria-hidden="true" />Ideas</button>
                 </div>
               )}
             </Fragment>
