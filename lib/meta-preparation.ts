@@ -1,3 +1,4 @@
+import {experimentCampaignName} from './campaign-name';
 import {createHash} from 'node:crypto';
 import type {Item} from './model';
 import {executionFromFields} from './execution-plan';
@@ -12,7 +13,7 @@ export function pausedCampaign(experiment:Item,code:string,category:unknown){
     throw new ApiError('Esta primera preparación de Meta admite tráfico a una web. Revisa el canal y el objetivo.',400);
   if(category!=='NONE')throw new ApiError('Confirma que la campaña no pertenece a una categoría publicitaria especial. Las categorías especiales requieren una preparación específica.',400);
   if(!/^EXP-[A-Z0-9-]{1,100}$/.test(code))throw new ApiError('El experimento no tiene un identificador válido.',400);
-  return {name:`${code} · ${experiment.title}`.slice(0,200),objective:'OUTCOME_TRAFFIC',status:'PAUSED',special_ad_categories:[] as string[],is_adset_budget_sharing_enabled:false};
+  return {name:experimentCampaignName(experiment.title),objective:'OUTCOME_TRAFFIC',status:'PAUSED',special_ad_categories:[] as string[],is_adset_budget_sharing_enabled:false};
 }
 export function campaignFingerprint(payload:ReturnType<typeof pausedCampaign>,revision:string){
   return createHash('sha256').update(JSON.stringify({payload,revision})).digest('hex');

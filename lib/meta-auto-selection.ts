@@ -20,5 +20,5 @@ export function automaticMetaSelection(plan:ExecutionPlan|null,attachments:Attac
  }
  const date=start&&/^\d{4}-\d{2}-\d{2}$/.test(start)?Date.parse(`${start}T12:00:00.000Z`):NaN;
  const start_at=new Date(Number.isFinite(date)&&date>now+900000?date:now+900000).toISOString();
- return {name_mode:'exact',mode:'campaign',parent_id:null,start_at,meta,category:'NONE',assignments};
+ return {name_mode:'experiment',mode:'campaign',parent_id:null,start_at,meta,category:'NONE',assignments};
 }

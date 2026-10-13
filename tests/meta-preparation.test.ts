@@ -7,7 +7,7 @@ import {channelProvider} from '../lib/monitoring';
 const experiment={kind:'experiment',title:'Creatividades A/B',fields:{channel:'meta_ads',execution_config:JSON.stringify({...emptyExecution(),goal:'traffic'})}} as unknown as Item;
 test('Meta preparation never assumes categories, platform or objective and binds a stable experiment code',()=>{
   const payload=pausedCampaign(experiment,'EXP-GREENHUNT-0042','NONE');
-  assert.equal(payload.name,'EXP-GREENHUNT-0042 · Creatividades A/B');assert.equal(payload.status,'PAUSED');assert.equal(payload.objective,'OUTCOME_TRAFFIC');assert.deepEqual(payload.special_ad_categories,[]);
+  assert.equal(payload.name,'Experimento · Creatividades A/B');assert.equal(payload.status,'PAUSED');assert.equal(payload.objective,'OUTCOME_TRAFFIC');assert.deepEqual(payload.special_ad_categories,[]);
   assert.throws(()=>pausedCampaign(experiment,'EXP-GREENHUNT-0042',null));
   assert.throws(()=>pausedCampaign({...experiment,fields:{...experiment.fields,channel:'google_ads'}},'EXP-GREENHUNT-0042','NONE'));
   assert.throws(()=>pausedCampaign({...experiment,fields:{...experiment.fields,execution_config:JSON.stringify({...emptyExecution(),goal:'installs'})}},'EXP-GREENHUNT-0042','NONE'));

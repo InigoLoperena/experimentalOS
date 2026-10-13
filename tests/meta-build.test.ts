@@ -27,7 +27,8 @@ test('prompt-only preparation binds private images to variants and creates match
  assert.equal(automatic.assignments.length,6);assert.equal(automatic.assignments.filter(a=>a.variant==='B').every(a=>a.attachment_id===second.id),true);
  assert.equal(automatic.meta.age_min,18);assert.equal(automatic.meta.age_max,65);
  const recipe=buildMetaRecipe({...exp,title:'Exact experiment title',fields:{channel:'meta_ads',execution_config:JSON.stringify(plan)}},'EXP-GREENHUNT-0042',automatic,[...attachments,second],variants,{...connection,currency:'USD'},0);
- assert.equal(recipe.name,'Exact experiment title');assert.equal(recipe.steps.filter(s=>s.kind==='ad').length,6);
+ assert.equal(recipe.name,'Experimento · Exact experiment title');assert.equal(recipe.steps.filter(s=>s.kind==='ad').length,6);
+ assert.equal(buildMetaRecipe({...exp,title:'Historical exact title'},'EXP-GREENHUNT-0042',{...selection,name_mode:'exact'},attachments,variants,connection,0).name,'Historical exact title');
  assert.equal(recipe.steps.filter(s=>s.kind==='adset').reduce((sum,s)=>sum+s.budget!,0),7000);
  assert.throws(()=>automaticMetaSelection({...plan,variants:[{...plan.variants[0],media_names:['missing.jpg']}]},attachments,undefined,0),/asignación única/);
  assert.equal(plan.variants[0].allocation,null); // reviewed defaults never mutate the stored prompt proposal

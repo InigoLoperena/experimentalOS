@@ -29,6 +29,9 @@ test('reports preserve fractional conversions and currency micros; unknown value
 function fixture(){const p={...emptyExecution(),destination:'https://greenhunt.net/',daily_budget:10,currency:'USD',duration_days:7,google:{...emptyGoogleAds(),countries:['US'],language_ids:['1000'],keywords:['free furniture'],cpc_limit:1,eu_political:false},variants:['A','B'].map(label=>({label,description:null,headline:`Free Furniture ${label}\nFind Local Treasures\nTry Greenhunt Today`,body:'Find free furniture nearby and join the community.\nGive useful items a new life with Greenhunt.',call_to_action:null,allocation:null}))};const e={kind:'experiment',title:'QA',fields:{channel:'google_ads',start:'2026-10-13',execution_config:JSON.stringify(p)},updated_at:connection.revision} as unknown as Item;const variants=['A','B'].map((label,i)=>({id:`id${i}`,label})) as Variant[];return {e,p,variants};}
 test('Search recipe requires human political declaration, current dates and complete unique RSA assets',()=>{
  const {e,p,variants}=fixture();const r=googleRecipe(e,'EXP-GREENHUNT-0042',variants,connection,account,Date.parse('2026-10-12T12:00:00Z'));assert.equal(r.end,'2026-10-19');assert.equal(r.variants.length,2);
+ assert.equal(r.name,'Experimento · QA');
+ const partial=googleRecipe({...e,fields:{...e.fields,start:'',execution_config:JSON.stringify({...p,currency:null,duration_days:null})}},'EXP-GREENHUNT-0042',variants,connection,account,Date.parse('2026-10-12T12:00:00Z'));
+ assert.equal(partial.currency,'USD');assert.equal(partial.start,'2026-10-12');assert.equal(partial.end,null);
  const fail=(override:unknown)=>assert.throws(()=>googleRecipe({...e,fields:{...e.fields,execution_config:JSON.stringify(override)}},'EXP-GREENHUNT-0042',variants,connection,account,Date.parse('2026-10-12T12:00:00Z')));
  fail({...p,google:{...p.google,eu_political:null}});fail({...p,currency:'EUR'});fail({...p,variants:[{...p.variants[0],headline:'Only one'},p.variants[1]]});
 });

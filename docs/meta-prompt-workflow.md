@@ -15,7 +15,7 @@ No se ofrece la vía antigua de campaña vacía en la interfaz. La preparación 
 
 Se usa la asignación por nombre exacto de la IA, sin distinguir mayúsculas. Si no hay nombres, una imagen sirve para todas las variantes; si hay un archivo por variante, se asignan por orden de nombre y se muestran para revisar. Ambigüedades o archivos desconocidos bloquean el envío, no producen una campaña vacía como alternativa. Los vídeos necesitan una portada y MP4; no se promete recorte de vídeo. Las imágenes se recortan a partir del adjunto privado y se aprueban sus previsualizaciones antes de subirlas.
 
-La campaña nueva se llama exactamente como el experimento (hasta 200 caracteres), conservando su ID interno por relaciones de base de datos. Las preparaciones históricas conservan su nombre anterior al reanudarse para no invalidar su huella ni repetir recursos.
+La campaña nueva se llama «Experimento · título del experimento» (hasta 200 caracteres incluyendo el prefijo), conservando su ID interno por relaciones de base de datos. Las preparaciones históricas conservan su nombre anterior al reanudarse para no invalidar su huella ni repetir recursos.
 
 ## Investigación del caso existente
 

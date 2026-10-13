@@ -49,7 +49,7 @@ export async function POST(request:Request){
    const run=await client.from('meta_preparation_runs').select('*').eq('id',body.run_id).eq('experiment_id',experiment.id).single();
    if(run.error||!run.data)throw new ApiError('No tienes acceso a esta preparación.',403);savedRun=run.data;
   }
-  const selection=parseMetaSelection(savedRun?savedRun.selection:{...body.selection,name_mode:'exact'});
+  const selection=parseMetaSelection(savedRun?savedRun.selection:{...body.selection,name_mode:'experiment'});
   const spec=await client.from('experiment_specs').select('code').eq('experiment_id',experiment.id).single();
   const variants=await client.from('experiment_variants').select('*').eq('experiment_id',experiment.id);
   if(spec.error||variants.error)throw new ApiError('Guarda el experimento y sus variantes antes de continuar.',400);

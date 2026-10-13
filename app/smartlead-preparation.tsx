@@ -24,7 +24,7 @@ export function SmartleadPreparation({experiment,editable,locked,onBusy,onSaved}
  if(experiment.fields.channel!=='smartlead')return null;
  return <details className="monitoring-block" open><summary>Revisar envío a Smartlead</summary>
   <p className="small">Guarda la ficha y conecta Smartlead en Integraciones. Esta preparación crea una campaña de correo con dos variantes A/B en borrador. La activación se realiza manualmente en Smartlead.</p>
-  {error&&<p className="error" role="alert">{error}</p>}{message&&<p className="notice" role="status">{message}</p>}
+  {error&&<p className="error" role="alert">{error} Completa o corrige ese dato mediante el prompt en Editar ficha → Preparar con IA.</p>}{message&&<p className="notice" role="status">{message}</p>}
   {editable&&<button type="button" className="btn" disabled={busy||locked} onClick={()=>{setReview(null);setConfirmed(false);void run('review');}}>Revisar borrador de Smartlead</button>}
   {review&&<div><strong>{review.recipe.name}</strong>
    {review.recipe.variants.map(v=><div className="monitoring-entry" key={v.id}><div><strong>{v.label} · {v.allocation}%</strong><p>{v.subject}</p><p style={{whiteSpace:'pre-wrap'}}>{v.body}</p></div></div>)}

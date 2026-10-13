@@ -1,3 +1,4 @@
+import {experimentCampaignName} from './campaign-name';
 import {ApiError} from './server-access';
 import {executionFromFields} from './execution-plan';
 import {smartleadId,smartleadRequest,type SmartleadConnection} from './smartlead';
@@ -10,7 +11,7 @@ export function smartleadRecipe(experiment:Item,code:string,variants:Variant[],c
  const prepared=plan.variants.map(v=>{const bound=variants.find(x=>x.label===v.label);if(!bound||!v.headline?.trim()||/[\r\n]/.test(v.headline)||v.headline.length>200||!v.body?.trim())throw new ApiError('Cada variante necesita un asunto, texto y vínculo guardado.',400);return {id:bound.id,label:v.label,subject:v.headline.trim(),body:v.body.trim(),allocation:v.allocation??50};});
  if(prepared.some(v=>v.allocation!==50))throw new ApiError('Esta primera preparación de Smartlead utiliza reparto igual: 50% por variante.',400);
  if(prepared[0].subject===prepared[1].subject&&prepared[0].body===prepared[1].body)throw new ApiError('Las dos variantes deben probar contenidos diferentes.',400);
- return {name:`${code} · ${experiment.title}`.slice(0,200),revision:experiment.updated_at,connection_revision:connection.revision,variants:prepared};
+ return {name:experimentCampaignName(experiment.title),revision:experiment.updated_at,connection_revision:connection.revision,variants:prepared};
 }
 export class SmartleadWriteError extends ApiError {constructor(message:string,public uncertain:boolean){super(message,502);}}
 // No automatic retries, no activation, recipients or sender assignment.

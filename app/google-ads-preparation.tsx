@@ -23,10 +23,10 @@ export function GoogleAdsPreparation({experiment,editable,locked,onBusy,onSaved}
  }
  if(experiment.fields.channel!=='google_ads')return null;
  return <details className="monitoring-block" open><summary>Revisar envío a Google Ads</summary>
-  <p className="small">Guarda la ficha y conecta Google Ads en Integraciones. Esta primera preparación crea una campaña de Búsqueda, un grupo y dos anuncios de texto pausados. La activación se realiza manualmente en Google Ads.</p>
-  {error&&<p className="error" role="alert">{error}</p>}{message&&<p className="notice" role="status">{message}</p>}
+  <p className="small">Guarda la ficha y conecta Google Ads en Integraciones. Esta primera preparación crea una campaña de Búsqueda, un grupo y dos anuncios de texto pausados. La activación se realiza manualmente en Google Ads. En Búsqueda se preparan anuncios de texto; los adjuntos sirven de referencia para la IA.</p>
+  {error&&<p className="error" role="alert">{error} Completa o corrige ese dato mediante el prompt en Editar ficha → Preparar con IA.</p>}{message&&<p className="notice" role="status">{message}</p>}
   {editable&&<button type="button" className="btn" disabled={busy||locked} onClick={()=>{setReview(null);setConfirmed(false);void run('review');}}>Validar y revisar en Google</button>}
-  {review&&<div><strong>{review.recipe.name}</strong><p>Cuenta {review.recipe.account_id} · {review.recipe.daily} {review.recipe.currency} / día medio · {review.recipe.start} → {review.recipe.end}</p>
+  {review&&<div><strong>{review.recipe.name}</strong><p>Cuenta {review.recipe.account_id} · {review.recipe.daily} {review.recipe.currency} / día medio · {review.recipe.start} → {review.recipe.end||'sin fecha final'}</p>
    <p className="small">Solo Google Search · países {review.recipe.countries.join(', ')} · idiomas {review.recipe.languages.map(id=>id==='1000'?'Inglés':id==='1003'?'Español':id).join(', ')} · Maximizar clics, CPC máximo {review.recipe.cpc} {review.recipe.currency} · concordancia {review.recipe.match}</p>
    <a href={review.recipe.destination} target="_blank" rel="noopener noreferrer">Revisar enlace de destino</a>
    <p>Palabras clave: {review.recipe.keywords.join(', ')}</p>

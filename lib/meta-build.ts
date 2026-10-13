@@ -1,3 +1,4 @@
+import {experimentCampaignName} from './campaign-name';
 import {createHash} from 'node:crypto';
 import type {Item} from './model';
 import {executionFromFields} from './execution-plan';
@@ -6,7 +7,7 @@ import type {Attachment} from './attachments';
 import type {Variant} from './monitoring';
 import {ApiError} from './server-access';
 
-export type MetaSelection={name_mode?:'exact';mode:'campaign'|'adset'|'ad';parent_id:string|null;start_at:string|null;meta:MetaOptions;category:'NONE';assignments:{variant:string;placement:keyof typeof metaFormats;attachment_id:string;thumbnail_id:string|null;crop:'centre'|'attention'|'north'|'south'}[]};
+export type MetaSelection={name_mode?:'exact'|'experiment';mode:'campaign'|'adset'|'ad';parent_id:string|null;start_at:string|null;meta:MetaOptions;category:'NONE';assignments:{variant:string;placement:keyof typeof metaFormats;attachment_id:string;thumbnail_id:string|null;crop:'centre'|'attention'|'north'|'south'}[]};
 export type MetaStep={key:string;kind:'campaign'|'image'|'video'|'thumbnail'|'adset'|'creative'|'ad';label:string;variant_id:string|null;placement?:keyof typeof metaFormats;attachment?:Attachment;crop?:MetaSelection['assignments'][number]['crop'];variant?:{label:string;headline:string;body:string;cta:string};budget?:number};
 export type MetaRecipe={selection:MetaSelection;name:string;objective:string;optimization:string;destination:string;currency:string;total:number;budget_period?:'daily';start:string|null;end:string|null;page:string;instagram:string;pixel:string|null;steps:MetaStep[];revision:string;connection_revision:string;account_id:string};
 export type MetaStepResult={id?:string;hash?:string};
@@ -23,7 +24,7 @@ export function parseMetaSelection(raw:unknown):MetaSelection{
   return {variant:a.variant,placement:a.placement,attachment_id:a.attachment_id,thumbnail_id:a.thumbnail_id,crop:a.crop};
  });
  if(v.start_at!==null&&(typeof v.start_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v.start_at)||!Number.isFinite(Date.parse(v.start_at))))throw new ApiError('Selecciona una fecha y hora válidas.',400);
- if(v.name_mode!==undefined&&v.name_mode!=='exact')throw new ApiError('Revisa el nombre de la campaña.',400);
+ if(v.name_mode!==undefined&&!['exact','experiment'].includes(v.name_mode))throw new ApiError('Revisa el nombre de la campaña.',400);
  return {...(v.name_mode?{name_mode:v.name_mode}:{}),mode:v.mode,parent_id:v.parent_id,start_at:v.start_at,category:'NONE',meta,assignments};
 }
 export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelection,attachments:Attachment[],variants:Variant[],connection:{accountId:string;pageId?:string;instagramId?:string;pixelId?:string;revision:string;currency?:string},now=Date.now()):MetaRecipe{
@@ -74,7 +75,7 @@ export function buildMetaRecipe(experiment:Item,code:string,selection:MetaSelect
   }
  }
  const mapping={traffic:['OUTCOME_TRAFFIC','LINK_CLICKS'],awareness:['OUTCOME_AWARENESS','REACH'],leads:['OUTCOME_LEADS','OFFSITE_CONVERSIONS'],sales:['OUTCOME_SALES','OFFSITE_CONVERSIONS'],engagement:['OUTCOME_ENGAGEMENT','POST_ENGAGEMENT']} as const;
- return {selection,name:selection.name_mode==='exact'?experiment.title:`${code} · ${experiment.title}`.slice(0,160),objective:mapping[options.objective][0],optimization:mapping[options.objective][1],destination:plan.destination,currency:plan.currency!,total:createsBudget?total:0,...(createsBudget&&!plan.duration_days?{budget_period:'daily' as const}:{}),start:createsBudget?selection.start_at:null,end:createsBudget&&plan.duration_days?new Date(Date.parse(selection.start_at!)+plan.duration_days!*86400000).toISOString():null,page:connection.pageId!,instagram:connection.instagramId!,pixel:conversion?connection.pixelId!:null,steps,revision:experiment.updated_at,connection_revision:connection.revision,account_id:connection.accountId};
+ return {selection,name:selection.name_mode==='experiment'?experimentCampaignName(experiment.title):selection.name_mode==='exact'?experiment.title:`${code} · ${experiment.title}`.slice(0,160),objective:mapping[options.objective][0],optimization:mapping[options.objective][1],destination:plan.destination,currency:plan.currency!,total:createsBudget?total:0,...(createsBudget&&!plan.duration_days?{budget_period:'daily' as const}:{}),start:createsBudget?selection.start_at:null,end:createsBudget&&plan.duration_days?new Date(Date.parse(selection.start_at!)+plan.duration_days!*86400000).toISOString():null,page:connection.pageId!,instagram:connection.instagramId!,pixel:conversion?connection.pixelId!:null,steps,revision:experiment.updated_at,connection_revision:connection.revision,account_id:connection.accountId};
 }
 export function metaStepPayload(recipe:MetaRecipe,step:MetaStep,results:Record<string,MetaStepResult>){
  const campaign=recipe.selection.mode==='campaign'?results.campaign?.id:recipe.selection.parent_id;

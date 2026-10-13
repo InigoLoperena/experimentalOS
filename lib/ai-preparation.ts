@@ -15,9 +15,10 @@ export const preparationRequestSchema = {...preparationSchema,properties:{...pre
   properties:{...preparationSchema.properties.fields.properties,success_criteria:{type:'null'}}}}};
 export function preparationSchemaForRequest(channel:Channel|null,prompt:string){
   // Also recognize spoken Spanish transcriptions such as "testa B" and "test AB".
-  const ab=channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
+  const ab=channel==='google_ads'||channel==='smartlead'||channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
   if(!ab)return preparationRequestSchema;
-  const execution={...executionSchema,properties:{...executionSchema.properties,variants:{...executionSchema.properties.variants,minItems:2,maxItems:2}}};
+  const variants=executionSchema.properties.variants;
+  const execution={...executionSchema,properties:{...executionSchema.properties,variants:{...variants,minItems:2,maxItems:2,...(channel==='smartlead'?{items:{...variants.items,properties:{...variants.items.properties,headline:{...variants.items.properties.headline,maxLength:200}}}}:{})}}};
   return {...preparationRequestSchema,properties:{...preparationRequestSchema.properties,execution:{anyOf:[execution,{type:'null'}]}}};
 }
 export function parsePreparation(value: unknown): Preparation {
@@ -69,13 +70,13 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
   const missing=[...proposal.missing];const plan=proposal.execution;
   if(!proposal.channel)missing.push('Selecciona el canal principal.');
   if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
-  if(!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
+  if(!['meta_ads','google_ads','smartlead'].includes(proposal.channel||'')&&!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
   if(!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
   if(proposal.channel!=='google_play' && plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
   if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){
     if(plan?.daily_budget===null||!plan)missing.push('Confirma el presupuesto diario total.');
-    if(proposal.channel!=='meta_ads'&&!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
-    if(proposal.channel!=='meta_ads'&&!plan?.duration_days)missing.push('Confirma la duración.');
+    if(!['meta_ads','google_ads'].includes(proposal.channel)&&!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
+    if(!['meta_ads','google_ads'].includes(proposal.channel)&&!plan?.duration_days)missing.push('Confirma la duración.');
     if(!plan?.location)missing.push('Confirma la ubicación del público.');
     if(!mediaCount)missing.push('Adjunta y asigna las creatividades a las variantes.');
     if(!plan?.variants.length || plan.variants.some(v=>!v.headline||!v.body))missing.push('Completa titulares y textos de las variantes.');
