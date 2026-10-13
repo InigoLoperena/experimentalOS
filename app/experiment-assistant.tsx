@@ -51,7 +51,7 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
     {error && <p className="error" role="alert">{error}</p>}
     {proposal && <div className="assistant-proposal"><h3>{proposal.title}</h3>
       {proposal.channel&&<p><strong>Canal principal</strong><br/>{channels[proposal.channel]}</p>}
-      {proposal.execution&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
+      {proposal.execution&&draft.fields.channel!=='meta_ads'&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
       {Object.entries(proposal.fields).filter(([,value]) => value!==null).map(([key,value]) => <p key={key}><strong>{experimentFields.find(field => field.key===key)?.label || key}</strong><br/>{value}</p>)}
       {!!proposal.missing.length && <><h4>Falta confirmar</h4><ul>{proposal.missing.map((value,index) => <li key={index}>{experimentFields.find(field => field.key===value)?.label || value}</li>)}</ul></>}
       {!!proposal.assumptions.length && <><h4>Supuestos de la IA</h4><ul>{proposal.assumptions.map((value,index) => <li key={index}>{value}</li>)}</ul></>}

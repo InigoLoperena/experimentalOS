@@ -14,7 +14,7 @@ export const integrationCatalog={
  google_play:{name:'Google Play · Android',scope:'project',capability:'Preparación de tests de la ficha y resultados manuales disponibles en Experimentos. La API pública no permite crear estos tests ni consultar sus resultados por variante. Las credenciales solo se necesitarán para futuras operaciones de publicación o Android Vitals.',docs:'https://developers.google.com/android-publisher/getting_started',testable:false,fields:[{key:'package_name',label:'Nombre del paquete · ej. com.empresa.app',required:true},{...token('service_account','JSON de la cuenta de servicio'),format:'json'}]},
 } satisfies Record<string,{name:string;scope:string;capability:string;docs:string;testable:boolean;fields:IntegrationField[]}>;
 export type IntegrationProvider=keyof typeof integrationCatalog;
-export type Connection={id:string;workspace_id:string;project_id:string|null;provider:IntegrationProvider;config:Record<string,string>;source:'server'|'encrypted';secret_fields:string[];enabled:boolean;verified_at:string|null;verification_note:string;updated_at:string};
+export type Connection={id:string;workspace_id:string;project_id:string|null;provider:IntegrationProvider;config:Record<string,string>;source:'server'|'encrypted';secret_fields:string[];enabled:boolean;verified_at:string|null;verification_note:string;updated_at:string;workspace_default?:boolean};
 export function integrationProvider(value:unknown):IntegrationProvider{
  if(typeof value!=='string'||!Object.hasOwn(integrationCatalog,value))throw new Error('Selecciona una integración válida.');return value as IntegrationProvider;
 }

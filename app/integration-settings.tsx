@@ -28,6 +28,7 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
  }
  const selectedProject=integrationCatalog[provider].scope==='workspace'?null:projectId;
  const connection=data?.connections.find(row=>row.provider===provider&&row.project_id===selectedProject)||null;
+ const sharedMeta=provider==='meta_ads'?data?.connections.find(row=>row.provider==='meta_ads'&&row.workspace_default):null;
  const failedCheck=failedChecks[`${provider}:${selectedProject??'workspace'}`];
  return <section className="integrations-panel">
   <div className="notice"><ShieldCheck size={18}/><span>Conexiones compartidas por equipo. Solo el superadministrador configura las APIs; los colaboradores consultan su estado. Las claves se guardan privadas, cifradas, y no vuelven a mostrarse.</span></div>
@@ -41,7 +42,8 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
   </nav><div className="panel integration-form">
    <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
    {integrationCatalog[provider].scope==='project'?<label>Proyecto<select aria-label="Proyecto de la integración" disabled={busy} value={projectId} onChange={e=>{setProjectId(e.target.value);setError('');setMessage('');}}>{projects.map(project=><option value={project.id} key={project.id}>{project.title}</option>)}</select></label>:<p className="small">Una conexión de OpenAI para los proyectos de este equipo. Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
-   <p className="integration-status" role="status">{!connection?'Sin configurar':!connection.enabled?'Desactivada':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
+   {sharedMeta&&<p className="notice">Cuenta de Meta compartida: {sharedMeta.config.account_id}. {sharedMeta.enabled?'Los proyectos sin una conexión propia utilizan esta cuenta, página e Instagram.':'La conexión compartida está desactivada.'} Se administra desde {projects.find(p=>p.id===sharedMeta.project_id)?.title||'su proyecto de origen'}. Cada campaña y sus datos siguen asociados a su experimento.</p>}
+   <p className="integration-status" role="status">{!connection?(sharedMeta?.enabled?'Usando la conexión compartida de Meta':'Sin configurar'):!connection.enabled?'Desactivada':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
    {failedCheck&&<p className="error">{failedCheck}</p>}
    {connection?.verified_at&&<p className="small">{connection.verification_note}<br/>Última comprobación correcta: {new Date(connection.verified_at).toLocaleString('es')}</p>}
    {!data?.can_configure&&!demo&&data&&<p className="notice">Acceso de consulta. El superadministrador del equipo puede cambiar esta configuración.</p>}
@@ -67,6 +69,7 @@ function ConnectionForm({provider,projectId,connection,editable,busy,run}:{provi
   {editable&&<div className="row integration-actions"><button type="submit" className="btn primary" disabled={!canSave||busy}>{busy?'Procesando…':'Guardar configuración'}</button>
    {connection&&integrationCatalog[provider].testable&&<button type="button" className="btn" disabled={busy||!connection.enabled} onClick={()=>void action({action:'verify'})}>Comprobar conexión</button>}
    {connection&&<button type="button" className="btn" disabled={busy} onClick={()=>void action({action:'state',enabled:!connection.enabled})}>{connection.enabled?'Desactivar':'Activar conexión'}</button>}
+   {provider==='meta_ads'&&connection?.source==='encrypted'&&<button type="button" className="btn" disabled={busy||!connection.enabled} onClick={()=>void action({action:'share',shared:!connection.workspace_default})}>{connection.workspace_default?'Usar solo en este proyecto':'Usar Meta en todos los proyectos del equipo'}</button>}
   </div>}
  </form>;
 }

@@ -31,7 +31,14 @@ export async function connectionSecrets(client:SupabaseClient,row:Connection,pro
  throw new ApiError('La integración no tiene una conexión autorizada.',403);
 }
 export async function resolvedMetaConnection(client:SupabaseClient,project:Item){
- const row=await storedConnection(client,project.workspace_id,'meta_ads',project.id);
+ let row=await storedConnection(client,project.workspace_id,'meta_ads',project.id);
+ // An explicit project connection (even disabled) takes precedence. Inheritance
+ // requires an owner-selected encrypted connection in this exact workspace.
+ if(!row){
+  const shared=await client.from('integration_connections').select('*').eq('workspace_id',project.workspace_id).eq('provider','meta_ads').eq('workspace_default',true).eq('source','encrypted').maybeSingle();
+  if(shared.error)throw new ApiError('No se pudo cargar la conexión compartida de Meta.',503);
+  row=shared.data as Connection|null;
+ }
  if(!row)throw new ApiError('Configura Meta Ads para este proyecto en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);
  return {accountId:row.config.account_id,token:secrets.access_token,writeToken:secrets.write_token,pageId:row.config.page_id,instagramId:row.config.instagram_id,pixelId:row.config.pixel_id,revision:row.updated_at};

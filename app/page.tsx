@@ -38,6 +38,7 @@ import { BackupDialog, type BackupFormat } from "./backup-dialog";
 import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
+import { MetaExperimentDelivery } from './meta-experiment-delivery';
 import { ExperimentAssistant } from "./experiment-assistant";
 import { StrategicAI } from './strategic-ai';
 import {viewForPath,pathForView,type SectionView} from '@/lib/section-routes';
@@ -2584,13 +2585,19 @@ export default function Home() {
               record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
-                <FieldDetails record={selected} fields={experimentSections.primary} />
+                <FieldDetails record={selected} fields={selected.fields.channel==='meta_ads'?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
                 {links}
-                <ExecutionDetails key={selected.id} experiment={selected}/>
-                <PostHogResults experiment={selected} project={currentProject} />
-                {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected} openMeta={metaPreparationTarget===selected.id}
-                  editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
-                <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
+                {selected.fields.channel==='meta_ads'?<>
+                  <p><strong>Canal:</strong> Meta Ads</p>
+                  {!publicMode&&<MetaExperimentDelivery key={selected.id} experiment={selected} openOnArrival={metaPreparationTarget===selected.id}
+                    editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
+                </>:<>
+                  <ExecutionDetails key={selected.id} experiment={selected}/>
+                  {['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
+                  {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
+                    editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
+                  <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
+                </>}
 
                 {files}
               </> : <><FieldDetails record={selected} fields={schemas[selected.kind]} />{links}{files}</>}

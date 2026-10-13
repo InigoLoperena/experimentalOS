@@ -39,7 +39,7 @@ export async function POST(request:Request){
  try{
   const {client,user}=await authenticatedClient(request);
   const body=await readJsonBody(request,60000);
-  if(!body||typeof body.workspace_id!=='string'||!['list','save','verify','state'].includes(body.action))throw new ApiError('Selecciona una acción y un equipo válidos.',400);
+  if(!body||typeof body.workspace_id!=='string'||!['list','save','verify','state','share'].includes(body.action))throw new ApiError('Selecciona una acción y un equipo válidos.',400);
   const member=await client.from('members').select('role').eq('workspace_id',body.workspace_id).eq('user_id',user.id).single();
   if(member.error||!member.data)throw new ApiError('No tienes acceso a ese equipo.',403);
   if(body.action==='list'){
@@ -85,6 +85,12 @@ export async function POST(request:Request){
   }
   if(!row)throw new ApiError('Guarda primero esta conexión.',400);
   if(body.expected!==row.updated_at)throw new ApiError('La configuración ha cambiado. Actualiza antes de continuar.',409);
+  if(body.action==='share'){
+   if(provider!=='meta_ads'||typeof body.shared!=='boolean')throw new ApiError('Selecciona una conexión de Meta.',400);
+   const changed=await client.rpc('set_meta_workspace_default',{p_id:row.id,p_expected:row.updated_at,p_shared:body.shared});
+   if(changed.error)throw new ApiError('No se pudo cambiar la conexión compartida. Actualiza y comprueba que la conexión de Meta está activa y guardada de forma privada.',409);
+   return NextResponse.json({changed:true},{headers});
+  }
   if(body.action==='verify'){
    if(!integrationCatalog[provider].testable)throw new ApiError('Este proveedor admite configuración privada; la comprobación API se añadirá con su integración.',400);
    const secrets=await connectionSecrets(client,row,project);
