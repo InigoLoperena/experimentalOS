@@ -1788,8 +1788,6 @@ export default function Home() {
               <p>
                 {view === "map"
                   ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
-                  : view === "ai"
-                    ? "Tu asistente estratégico, con la memoria de tus proyectos y experimentos."
                   : view === "experiments"
                     ? "Documenta qué vas a probar y cómo sabrás si funciona."
                     : view === "learning"
