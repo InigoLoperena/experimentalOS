@@ -2966,7 +2966,7 @@ nav button,
 .ai-intro-copy { min-width:0; }
 .ai-intro-copy h2 { display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:21px; }
 .ai-intro-copy .ai-brain-icon {color:var(--blue-text);flex-shrink:0}
-.ai-intro-copy .ai-chat-intro {max-width:none;width:auto;margin:0}
+.ai-intro-copy .ai-chat-intro {max-width:none;width:auto;margin:0;font-size:16px;line-height:1.65;color:var(--ink)}
 .ai-project-mascot {
  display:block;
  float:right;
@@ -2983,5 +2983,5 @@ nav button,
 @media(max-width:480px) {
  .ai-intro-copy h2{font-size:18px}
  .ai-project-mascot{width:88px;margin-left:8px}
- .ai-intro-copy .ai-chat-intro{font-size:12px}
+ .ai-intro-copy .ai-chat-intro{font-size:14px;line-height:1.55}
 }

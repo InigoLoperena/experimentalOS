@@ -40,6 +40,7 @@ import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
 import { StrategicAI } from './strategic-ai';
+import {viewForPath,pathForView,type SectionView} from '@/lib/section-routes';
 import { AIBrainIcon } from './ai-brain-icon';
 import {applyPreparation,type Preparation} from '@/lib/ai-preparation';
 import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
@@ -68,7 +69,7 @@ import {
   score,
   validate,
 } from "@/lib/model";
-type View = "experiments" | "projects" | "learning" | "ai" | "team" | "integrations" | "map" | "goals" | "input_metrics" | "opportunities" | "ideas" | "method";
+type View = SectionView;
 type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
@@ -390,6 +391,21 @@ function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "norm
 }
 export default function Home() {
   const [view, setView] = useState<View>("projects");
+  useEffect(()=>{
+    const restore = () => {
+      const section=viewForPath(window.location.pathname);
+      if(section){setView(section);setFilter('');}
+    };
+    restore();
+    window.addEventListener('popstate',restore);
+    return ()=>window.removeEventListener('popstate',restore);
+  },[]);
+  function navigateView(destination:View){
+    setView(destination);
+    setFilter('');
+    const path=pathForView(destination);
+    if(window.location.pathname!==path) window.history.pushState(window.history.state,'',path);
+  }
   const [allItems, setItems] = useState<Item[]>([]);
   const [projectId, setProjectId] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
@@ -987,7 +1003,7 @@ export default function Home() {
   }
   function openAIProposal(proposal:Preparation){
     if(!workspace||!currentProject||!can('experiment','create')||(!demo&&!schemaReady))return;
-    setError('');setDraftFiles([]);setView('experiments');
+    setError('');setDraftFiles([]);navigateView('experiments');
     setDraft({id:crypto.randomUUID(),workspace_id:workspace.id,project_id:currentProject.id,kind:'experiment',parent_id:null,related_id:null,title:proposal.title,owner_id:user?.id||null,
       fields:{impact:5,confidence:5,ease:5,...applyPreparation({},proposal)},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:user?.id||null,updated_by:user?.id||null});
   }
@@ -1056,7 +1072,7 @@ export default function Home() {
       ]);
       if (record.kind === "project") {
         setProjectId(record.id);
-        setView("map");
+        navigateView("map");
       }
       setDraft(null);
       if (supportsAttachments(record.kind)) setSelected(record);
@@ -1106,7 +1122,7 @@ export default function Home() {
       }
       if (record.kind === "project") {
         setProjectId(record.id);
-        setView("map");
+        navigateView("map");
       }
       setDraft(null);
       tell("Cambios guardados");
@@ -1643,7 +1659,7 @@ export default function Home() {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setView("map");
+            navigateView("map");
           }}
         >
           <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation OS" />
@@ -1657,10 +1673,7 @@ export default function Home() {
             <Fragment key={id}>
               <button
                 className={view === id ? "active" : ""}
-                onClick={() => {
-                  setView(id);
-                  setFilter("");
-                }}
+                onClick={() => navigateView(id)}
               >
                 <I size={18} />
                 {label}
@@ -1670,14 +1683,14 @@ export default function Home() {
               </button>
               {id === "map" && (
                 <div className="nav-subsections">
-                  <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => setView("goals")}>
+                  <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => navigateView("goals")}>
                     <Target size={16} aria-hidden="true" />{viewLabels.goals}
                   </button>
-                  <button className={`nav-goi-subsection input-metric ${view === "input_metrics" ? "active" : ""}`.trim()} onClick={() => setView("input_metrics")}>
+                  <button className={`nav-goi-subsection input-metric ${view === "input_metrics" ? "active" : ""}`.trim()} onClick={() => navigateView("input_metrics")}>
                     <BarChart3 size={16} aria-hidden="true" />{viewLabels.input_metrics}
                   </button>
-                  <button className={view === "opportunities" ? "active" : ""} onClick={() => setView("opportunities")}>{viewLabels.opportunities}</button>
-                  <button className={view === "ideas" ? "active" : ""} onClick={() => setView("ideas")}>Ideas</button>
+                  <button className={view === "opportunities" ? "active" : ""} onClick={() => navigateView("opportunities")}>{viewLabels.opportunities}</button>
+                  <button className={view === "ideas" ? "active" : ""} onClick={() => navigateView("ideas")}>Ideas</button>
                 </div>
               )}
             </Fragment>
@@ -2158,7 +2171,7 @@ export default function Home() {
                       className="plain-heading project-card-heading"
                       onClick={() => {
                         setProjectId(p.id);
-                        setView("map");
+                        navigateView("map");
                         setFilter("");
                       }}
                     >
@@ -2192,7 +2205,7 @@ export default function Home() {
                     <Action
                       onClick={() => {
                         setProjectId(p.id);
-                        setView("map");
+                        navigateView("map");
                       }}
                     >
                       Abrir GOI Tree
