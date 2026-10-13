@@ -13,6 +13,13 @@ export const preparationSchema = { type:'object',additionalProperties:false,requ
 } };
 export const preparationRequestSchema = {...preparationSchema,properties:{...preparationSchema.properties,fields:{...preparationSchema.properties.fields,
   properties:{...preparationSchema.properties.fields.properties,success_criteria:{type:'null'}}}}};
+export function preparationSchemaForRequest(channel:Channel|null,prompt:string){
+  // Also recognize spoken Spanish transcriptions such as "testa B" and "test AB".
+  const ab=channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
+  if(!ab)return preparationRequestSchema;
+  const execution={...executionSchema,properties:{...executionSchema.properties,variants:{...executionSchema.properties.variants,minItems:2,maxItems:2}}};
+  return {...preparationRequestSchema,properties:{...preparationRequestSchema.properties,execution:{anyOf:[execution,{type:'null'}]}}};
+}
 export function parsePreparation(value: unknown): Preparation {
   if (!value || typeof value!=='object') throw new Error('La IA no devolvió una propuesta válida.');
   const candidate=value as Preparation;

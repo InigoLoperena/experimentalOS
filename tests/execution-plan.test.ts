@@ -1,12 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyExecution,parseChannel,parseExecution,executionFromFields,executionSchema,executionTextLimits} from '../lib/execution-plan';
-import {applyPreparation,parsePreparation,preparationKeys,requiredPreparation} from '../lib/ai-preparation';
+import {applyPreparation,parsePreparation,preparationKeys,requiredPreparation,preparationSchemaForRequest} from '../lib/ai-preparation';
 import {cleanExperimentFields} from '../lib/experiments';
 import {validateAiMedia} from '../lib/ai-media';
 import {attachmentFileType} from '../lib/attachments';
 
 test('multimodal Meta proposals constrain text before generation and round-trip English A/B narratives',()=>{
+  for(const prompt of ['Crea una campaña de testa B usando las imágenes adjuntas','Prepara un test A/B','Un anuncio con juego y en otro encuentra muebles gratis','Dos variantes']){
+    const execution=preparationSchemaForRequest('meta_ads',prompt).properties.execution.anyOf[0];assert.ok('properties' in execution);const variants=execution.properties.variants;assert.ok('minItems' in variants);
+    assert.equal(variants.minItems,2);assert.equal(variants.maxItems,2);
+  }
+  const general=preparationSchemaForRequest('meta_ads','Prepara tres variantes').properties.execution.anyOf[0];assert.ok('properties' in general);assert.equal(general.properties.variants.maxItems,6);
   const schema=executionSchema.properties.variants.items.properties;
   for(const key of ['label','description','headline','body','call_to_action'] as const){
     assert.equal(schema[key].maxLength,executionTextLimits[key]);
