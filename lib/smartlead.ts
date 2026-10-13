@@ -11,7 +11,7 @@ export async function smartleadRequest(c:SmartleadConnection,path:string,params:
  const url=new URL(`https://server.smartlead.ai/api/v1/${path}`);url.search=new URLSearchParams({...params,api_key:c.key}).toString();
  let response;try{response=await fetcher(url,{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new ApiError('Smartlead no respondió. No se importaron datos incompletos.',502);}
  const result=await response.json().catch(()=>null);
- if(!response.ok||result?.ok===false||result?.error)throw new ApiError(response.status===429?'Smartlead limita las consultas. Espera antes de intentarlo de nuevo.':response.status===401||response.status===403?'Smartlead rechazó la clave o el acceso API. Revisa Integraciones.':'Smartlead rechazó la consulta.',response.status===429?429:502);
+ if(!response.ok||result?.ok===false||result?.error){console.warn('Smartlead read rejected',{status:response.status,operation:path==='campaigns/'?'campaign-list':'report',json:result!==null});throw new ApiError(response.status===429?'Smartlead limita las consultas. Espera antes de intentarlo de nuevo.':response.status===401||response.status===403?`Smartlead rechazó el acceso API (HTTP ${response.status}). Revisa la clave, sus restricciones y el acceso del plan en Integraciones.`:'Smartlead rechazó la consulta.',response.status===429?429:502);}
  if(!result||typeof result!=='object')throw new ApiError('Smartlead devolvió datos no válidos.',502);
  return result;
 }
