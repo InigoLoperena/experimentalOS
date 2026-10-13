@@ -1522,7 +1522,7 @@ export default function Home() {
                     </>
                   )}
                 </label>
-                {draft.kind === "experiment" && f.key === "tags" && <><div className="full">{links}</div><ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>{!publicMode && <ExperimentAssistant key={draft.id} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}</>}
+                {draft.kind === "experiment" && f.key === "tags" && <><div className="full">{links}</div><ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>{!publicMode && <ExperimentAssistant key={`${draft.id}-${String(draft.fields.channel||'')}`} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}</>}
                 </Fragment>
               ));
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
