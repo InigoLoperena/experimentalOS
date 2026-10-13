@@ -15,7 +15,7 @@ import {POST as smartleadPrepare} from '../app/api/smartlead/prepare/route';
 import {POST as metricool} from '../app/api/metricool/route';
 import {POST as posthog} from '../app/api/posthog/route';
 
-const routes=[['ai/chat',chat,32000],['ai/prepare',ai,2200000],['integrations',integrations,60000],['meta',meta,5000],['meta/prepare',metaPrepare,3000],['meta/build',metaBuild,30000],['google-ads',google,5000],['google-ads/prepare',googlePrepare,5000],['smartlead',smartlead,5000],['smartlead/prepare',smartleadPrepare,5000],['metricool',metricool,4000],['posthog',posthog,5000]] as const;
+const routes=[['ai/chat',chat,5000000],['ai/prepare',ai,5000000],['integrations',integrations,60000],['meta',meta,5000],['meta/prepare',metaPrepare,3000],['meta/build',metaBuild,30000],['google-ads',google,5000],['google-ads/prepare',googlePrepare,5000],['smartlead',smartlead,5000],['smartlead/prepare',smartleadPrepare,5000],['metricool',metricool,4000],['posthog',posthog,5000]] as const;
 for(const [path,handler,limit] of routes){
  for(const mode of ['unauthenticated','malformed','oversized'] as const)test(`${path} rejects ${mode} input before querying data or calling providers`,async()=>{
   const env={...process.env},previous=globalThis.fetch;let calls=0;

@@ -2,6 +2,8 @@ import {NextResponse} from 'next/server';
 import {readJsonBody} from '@/lib/request-body';
 import {ApiError,authenticatedClient,authorizedProject} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
+import {validateAiMedia} from '@/lib/ai-media';
+import {validateContextDocuments,openAIFileContent} from '@/lib/ai-prompt-files';
 import {readAllPages} from '@/lib/backup-service';
 import {chatInstructions,campaignStateInstructions,campaignStateContext,groundCampaignExecution,chatSchema,knowledgeMemory,parseChat,recordMemory,selectMemory,type ChatEntry,type Knowledge,type MemorySource} from '@/lib/ai-memory';
 import type {Item} from '@/lib/model';
@@ -12,8 +14,10 @@ const headers={'Cache-Control':'no-store'};
 export async function POST(request:Request){
  try{
   const {client,user}=await authenticatedClient(request);
-  const body=await readJsonBody(request,32000);
+  const body=await readJsonBody(request,5000000);
   if(typeof body.question!=='string'||!body.question.trim()||body.question.length>6000||!/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(body.request_id||''))throw new ApiError('Escribe una pregunta de hasta 6.000 caracteres.',400);
+  let documents,media;
+  try{documents=validateContextDocuments(body.documents);media=validateAiMedia(body.media);}catch(error){throw new ApiError(error instanceof Error?error.message:'Adjuntos no válidos.',400);}
   const project=await authorizedProject(client,body.project_id);
   const workspace=project.workspace_id;
   if(body.include_other_projects!==undefined&&typeof body.include_other_projects!=='boolean')throw new ApiError('Revisa el contexto de la consulta.',400);
@@ -41,7 +45,7 @@ export async function POST(request:Request){
   const reserved=await client.rpc('reserve_ai_chat',{p_workspace:workspace,p_request:body.request_id});
   if(reserved.error)throw new ApiError(reserved.error.message,429);
   const previous=(history.data||[]).reverse().map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,1200),proposal:row.proposal?{title:row.proposal.title,fields:row.proposal.fields}:null}));
-  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
+  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},...openAIFileContent(documents,media),{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
   if(!response.ok)throw new ApiError(response.status===429?'OpenAI ha alcanzado su saldo o límite de uso.':'OpenAI no pudo responder. Inténtalo de nuevo.',502);
   const result=await response.json();
   if(result.status!=='completed')throw new ApiError('La respuesta no se completó. Prueba con una pregunta más concreta.',502);
