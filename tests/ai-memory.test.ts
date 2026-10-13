@@ -30,3 +30,11 @@ test('record context excludes provider credentials and preserves learning eviden
  const source=recordMemory({id:'record',title:'Aprendizaje',kind:'learning',updated_at:'2026-10-13',parent_id:'experiment',fields:{learning:'La prueba fue inconclusa',evidence:'Muestra pequeña',decision:'Inconcluso',api_key:'secret',execution_config:'huge'}} as never);
  assert.match(source.excerpt,/inconclusa/);assert.match(source.excerpt,/Muestra pequeña/);assert.doesNotMatch(source.excerpt,/secret|huge/);
 });
+test('invalid optional campaign settings do not erase a valid strategic answer and common experiment fields',()=>{
+ const fields=Object.fromEntries(['context','hypothesis','metric','success_criteria','start','tags','secondary_metrics','audience','traffic_plan','risks'].map(key=>[key,null]));
+ const proposal={title:'Prueba A/B',fields:{...fields,hypothesis:'Un mapa facilitará encontrar muebles'},missing:[],assumptions:[],questions:[],recommendations:[],channel:'web_app',execution:{goal:'product',destination:'URL por decidir'}};
+ const reply=parseChat({answer:'Esta comparación es una hipótesis, no una conclusión.',source_ids:[],proposal},[],true);
+ assert.match(reply.answer,/hipótesis/);assert.equal(reply.proposal?.title,'Prueba A/B');assert.equal(reply.proposal?.execution,null);assert.match(reply.warning||'',/configuración/);assert.ok(reply.proposal?.missing.length);
+ const invalid=parseChat({answer:'Diseñemos la prueba.',source_ids:[],proposal:{...proposal,title:''}},[],true);
+ assert.equal(invalid.proposal,null);assert.ok(invalid.warning);assert.equal(invalid.answer,'Diseñemos la prueba.');
+});

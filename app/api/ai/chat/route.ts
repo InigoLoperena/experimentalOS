@@ -42,8 +42,12 @@ export async function POST(request:Request){
   const result=await response.json();
   if(result.status!=='completed')throw new ApiError('La respuesta no se completó. Prueba con una pregunta más concreta.',502);
   const output=result.output?.flatMap((row:{content?:{type:string;text?:string}[]})=>row.content||[]).filter((row:{type:string})=>row.type==='output_text').map((row:{text:string})=>row.text).join('');
-  let parsed;try{parsed=parseChat(JSON.parse(output||'null'),[recordMemory(project),...memory.selected],!!permission.data);}catch{throw new ApiError('La IA devolvió una respuesta que necesita revisión. Inténtalo de nuevo.',502);}
-  const entry={id:body.request_id,workspace_id:workspace,project_id:project.id,user_id:user.id,question:body.question.trim(),...parsed,coverage:memory.coverage};
+  let parsed;try{parsed=parseChat(JSON.parse(output||'null'),[recordMemory(project),...memory.selected],!!permission.data);}catch(error){
+   const reason=error instanceof Error&&!(error instanceof SyntaxError)?error.message:'La respuesta no contiene el JSON esperado.';
+   console.warn('Strategic AI response rejected',{reason});throw new ApiError(`La respuesta de la IA necesita revisión: ${reason}`,502);
+  }
+  const {warning,...reply}=parsed;
+  const entry={id:body.request_id,workspace_id:workspace,project_id:project.id,user_id:user.id,question:body.question.trim(),...reply,coverage:{...memory.coverage,warning}};
   const saved=await client.from('ai_chat_entries').insert(entry).select('*').single();
   if(saved.error)throw new ApiError('La respuesta no se pudo guardar en tu conversación. No se ha creado ningún experimento.',503);
   return NextResponse.json({entry:saved.data as ChatEntry,reserved_usd:Number(reserved.data),monthly_limit_usd:5},{headers});
