@@ -5,11 +5,12 @@ import {supabase} from '@/lib/supabase';
 import {parseKnowledge,type ChatEntry,type Knowledge} from '@/lib/ai-memory';
 import type {Preparation} from '@/lib/ai-preparation';
 import type {Item} from '@/lib/model';
-import {VoiceInput} from './voice-input';
+import {AIPromptComposer} from './ai-prompt-composer';
+import {preparePromptFiles} from '@/lib/ai-prompt-files';
 
 export function StrategicAI({project,disabled,canImport,canDelete,canCreate,onProposal,onSource}:{project:Item|null;disabled:boolean;canImport:boolean;canDelete:boolean;canCreate:boolean;onProposal:(proposal:Preparation)=>void;onSource:(id:string)=>void}){
  const [entries,setEntries]=useState<ChatEntry[]>([]),[knowledge,setKnowledge]=useState<Knowledge[]>([]);
- const [question,setQuestion]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ const [question,setQuestion]=useState(''),[files,setFiles]=useState<File[]>([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const [title,setTitle]=useState(''),[content,setContent]=useState(''),[format,setFormat]=useState<Knowledge['format']>('text'),[source,setSource]=useState(''),[reviewed,setReviewed]=useState(false),[importing,setImporting]=useState(false);
  const [showImport,setShowImport]=useState(false);
  const [viewedSource,setViewedSource]=useState<Knowledge|null>(null);
@@ -17,31 +18,29 @@ export function StrategicAI({project,disabled,canImport,canDelete,canCreate,onPr
  const end=useRef<HTMLDivElement>(null),version=useRef(0),controller=useRef<AbortController|null>(null);
  const projectId=project?.id;
  useEffect(()=>{
-  const current=++version.current;setEntries([]);setKnowledge([]);setError('');setQuestion('');setLoading(true);
+  const current=++version.current;setEntries([]);setKnowledge([]);setFiles([]);setError('');setQuestion('');setLoading(true);
   if(disabled||!projectId||!supabase){setLoading(false);return;}
   const client=supabase;
   void (async()=>{try{
    const {data:session}=await client.auth.getSession();
    if(!session.session)throw new Error('Inicia sesión para consultar tu memoria.');
-   const [chat,docs]=await Promise.all([
-    client.from('ai_chat_entries').select('*').eq('workspace_id',project!.workspace_id).eq('project_id',projectId).eq('user_id',session.session.user.id).order('created_at',{ascending:false}).order('id').limit(30),
-    client.from('ai_knowledge').select('id,title,format,source,validation,created_at').eq('workspace_id',project!.workspace_id).eq('project_id',projectId).order('created_at',{ascending:false}).order('id').limit(100),
-   ]);
-   if(chat.error||docs.error)throw new Error('No se pudo cargar la memoria de IA. Comprueba la conexión o la actualización de Supabase.');
-   if(current===version.current){setEntries((chat.data||[]).reverse() as ChatEntry[]);setKnowledge((docs.data||[]) as Knowledge[]);}
+   const docs=await client.from('ai_knowledge').select('id,title,format,source,validation,created_at').eq('workspace_id',project!.workspace_id).eq('project_id',projectId).order('created_at',{ascending:false}).order('id').limit(100);
+   if(docs.error)throw new Error('No se pudo cargar la memoria de IA. Comprueba la conexión o la actualización de Supabase.');
+   if(current===version.current)setKnowledge((docs.data||[]) as Knowledge[]);
   }catch(err){if(current===version.current)setError(err instanceof Error?err.message:'No se pudo cargar el chat.');}finally{if(current===version.current)setLoading(false);}})();
   return()=>{version.current++;controller.current?.abort();};
  },[projectId,project?.workspace_id,disabled]);
  useEffect(()=>{const box=end.current?.parentElement;if(box)box.scrollTo({top:box.scrollHeight,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});},[entries,busy]);
  async function send(){
-  if(busy||voiceBusy||!question.trim()||!project||disabled||!supabase)return;
-  const current=version.current,prompt=question.trim();setBusy(true);setError('');
+  if(busy||voiceBusy||(!question.trim()&&!files.length)||!project||disabled||!supabase)return;
+  const current=version.current,prompt=question.trim()||'Analiza los archivos adjuntos y aporta recomendaciones para este proyecto.';setBusy(true);setError('');
   const abort=new AbortController();controller.current=abort;
   try{
+   const {media,documents}=await preparePromptFiles(files,'chat');
    const {data}=await supabase.auth.getSession();if(!data.session)throw new Error('Inicia sesión de nuevo.');
-   const response=await fetch('/api/ai/chat',{method:'POST',signal:abort.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},body:JSON.stringify({project_id:project.id,question:prompt,request_id:crypto.randomUUID()})});
+   const response=await fetch('/api/ai/chat',{method:'POST',signal:abort.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},body:JSON.stringify({project_id:project.id,question:prompt,media,documents,request_id:crypto.randomUUID()})});
    const result=await response.json();if(!response.ok)throw new Error(result.error||'No se pudo consultar la IA.');
-   if(current===version.current){setEntries(rows=>[...rows,result.entry]);setQuestion('');}
+   if(current===version.current){setEntries(rows=>[...rows,result.entry]);setQuestion('');setFiles([]);}
   }catch(err){if(current===version.current&&!abort.signal.aborted)setError(err instanceof Error?err.message:'No se pudo consultar la IA.');}finally{if(current===version.current)setBusy(false);}
  }
  async function importMemory(){
@@ -73,19 +72,10 @@ export function StrategicAI({project,disabled,canImport,canDelete,canCreate,onPr
  return <section className="strategic-ai">
   {disabled&&<p className="notice">Inicia sesión en tu equipo para consultar la IA y su memoria privada.</p>}
   {!project&&<p className="notice">Crea o selecciona un proyecto para empezar.</p>}
-  <div className="ai-columns"><div className="panel ai-chat"><h2><BrainCircuit size={21}/> IA de tu proyecto</h2>
+  <div className="ai-columns"><div className="panel ai-chat"><h2><BrainCircuit size={21}/> IA de {project?.title?.trim().toLowerCase()==='greenhunt'?'Green Hunt':project?.title||'tu proyecto'}</h2>
   <p className="ai-chat-intro">Esta IA recuerda tus experimentos, datos cualitativos y cuantitativos, aprendizajes, métricas y el contexto que aportas a tus proyectos. Cuanta más información documentes, mejores consejos, hipótesis y oportunidades podrá proponerte.</p>
-   {loading?<p role="status">Cargando tu conversación…</p>:entries.length===0?<div className="ai-empty"><p>¿Por dónde empezamos?</p>{['¿Qué sabemos y qué nos falta comprobar de este proyecto?','Sugiere un experimento A/B a partir de los aprendizajes disponibles.','¿Qué limitaciones tienen los resultados de nuestros experimentos?'].map(text=><button key={text} disabled={disabled||!project||busy||voiceBusy} onClick={()=>setQuestion(text)}>{text}</button>)}</div>:null}
    <div className="ai-messages" role="log" aria-label="Conversación con IA">{entries.map(entry=><article key={entry.id} className="ai-exchange"><div className="ai-question"><strong>Tú</strong><p>{entry.question}</p></div><div className="ai-answer"><strong><Sparkles size={15}/> IA</strong><p>{entry.answer}</p>{!!entry.sources.length&&<details><summary>Fuentes consultadas ({entry.sources.length})</summary>{entry.sources.map(row=><div className="ai-source" key={row.id}><button onClick={()=>row.kind.startsWith('import_')?void viewSource(row.id,row.project_id):onSource(row.record_id||row.id)}>{row.title}</button><small>{sourceKind(row.kind)} · {new Date(row.date).toLocaleDateString('es')} </small><p>{row.excerpt.slice(0,450)}</p></div>)}</details>}{entry.coverage.warning&&<p className="notice">{entry.coverage.warning} Revisa la ficha y utiliza Preparar con IA para completar los parámetros antes de ejecutar.</p>}{entry.proposal&&<div className="ai-proposal"><strong><FlaskConical size={17}/> {entry.proposal.title}</strong><p>{entry.proposal.fields.hypothesis}</p>{entry.proposal.questions?.map(q=><p key={q}>{q}</p>)}<button className="btn primary" disabled={!canCreate||busy||voiceBusy} onClick={()=>onProposal(entry.proposal!)}>Revisar y crear experimento</button><small>La ficha se guardará cuando tú lo confirmes.</small></div>}</div></article>)}{busy&&<p role="status">Consultando la memoria y preparando tu respuesta…</p>}<div ref={end}/></div>
-   <form className="ai-composer" onSubmit={event=>{event.preventDefault();void send();}}>
-   <div className="ai-text-entry">
-     <label htmlFor="strategic-question" className="sr-only">Escribe tu pregunta a la IA</label>
-     <textarea id="strategic-question" value={question} onChange={event=>setQuestion(event.target.value)} maxLength={6000} rows={3} placeholder="Pregunta a la IA de tu proyecto…" disabled={disabled||!project||busy||voiceBusy}/>
-     <div className="ai-text-entry-actions">
-       <VoiceInput projectId={projectId||null} purpose="chat" value={question} onChange={setQuestion} maxLength={6000} disabled={disabled||!project||busy||loading||voiceBusy} onBusy={setVoiceBusy} label="Dictar pregunta"/>
-       <button className="ai-send-button" type="submit" title="Enviar pregunta" aria-label="Enviar pregunta" disabled={disabled||!project||busy||voiceBusy||loading||!question.trim()}><Send size={17}/></button>
-     </div>
-   </div></form>
+   <AIPromptComposer id="strategic-question" projectId={projectId||null} purpose="chat" value={question} onChange={setQuestion} maxLength={6000} files={files} onFiles={setFiles} disabled={disabled||!project||busy||loading} voiceBusy={voiceBusy} onVoiceBusy={setVoiceBusy} busy={busy} placeholder={project?.title?'Pregunta a la IA de '+project.title+'…':'Pregunta a la IA…'} onSubmit={()=>void send()}/>
   </div><aside className="panel ai-memory"><h2><Database size={21}/> Memoria del proyecto</h2><p>Experimentos y aprendizajes se consultan directamente de tus fichas. Añade entrevistas, observaciones, investigaciones o tablas para dar más contexto.</p><button className="btn" disabled={disabled||!project||!canImport} onClick={()=>setShowImport(value=>!value)}><FileUp size={17}/>{showImport?'Cerrar importación':'Importar información'}</button><a className="ai-research-guide-link" href="/guia-investigacion" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> Guía de investigación cualitativa y cuantitativa</a>{!canImport&&!disabled&&<small>Necesitas permiso para crear aprendizajes para añadir información.</small>}
    {showImport&&canImport&&<div className="ai-import"><label>Archivo (TXT, CSV o JSON · hasta 200 KB)<input type="file" accept=".txt,.csv,.json" disabled={importing} onChange={event=>{const file=event.target.files?.[0];if(file)void readFile(file);event.target.value='';}}/></label><label>Título<input maxLength={200} value={title} onChange={e=>setTitle(e.target.value)}/></label><label>Tipo de información<select value={format} onChange={e=>setFormat(e.target.value as Knowledge['format'])}><option value="text">Texto cualitativo</option><option value="csv">Tabla CSV</option><option value="json">Datos JSON</option></select></label><label>Contenido<textarea rows={8} maxLength={100000} value={content} onChange={e=>setContent(e.target.value)} placeholder="Pega entrevistas, notas o datos con sus unidades y fechas…"/></label><label>Procedencia<input value={source} maxLength={2000} onChange={e=>setSource(e.target.value)} placeholder="Fuente, enlace, fecha o método de recogida"/></label><label className="ai-reviewed"><input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)}/>He revisado esta información personalmente</label><button className="btn primary" disabled={importing||!content.trim()||!title.trim()} onClick={()=>void importMemory()}>{importing?'Guardando…':'Guardar en la memoria'}</button></div>}
    {viewedSource&&<div className="ai-source-preview"><strong>{viewedSource.title}</strong><pre>{viewedSource.content}</pre><button className="btn" onClick={()=>setViewedSource(null)}>Cerrar fuente</button></div>}<div className="ai-knowledge-list">{knowledge.length===0&&!loading?<p className="muted">Todavía no hay fuentes adicionales importadas.</p>:null}{knowledge.map(row=><article key={row.id}><button className="btn" onClick={()=>void viewSource(row.id)}>{row.title}</button><small>{row.format.toUpperCase()} · {new Date(row.created_at).toLocaleDateString('es')}</small><span>{row.validation==='reviewed'?<><CheckCircle2 size={14}/>Revisado por una persona</>:'Información sin verificar'}</span>{row.source&&<p>{row.source}</p>}{canDelete&&<button className="btn" aria-label={`Eliminar ${row.title}`} onClick={()=>void remove(row)}><Trash2 size={14}/></button>}</article>)}</div><small className="muted">Se muestran las 100 fuentes importadas más recientes. La IA puede recuperar también las anteriores. Importar y guardar texto no consume OpenAI.</small>

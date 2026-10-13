@@ -1886,11 +1886,9 @@ export default function Home() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-          {projectScoped && currentProject && view !== "map" && (
-            <div className="project-north-star-banner">
-              {renderNorthStarBanner(currentProject, true)}
+              {currentProject && ["goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view) && (
+                <div className="project-filter-north-star">{renderNorthStarBanner(currentProject, true)}</div>
+              )}
             </div>
           )}
           {projectScoped && !currentProject && (
@@ -2182,9 +2180,6 @@ export default function Home() {
                       <ArrowUpRight size={14} />
                     </a>
                   )}
-                  <div className="project-card-north-star">
-                    {renderNorthStarBanner(p, true)}
-                  </div>
                   <p className="small">
                     {
                       workspaceItems.filter(
