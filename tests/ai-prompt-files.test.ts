@@ -21,7 +21,7 @@ test('server only accepts bounded PDF and text; payloads are passed as data rath
  assert.equal(docs.length,2);
  const prompt=openAIFileContent(docs,[]);
  assert.equal(prompt[0].type,'input_text');assert.match(prompt[0].text||'',/customer.csv/);
- assert.equal(prompt[2].type,'input_file');assert.equal(prompt[2].filename,'paper.pdf');
+ assert.equal(prompt[2].type,'input_file');assert.ok('filename' in prompt[2]);assert.equal('filename' in prompt[2] ? prompt[2].filename : '', 'paper.pdf');
  assert.throws(()=>validateContextDocuments([{name:'bad.pdf',kind:'pdf',data:'data:application/pdf;base64,ZmFrZQ=='}]),/PDF/);
  assert.throws(()=>validateContextDocuments([{name:'p.txt',kind:'text',content:'x'.repeat(24_001)}]),/texto/);
  assert.throws(()=>validateContextDocuments([{}]),/Nombre del documento/);
