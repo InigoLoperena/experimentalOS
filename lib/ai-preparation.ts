@@ -55,7 +55,7 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
   if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
   if(!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
   if(!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
-  if(plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
+  if(proposal.channel!=='google_play' && plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
   if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){
     if(plan?.daily_budget===null||!plan)missing.push('Confirma el presupuesto diario total.');
     if(!plan?.currency)missing.push('Confirma la moneda del presupuesto.');

@@ -7,6 +7,7 @@ import type { Item } from "@/lib/model";
 import {MetricoolMonitoring} from './metricool-monitoring';
 import { MetaMonitoring } from './meta-monitoring';
 import {SmartleadPreparation} from './smartlead-preparation';
+import {GooglePlayPreparation} from './google-play-preparation';
 import {SmartleadMonitoring} from './smartlead-monitoring';
 import {GoogleAdsMonitoring} from './google-ads-monitoring';
 import {GoogleAdsPreparation} from './google-ads-preparation';
@@ -101,6 +102,7 @@ export function ExperimentMonitoring({ experiment, editable, demo, onBusy,openMe
     {error && <p className="error" role="alert">{error}</p>}
     {message && <p className="notice" role="status">{message}</p>}
     <p className="small">Prepara aquí el experimento y vincula sus campañas. La publicación se realiza manualmente en la plataforma externa.</p>
+    <GooglePlayPreparation key={experiment.id} experiment={experiment} code={data.spec.code}/>
     {!demo&&<SmartleadPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
     {!demo&&<GoogleAdsPreparation experiment={experiment} editable={editable} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onSaved={refresh}/>}
     {!demo&&editable&&<><MetaCampaignBuilder experiment={experiment} openOnArrival={openMeta} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/><MetaPreparation experiment={experiment} locked={busy} onBusy={value=>{setBusy(value);onBusy(value);}} onCreated={refresh}/></>}

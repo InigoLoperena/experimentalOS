@@ -1,4 +1,5 @@
 import type { Fields } from './model';
+import {googlePlaySchema,parseGooglePlay,type GooglePlayOptions} from './google-play-options';
 import {metaOptionsSchema,parseMetaOptions,type MetaOptions} from './meta-options';
 import {googleAdsOptionsSchema,parseGoogleAdsOptions,type GoogleAdsOptions} from './google-ads-options';
 
@@ -11,6 +12,7 @@ export const channels = {
 export type Channel = keyof typeof channels;
 export const goals = {traffic:'Tráfico',installs:'Instalaciones',leads:'Contactos o registros',sales:'Ventas o conversiones',engagement:'Interacción',product:'Comportamiento de producto',store:'Conversión de la ficha de la app'} as const;
 export type ExecutionPlan = {
+  play?:GooglePlayOptions|null;
   meta?:MetaOptions|null;
   google?:GoogleAdsOptions|null;
   goal:keyof typeof goals|null; destination:string|null; audience:string|null; location:string|null;
@@ -18,7 +20,8 @@ export type ExecutionPlan = {
   variants:{label:string;description:string|null;headline:string|null;body:string|null;call_to_action:string|null;allocation:number|null;media_names?:string[]}[];
 };
 const text={type:['string','null']};
-export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants','meta','google'],properties:{
+export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants','meta','google','play'],properties:{
+  play:{anyOf:[googlePlaySchema,{type:'null'}]},
   google:{anyOf:[googleAdsOptionsSchema,{type:'null'}]},
   meta:{anyOf:[metaOptionsSchema,{type:'null'}]},
   goal:{type:['string','null'],enum:[...Object.keys(goals),null]},destination:text,audience:text,location:text,
@@ -60,7 +63,7 @@ export function parseExecution(value:unknown):ExecutionPlan {
   });
   if(variants.some(v=>!v.label.trim())||new Set(variants.map(v=>v.label.trim().toLowerCase())).size!==variants.length)throw new Error('Cada variante necesita un nombre distinto.');
   if(variants.every(v=>v.allocation!==null)&&variants.length && Math.abs(variants.reduce((sum,v)=>sum+v.allocation!,0)-100)>0.01)throw new Error('El reparto completo de las variantes debe sumar 100%.');
-  return {goal:row.goal,destination,audience:nullableText(row.audience),location:nullableText(row.location),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants,...(row.meta!==undefined?{meta:parseMetaOptions(row.meta)}:{}),...(row.google!==undefined?{google:parseGoogleAdsOptions(row.google)}:{})};
+  return {...(row.play!==undefined?{play:parseGooglePlay(row.play)}:{}),goal:row.goal,destination,audience:nullableText(row.audience),location:nullableText(row.location),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants,...(row.meta!==undefined?{meta:parseMetaOptions(row.meta)}:{}),...(row.google!==undefined?{google:parseGoogleAdsOptions(row.google)}:{})};
 }
 export function executionFromFields(fields:Fields):ExecutionPlan|null {
   if(!fields.execution_config)return null;
