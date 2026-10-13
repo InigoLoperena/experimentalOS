@@ -22,6 +22,8 @@ for(const across of [false,true])test(`strategic chat uses ${across?'authorized 
    assert.match(body.input[0].content[0].text,/Marketplace/);assert.match(body.input[0].content[0].text,/clientes piden mapa/);assert.match(body.input[0].content[0].text,/can_create\":false/);
    if(across)assert.match(body.input[0].content[0].text,/Proyecto autorizado dos/);else assert.doesNotMatch(body.input[0].content[0].text,/Proyecto autorizado dos/);
    assert.doesNotMatch(body.input[0].content[0].text,/sk-unit-test/);
+   assert.match(body.input[0].content[0].text,/campaign_statuses/);assert.match(body.input[0].content[0].text,/paused/);
+   assert.match(body.instructions,/no demuestran publicación ni ejecución/);assert.match(body.instructions,/estados estructurados tienen prioridad/);
    return json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({answer:'Según las entrevistas, probar un mapa es una hipótesis.',source_ids:['55555555-5555-4555-8555-555555555555','fabricated'],proposal:{ignored:'reader has no create permission'}})}]}]});
   }
   if(path.startsWith('/rest/v1/')){
@@ -30,7 +32,8 @@ for(const across of [false,true])test(`strategic chat uses ${across?'authorized 
    }
    assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),path==='/rest/v1/ai_chat_entries'||!across?`eq.${p}`:null);
    if(path==='/rest/v1/ai_chat_entries')assert.equal(url.searchParams.get('user_id'),`eq.${u}`);
-   if(path==='/rest/v1/records'&&across)return json([{...project,id:'66666666-6666-4666-8666-666666666666',title:'Proyecto autorizado dos'}],1);
+   if(path==='/rest/v1/records')return json([...(across?[{...project,id:'66666666-6666-4666-8666-666666666666',title:'Proyecto autorizado dos'}]:[]),{...project,id:'77777777-7777-4777-8777-777777777777',kind:'experiment',title:'Campaña preparada'}],across?2:1);
+   if(path==='/rest/v1/external_resources')return json([{id:'88888888-8888-4888-8888-888888888888',experiment_id:'77777777-7777-4777-8777-777777777777',provider:'meta_ads',resource_type:'campaign',observed_status:'paused',updated_at:'2026-10-13'}],1);
    if(path==='/rest/v1/ai_knowledge')return json([{id:'55555555-5555-4555-8555-555555555555',title:'Entrevista',content:'Los clientes piden mapa',format:'text',source:'Entrevistas',validation:'unverified',created_at:'2026-10-13'}],1);
    return json([],0);
   }

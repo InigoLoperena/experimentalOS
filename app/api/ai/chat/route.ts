@@ -3,7 +3,7 @@ import {readJsonBody} from '@/lib/request-body';
 import {ApiError,authenticatedClient,authorizedProject} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
 import {readAllPages} from '@/lib/backup-service';
-import {chatInstructions,chatSchema,knowledgeMemory,parseChat,recordMemory,selectMemory,type ChatEntry,type Knowledge,type MemorySource} from '@/lib/ai-memory';
+import {chatInstructions,campaignStateInstructions,campaignStateContext,chatSchema,knowledgeMemory,parseChat,recordMemory,selectMemory,type ChatEntry,type Knowledge,type MemorySource} from '@/lib/ai-memory';
 import type {Item} from '@/lib/model';
 
 export const runtime='nodejs';
@@ -37,11 +37,11 @@ export async function POST(request:Request){
   const projectCatalog=[project,...(across?records.filter(row=>row.kind==='project'&&row.id!==project.id):[])];
   for(const row of projectCatalog)if(!memory.selected.some(source=>source.id===row.id)){memory.selected.unshift(recordMemory(row));memory.coverage.included++;}
   // Always carry the actual project's description and North Star, independent of relevance ranking.
-  const context={project:recordMemory(project),scope:across?'workspace':'project',can_create:!!permission.data,coverage:memory.coverage,sources:memory.selected};
+  const context={project:recordMemory(project),scope:across?'workspace':'project',can_create:!!permission.data,coverage:memory.coverage,sources:memory.selected,campaign_statuses:campaignStateContext(resources,memory.selected)};
   const reserved=await client.rpc('reserve_ai_chat',{p_workspace:workspace,p_request:body.request_id});
   if(reserved.error)throw new ApiError(reserved.error.message,429);
   const previous=(history.data||[]).reverse().map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,1200),proposal:row.proposal?{title:row.proposal.title,fields:row.proposal.fields}:null}));
-  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
+  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
   if(!response.ok)throw new ApiError(response.status===429?'OpenAI ha alcanzado su saldo o límite de uso.':'OpenAI no pudo responder. Inténtalo de nuevo.',502);
   const result=await response.json();
   if(result.status!=='completed')throw new ApiError('La respuesta no se completó. Prueba con una pregunta más concreta.',502);

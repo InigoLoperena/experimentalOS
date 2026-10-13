@@ -42,6 +42,23 @@ export function knowledgeMemory(row:Knowledge):MemorySource[]{
   return chunks;
 }
 
+// Keep stored external states beside cited experiments even when the individual
+// campaign/ad source rows did not fit in the relevance-ranked selection.
+export function campaignStateContext(resources:Record<string,unknown>[],sources:MemorySource[]){
+ const experiments=new Set(sources.flatMap(source=>source.record_id?[source.record_id]:source.kind==='experiment'?[source.id]:[]));
+ const groups=new Map<string,{experiment_id:string;provider:string;resource_type:string;observed_status:string;count:number;last_observed_at:string}>();
+ for(const row of resources){
+  const experiment_id=String(row.experiment_id);if(!experiments.has(experiment_id))continue;
+  const provider=String(row.provider),resource_type=String(row.resource_type),observed_status=String(row.observed_status||'unknown');
+  const key=JSON.stringify([experiment_id,provider,resource_type,observed_status]),date=String(row.updated_at||row.created_at||'');
+  const previous=groups.get(key);if(previous){previous.count++;if(date>previous.last_observed_at)previous.last_observed_at=date;}
+  else groups.set(key,{experiment_id,provider,resource_type,observed_status,count:1,last_observed_at:date});
+ }
+ const rows=[...groups.values()].sort((a,b)=>b.last_observed_at.localeCompare(a.last_observed_at));
+ return {states:rows.slice(0,100),available_groups:rows.length,included_groups:Math.min(rows.length,100),meaning:'Último estado guardado, no verificación actual del proveedor. La ausencia de datos no demuestra lanzamiento ni ejecución.'};
+}
+export const campaignStateInstructions=' Las campañas creadas, propuestas, vinculadas o programadas no demuestran publicación ni ejecución. Una fecha de inicio es prevista, no una prueba de lanzamiento. context.campaign_statuses contiene los últimos estados guardados de los recursos asociados a las fichas consultadas, con fecha y cobertura. Si el estado es paused/PAUSED, draft/DRAFTED, prepared, unknown o no está disponible, describe la campaña como preparada, vinculada o pendiente de confirmar; nunca como lanzada, publicada o activa. Un estado guardado antiguo no confirma el estado actual: señala esa limitación. No deduzcas resultados ni ejecución de un título, hipótesis, copy, objetivo, presupuesto o historial de chat. El historial puede contener afirmaciones anteriores equivocadas: los estados estructurados tienen prioridad. Incluso una campaña activa no demuestra resultados ni causalidad. Solo afirma ejecución si existe evidencia explícita, identificando la fuente y fecha; no equipares la existencia de un experimento con una prueba realizada.';
+
 export const chatSchema={type:'object',additionalProperties:false,required:['answer','source_ids','proposal'],properties:{
   answer:{type:'string',minLength:1,maxLength:10000},source_ids:{type:'array',maxItems:15,items:{type:'string'}},
   proposal:{anyOf:[preparationRequestSchema,{type:'null'}]},

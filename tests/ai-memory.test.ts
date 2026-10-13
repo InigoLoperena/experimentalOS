@@ -1,6 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {knowledgeMemory,parseChat,parseKnowledge,recordMemory,selectMemory,type Knowledge,type MemorySource} from '../lib/ai-memory';
+import {campaignStateContext,knowledgeMemory,parseChat,parseKnowledge,recordMemory,selectMemory,type Knowledge,type MemorySource} from '../lib/ai-memory';
+
+test('campaign context carries paused and unknown evidence beside selected experiments without inferring launch',()=>{
+ const sources:MemorySource[]=[{id:'e',title:'Campaña preparada',kind:'experiment',date:'2026-10-13',excerpt:'Hipótesis'}, {id:'m',record_id:'e2',title:'Medición',kind:'measurement',date:'2026-10-13',excerpt:'Dato'}];
+ const result=campaignStateContext([
+  {experiment_id:'e',provider:'meta_ads',resource_type:'ad',observed_status:'paused',updated_at:'2026-10-12'},
+  {experiment_id:'e',provider:'meta_ads',resource_type:'ad',observed_status:'paused',updated_at:'2026-10-13'},
+  {experiment_id:'e2',provider:'meta_ads',resource_type:'campaign',updated_at:'2026-10-11'},
+  {experiment_id:'not-consulted',provider:'meta_ads',resource_type:'ad',observed_status:'ACTIVE'},
+ ],sources);
+ assert.equal(result.states.length,2);assert.equal(result.states[0].observed_status,'paused');assert.equal(result.states[0].count,2);
+ assert.equal(result.states[0].last_observed_at,'2026-10-13');assert.equal(result.states[1].observed_status,'unknown');
+ assert.match(result.meaning,/no verificación actual/);assert.match(result.meaning,/no demuestra lanzamiento/);
+ assert.deepEqual(campaignStateContext([],sources).states,[]);
+ const bounded=campaignStateContext(Array.from({length:200},(_,i)=>({experiment_id:'e',provider:`provider_${i}`,resource_type:'campaign',observed_status:'paused'})),sources);
+ assert.equal(bounded.states.length,100);assert.equal(bounded.available_groups,200);
+});
 
 test('memory imports preserve qualitative and quantitative source data without auto-validating it',()=>{
  const text=parseKnowledge(' Entrevistas ','Tres personas solicitaron un mapa.','text','Entrevistas 12/10','unverified');
