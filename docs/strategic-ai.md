@@ -1,6 +1,6 @@
 # IA estratégica de Xperiments
 
-La sección IA aparece debajo de Documentar aprendizajes. El selector habitual elige el proyecto; cada proyecto mantiene su contexto y su memoria. El chat puede responder preguntas estratégicas, recuperar evidencia y proponer experimentos. «Revisar y crear experimento» abre la ficha habitual; guardar usa los permisos y validaciones existentes. No se publica ninguna campaña desde el chat.
+La sección IA aparece debajo de Documentar aprendizajes. El selector habitual elige el proyecto; cada proyecto mantiene su contexto y su memoria. El chat puede responder preguntas estratégicas, recuperar evidencia y proponer experimentos. La opción «Incluir otros proyectos de mi equipo» permite comparar información autorizada de varios proyectos del mismo workspace; nunca consulta otro equipo. La conversación y cualquier nueva propuesta continúan vinculadas al proyecto seleccionado. «Revisar y crear experimento» abre la ficha habitual; guardar usa los permisos y validaciones existentes. No se publica ninguna campaña desde el chat.
 
 ```mermaid
 flowchart TD
@@ -29,7 +29,7 @@ flowchart TD
 
 ## Recuperación, seguridad y costes
 
-En esta primera versión se consultan mediante SQL paginado todas las fichas, métricas, variantes, recursos y fuentes importadas del proyecto autorizado. El contenido importado se divide en fragmentos de 2.000 caracteres. Se priorizan las coincidencias de la pregunta y la fecha, y se envía una selección de unos 28.000 caracteres más la descripción real del proyecto. Se muestra su cobertura y solo se aceptan citas a fuentes recuperadas. No se utilizan embeddings, vectores ni entrenamiento propio. Al crecer significativamente el volumen convendrá sustituir la lectura del catálogo por búsqueda PostgreSQL indexada, manteniendo el mismo contrato de fuentes y permisos.
+En esta primera versión se consultan mediante SQL paginado todas las fichas, métricas, variantes, recursos y fuentes importadas del proyecto autorizado, o del workspace autorizado si el usuario marca la opción de otros proyectos. El contenido importado se divide en fragmentos de 2.000 caracteres. Se priorizan las coincidencias de la pregunta y la fecha, y se envía una selección de unos 28.000 caracteres más la descripción real del proyecto. Se muestra su cobertura y solo se aceptan citas a fuentes recuperadas. Cada fuente conserva su proyecto. No se utilizan embeddings, vectores ni entrenamiento propio. Al crecer significativamente el volumen convendrá sustituir la lectura del catálogo por búsqueda PostgreSQL indexada, manteniendo el mismo contrato de fuentes y permisos.
 
 Las consultas usan el JWT del usuario y RLS, sin cliente service-role. Una clave compuesta y un trigger impiden vincular memoria/conversaciones a otro equipo o a fichas que no son proyectos. Crear conocimiento requiere permiso `learnings.create`; eliminarlo requiere `learnings.delete`. Crear propuestas exige `experiments.create`; cualquier miembro autorizado puede preguntar. La clave OpenAI permanece en el servidor.
 
@@ -39,8 +39,14 @@ Se utiliza el mismo modelo y clave de la preparación existente: `gpt-4.1-mini-2
 
 `public/einstein-ia.webp`: ilustración de Einstein generada con imagegen incorporado, fondo transparente, optimizada en WebP conservando alfa. Animación CSS ligera de movimiento, destellos y aparición de aprendizaje; respeta `prefers-reduced-motion`.
 
-Prompt utilizado: «Funny friendly cartoon Albert Einstein, fluffy white hair and moustache, laboratory coat, navy trousers and lime accents, experimenting with a lime bubbling flask while reading an open notebook behind a simple lab bench, transparent background, no text or logos». No servicio de generación de imágenes es necesario para mostrar la mascota.
+Prompt exacto utilizado con la herramienta incorporada imagegen:
+
+> Create a charming funny cartoon Albert Einstein mascot for a Spanish growth experimentation app. Transparent background, clean high-quality illustrated bitmap cutout. Friendly older scientist with fluffy wild white hair and moustache, expressive eyebrows, round nose, small lab coat, navy blue trousers, lime accents. Full body seated/standing behind a small simple navy lab bench, holding a lime bubbling flask in his left hand and an open notebook in his right, excited learning expression. Bright lime green, sky blue and small red science details, readable at 240px. One cohesive character, isolated centered composition, no words, no logos, no surrounding scenery, no photorealism, genuinely transparent alpha.
+
+La aplicación muestra el archivo guardado; no requiere llamadas a un servicio de generación de imágenes.
 
 ## Activación y comprobación
 
 La migración `20261013152250_ai_project_memory.sql` se aplica por separado del despliegue. Comprobar tablas con RLS y sus políticas, y `public.reserve_ai_chat` como invocador. Pruebas de la cadena completa cubren equipos ajenos, proyectos cruzados, lectores, autores falsificados, conversaciones privadas, presupuesto compartido y duplicación de solicitudes. Las pruebas de la ruta cubren autenticación, contexto acotado, ausencia de claves en el prompt, citas autorizadas y guardado privado de la respuesta.
+
+Comprobación real realizada el 13/10/2026 en producción: importación de un archivo JSON con observaciones cualitativas y cifras ficticias, recuperación y cita de su fuente en el chat, propuesta A/B, apertura de la ficha habitual, revisión humana y guardado con dos variantes. También se verificó que cambiar de Greenhunt a Greenroute cambiaba conversación y memoria, y que el historial persistía al volver al proyecto. La fuente, conversación y experimento creados para la prueba fueron retirados después de comprobarlos. La migración quedó aplicada y se verificó que ambas tablas tienen RLS y tres políticas, y que el RPC público de presupuesto es invocador. Una propuesta con parámetros opcionales inválidos conserva la respuesta y los campos comunes válidos, muestra una advertencia y descarta la configuración de ejecución inválida para revisión.

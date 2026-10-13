@@ -2482,7 +2482,7 @@ export default function Home() {
             </>
           )}
           {view === "method" && <Method />}
-          {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record)setSelected(record);}}/>}
+          {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record){if(record.kind==='project')setProjectId(record.id);else if(record.project_id)setProjectId(record.project_id);setSelected(record);}}}/>}
           {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Innovation OS · Imagine Builder</span>

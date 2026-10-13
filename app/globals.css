@@ -2839,3 +2839,5 @@ nav button,
 @media(max-width:1000px){.ai-columns { grid-template-columns:minmax(0,1fr); }}
 @media(max-width:600px){.ai-welcome { flex-direction:column;gap:12px; }.ai-mascot { flex-basis:auto; }.ai-flow-row { flex-direction:column; }.ai-flow-row>span { width:100%; }.ai-question { margin-left:0; }.ai-welcome h2 { font-size:23px; }}
 @media(prefers-reduced-motion:reduce){.ai-mascot img,.ai-mascot-spark,.ai-mascot-learning { animation:none; }.ai-mascot-learning { opacity:1; }}
+
+.ai-scope-toggle { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); }.ai-scope-toggle input { width:auto; }

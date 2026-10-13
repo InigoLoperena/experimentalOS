@@ -16,24 +16,28 @@ export async function POST(request:Request){
   if(typeof body.question!=='string'||!body.question.trim()||body.question.length>6000||!/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(body.request_id||''))throw new ApiError('Escribe una pregunta de hasta 6.000 caracteres.',400);
   const project=await authorizedProject(client,body.project_id);
   const workspace=project.workspace_id;
+  if(body.include_other_projects!==undefined&&typeof body.include_other_projects!=='boolean')throw new ApiError('Revisa el contexto de la consulta.',400);
+  const across=body.include_other_projects===true;
+  const sourceQuery=(table:string)=>{const query=client.from(table).select('*',{count:'exact'}).eq('workspace_id',workspace);return across?query:query.eq('project_id',project.id);};
   const permission=await client.rpc('can_record_action',{w:workspace,k:'experiment',a:'create'});
   if(permission.error)throw new ApiError('No se pudieron comprobar tus permisos.',503);
   const key=await resolvedOpenAIKey(client,workspace);
   if(!key?.startsWith('sk-'))throw new ApiError('Configura OpenAI en Integraciones para utilizar el chat.',503);
   const [records,knowledge,history]=await Promise.all([
-   readAllPages<Item>((from,to)=>client.from('records').select('*',{count:'exact'}).eq('workspace_id',workspace).eq('project_id',project.id).order('id').range(from,to)),
-   readAllPages<Knowledge>((from,to)=>client.from('ai_knowledge').select('*',{count:'exact'}).eq('workspace_id',workspace).eq('project_id',project.id).order('id').range(from,to)),
+   readAllPages<Item>((from,to)=>sourceQuery('records').order('id').range(from,to)),
+   readAllPages<Knowledge>((from,to)=>sourceQuery('ai_knowledge').order('id').range(from,to)),
    client.from('ai_chat_entries').select('question,answer,proposal').eq('workspace_id',workspace).eq('project_id',project.id).eq('user_id',user.id).order('created_at',{ascending:false}).order('id').limit(6),
   ]);
   if(history.error)throw new ApiError('No se pudo recuperar tu conversación.',503);
-  const sources:MemorySource[]=[recordMemory(project),...records.map(recordMemory),...knowledge.flatMap(knowledgeMemory)];
-  const [observations,variants,resources]=await Promise.all(['metric_observations','experiment_variants','external_resources'].map(table=>readAllPages<Record<string,unknown>>((from,to)=>client.from(table).select('*',{count:'exact'}).eq('workspace_id',workspace).eq('project_id',project.id).order('id').range(from,to))));
+  const sources:MemorySource[]=[recordMemory(project),...records.filter(row=>row.id!==project.id).map(recordMemory),...knowledge.flatMap(knowledgeMemory)];
+  const [observations,variants,resources]=await Promise.all(['metric_observations','experiment_variants','external_resources'].map(table=>readAllPages<Record<string,unknown>>((from,to)=>sourceQuery(table).order('id').range(from,to))));
   const titles=new Map(records.map(row=>[row.id,row.title]));
-  for(const [kind,rows] of [['measurement',observations],['variant',variants],['external_resource',resources]] as const)for(const row of rows)sources.push({id:String(row.id),kind,record_id:String(row.experiment_id),title:`${kind==='measurement'?'Medición':kind==='variant'?'Variante':'Campaña vinculada'} · ${titles.get(String(row.experiment_id))||''}`,date:String(row.updated_at||row.created_at),excerpt:JSON.stringify(row).slice(0,2000)});
+  for(const [kind,rows] of [['measurement',observations],['variant',variants],['external_resource',resources]] as const)for(const row of rows)sources.push({id:String(row.id),kind,project_id:String(row.project_id),record_id:String(row.experiment_id),title:`${kind==='measurement'?'Medición':kind==='variant'?'Variante':'Campaña vinculada'} · ${titles.get(String(row.experiment_id))||''}`,date:String(row.updated_at||row.created_at),excerpt:JSON.stringify(row).slice(0,2000)});
   const memory=selectMemory(sources,body.question);
-  if(!memory.selected.some(row=>row.id===project.id)){memory.selected.unshift(recordMemory(project));memory.coverage.included++;}
+  const projectCatalog=[project,...(across?records.filter(row=>row.kind==='project'&&row.id!==project.id):[])];
+  for(const row of projectCatalog)if(!memory.selected.some(source=>source.id===row.id)){memory.selected.unshift(recordMemory(row));memory.coverage.included++;}
   // Always carry the actual project's description and North Star, independent of relevance ranking.
-  const context={project:recordMemory(project),can_create:!!permission.data,coverage:memory.coverage,sources:memory.selected};
+  const context={project:recordMemory(project),scope:across?'workspace':'project',can_create:!!permission.data,coverage:memory.coverage,sources:memory.selected};
   const reserved=await client.rpc('reserve_ai_chat',{p_workspace:workspace,p_request:body.request_id});
   if(reserved.error)throw new ApiError(reserved.error.message,429);
   const previous=(history.data||[]).reverse().map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,1200),proposal:row.proposal?{title:row.proposal.title,fields:row.proposal.fields}:null}));
@@ -47,7 +51,7 @@ export async function POST(request:Request){
    console.warn('Strategic AI response rejected',{reason});throw new ApiError(`La respuesta de la IA necesita revisión: ${reason}`,502);
   }
   const {warning,...reply}=parsed;
-  const entry={id:body.request_id,workspace_id:workspace,project_id:project.id,user_id:user.id,question:body.question.trim(),...reply,coverage:{...memory.coverage,warning}};
+  const entry={id:body.request_id,workspace_id:workspace,project_id:project.id,user_id:user.id,question:body.question.trim(),...reply,coverage:{...memory.coverage,warning,scope:across?'workspace':'project'}};
   const saved=await client.from('ai_chat_entries').insert(entry).select('*').single();
   if(saved.error)throw new ApiError('La respuesta no se pudo guardar en tu conversación. No se ha creado ningún experimento.',503);
   return NextResponse.json({entry:saved.data as ChatEntry,reserved_usd:Number(reserved.data),monthly_limit_usd:5},{headers});
