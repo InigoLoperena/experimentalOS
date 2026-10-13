@@ -2960,32 +2960,28 @@ nav button,
 
 /* Einstein in the project AI panel, not in the application's main header. */
 .ai-intro-header {
- display:flex;
- justify-content:space-between;
- align-items:flex-start;
- gap:16px;
+ display:flow-root;
  margin-bottom:14px;
 }
-.ai-intro-copy { flex:1; min-width:0; }
+.ai-intro-copy { min-width:0; }
 .ai-intro-copy h2 { display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:21px; }
 .ai-intro-copy .ai-brain-icon {color:var(--blue-text);flex-shrink:0}
-.ai-intro-copy .ai-chat-intro {max-width:70ch;margin:0}
+.ai-intro-copy .ai-chat-intro {max-width:none;width:auto;margin:0}
 .ai-project-mascot {
  display:block;
+ float:right;
  width:clamp(115px,14vw,165px);
  height:auto;
- flex:0 0 auto;
+ margin:0 0 8px 16px;
  object-fit:contain;
  pointer-events:none;
  background:transparent;
 }
 @media(max-width:800px) {
- .ai-intro-header{gap:10px}
- .ai-project-mascot{width:120px}
+ .ai-project-mascot{width:120px;margin-left:12px}
 }
 @media(max-width:480px) {
- .ai-intro-header{gap:8px}
  .ai-intro-copy h2{font-size:18px}
- .ai-project-mascot{width:88px}
+ .ai-project-mascot{width:88px;margin-left:8px}
  .ai-intro-copy .ai-chat-intro{font-size:12px}
 }
