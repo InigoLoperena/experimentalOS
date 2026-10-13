@@ -75,8 +75,10 @@ test("the full-data service scopes every query to the authenticated workspace an
   tables.meta_campaign_preparations=[]; tables.meta_preparation_runs=[];
   tables.meta_preparation_steps=[{request_id:'request',run_id:'run',status:'succeeded',result:{id:'123'}}];
   tables.integration_connections=[{id:'connection',provider:'meta',config:{account_id:'123'}}];
+  tables.ai_knowledge=[{id:'knowledge',title:'Entrevista',content:'Información cualitativa',project_id:'p',validation:'unverified'}];
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 13); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(queries.length, 14); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(JSON.parse(backupJson(backup)).monitoring.ai_knowledge[0].content,'Información cualitativa');
   assert.equal(backup.schema_version,6); assert.equal(backup.monitoring?.metric_observations[0].value,12);
   assert.equal(backup.monitoring?.meta_preparation_steps[0].request_id,'request');
   assert.ok(backup.notes.some(note=>note.includes('no se exportan')));

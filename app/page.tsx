@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   ArrowUpRight,
   BookOpen,
+  BrainCircuit,
   Check,
   ChevronDown,
   ChevronRight,
@@ -39,6 +40,8 @@ import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
+import { StrategicAI } from './strategic-ai';
+import {applyPreparation,type Preparation} from '@/lib/ai-preparation';
 import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
 import {IntegrationSettings} from './integration-settings';
 import {MemberPermissions} from './member-permissions';
@@ -65,7 +68,7 @@ import {
   score,
   validate,
 } from "@/lib/model";
-type View = "experiments" | "projects" | "learning" | "team" | "integrations" | "map" | "goals" | "input_metrics" | "opportunities" | "ideas" | "method";
+type View = "experiments" | "projects" | "learning" | "ai" | "team" | "integrations" | "map" | "goals" | "input_metrics" | "opportunities" | "ideas" | "method";
 type Workspace = { id: string; name?: string };
 type Invitation = {
   id: string;
@@ -256,6 +259,7 @@ const nav: { id: View; label: string; icon: typeof Star }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
+  { id: "ai", label: "IA", icon: BrainCircuit },
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
@@ -442,7 +446,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view);
+  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai"].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -980,6 +984,12 @@ export default function Home() {
       created_by: user?.id || null,
       updated_by: user?.id || null,
     });
+  }
+  function openAIProposal(proposal:Preparation){
+    if(!workspace||!currentProject||!can('experiment','create')||(!demo&&!schemaReady))return;
+    setError('');setDraftFiles([]);setView('experiments');
+    setDraft({id:crypto.randomUUID(),workspace_id:workspace.id,project_id:currentProject.id,kind:'experiment',parent_id:null,related_id:null,title:proposal.title,owner_id:user?.id||null,
+      fields:{impact:5,confidence:5,ease:5,...applyPreparation({},proposal)},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:user?.id||null,updated_by:user?.id||null});
   }
   async function save(prepareMeta=false) {
     if (!draft || saving || attachmentsBusy || assistantBusy) return;
@@ -1772,6 +1782,8 @@ export default function Home() {
               <p>
                 {view === "map"
                   ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
+                  : view === "ai"
+                    ? "Tu asistente estratégico, con la memoria de tus proyectos y experimentos."
                   : view === "experiments"
                     ? "Documenta qué vas a probar y cómo sabrás si funciona."
                     : view === "learning"
@@ -2470,6 +2482,7 @@ export default function Home() {
             </>
           )}
           {view === "method" && <Method />}
+          {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record)setSelected(record);}}/>}
           {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Innovation OS · Imagine Builder</span>
