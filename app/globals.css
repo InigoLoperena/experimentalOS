@@ -919,12 +919,12 @@ main {
 .north-star {
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 14px;
   width: 100%;
   border-radius: 12px;
   background: var(--surface);
   color: white;
-  padding: 26px;
+  padding: 16px 18px;
   text-align: left;
   position: relative;
   overflow: hidden;
@@ -933,8 +933,8 @@ main {
 .north-icon {
   background: var(--surface-raised);
   color: var(--lime);
-  width: 58px;
-  height: 58px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--border);
   border-radius: 14px;
   display: grid;
@@ -951,7 +951,7 @@ main {
   font-weight: 600;
 }
 .north-content h2 {
-  font-size: 25px;
+  font-size: 20px;
   letter-spacing: -0.6px;
   margin: 5px 0;
 }
@@ -971,7 +971,7 @@ main {
   margin-left: 20px;
 }
 .north-value > strong {
-  font-size: 36px;
+  font-size: 28px;
   display: block;
   line-height: 1.2;
   letter-spacing: -1px;
@@ -1007,18 +1007,18 @@ main {
   background: var(--lime);
 }
 .north-star.compact {
-  gap: 14px;
-  padding: 16px 18px;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: 9px;
   box-shadow: none;
 }
 .north-star.compact .north-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
 }
 .north-star.compact .north-content h2 {
-  font-size: 18px;
+  font-size: 16px;
   margin: 3px 0 4px;
 }
 .north-star.compact .north-content p {
@@ -2850,3 +2850,32 @@ nav button,
 .voice-spinner { animation:voice-spin 1s linear infinite; }.voice-input>small { display:block;font-size:12px;line-height:1.5; }.voice-input .error { margin:0; }.voice-notice { color:var(--lime);margin:0; }.voice-review label { display:grid;gap:7px; }.voice-review textarea { width:100%; }.voice-review .btn { margin-top:8px; }
 @keyframes voice-pulse { 50%{opacity:.3;} } @keyframes voice-spin { to{transform:rotate(360deg);} }
 @media(prefers-reduced-motion:reduce){.voice-dot,.voice-spinner { animation:none; }}
+
+/* Dictation and send controls embedded in the AI text field. */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.ai-text-entry{position:relative;width:100%}
+.ai-text-entry>textarea{display:block;width:100%;min-height:108px;padding:14px 16px 60px;border-radius:19px;background:var(--field);border:1px solid var(--border);resize:vertical;color:var(--ink)}
+.ai-text-entry>textarea:focus{border-color:var(--blue);outline:2px solid rgba(50,133,228,.2);outline-offset:0}
+.ai-text-entry-actions{position:absolute;bottom:12px;right:12px;display:flex;gap:5px;align-items:center}
+.ai-send-button{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;color:var(--charcoal);background:var(--lime)}
+.ai-send-button:not(:disabled):hover{background:#d0ff8b}
+.ai-send-button:disabled{background:var(--surface-raised);color:var(--muted);opacity:.7;cursor:not-allowed}
+.ai-text-entry .voice-input{position:relative;display:block;min-width:38px;margin:0;padding:0;z-index:2}
+.ai-text-entry .voice-controls{display:flex;gap:2px;align-items:center;justify-content:flex-end;flex-wrap:nowrap}
+.ai-text-entry .voice-action{display:grid;place-items:center;border:0;width:38px;height:38px;border-radius:50%;background:transparent;color:var(--ink);padding:0}
+.ai-text-entry .voice-action:not(:disabled):hover{background:var(--surface-raised);color:var(--lime)}
+.ai-text-entry .voice-action:disabled{opacity:.45;cursor:not-allowed}
+.ai-text-entry .voice-stop{color:var(--red-text);background:var(--red-tint)}
+.ai-text-entry .voice-progress{display:grid;place-items:center;width:38px;height:38px}
+.ai-text-entry .voice-timer{position:absolute;bottom:calc(100% + 8px);right:0;padding:4px 7px;border:1px solid var(--border);border-radius:9px;background:var(--surface-raised);white-space:nowrap;font-size:12px}
+.ai-text-entry .voice-feedback{position:absolute;top:calc(100% + 14px);right:0;z-index:8;width:min(310px,85vw);padding:10px 12px;background:var(--surface-raised);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 25px #0006;font-size:12px}
+.ai-text-entry .voice-review{width:min(345px,85vw)}
+.ai-text-entry .voice-review textarea{width:100%}
+.ai-text-entry .voice-retry-actions{display:flex;gap:6px;flex-wrap:wrap}
+.ai-composer{display:block;padding-top:16px}
+.ai-composer .ai-text-entry{margin:0}
+.ai-chat-intro{font-size:14px;line-height:1.55;margin:-7px 0 20px;max-width:750px}
+.ai-research-guide-link{display:inline-flex;gap:7px;align-items:center;margin:10px 0 0;font-size:13px;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.ai-research-guide-link:hover{color:var(--lime)}
+.ai-followup-entry{margin:14px 0 12px}
+@media(max-width:500px){.ai-text-entry>textarea{min-height:116px}.ai-text-entry-actions{right:9px;bottom:9px}}

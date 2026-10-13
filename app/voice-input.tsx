@@ -44,15 +44,17 @@ export function VoiceInput(props:Props){
  const locked=props.disabled||!props.projectId||!supabase||available!==true;
  return <div className="voice-input">
   <div className="voice-controls">
-   {phase==='idle'?<button type="button" className="btn voice-mic" aria-label={props.label||'Grabar audio para dictar'} title="Grabar audio para convertirlo en texto" disabled={locked||props.value.length>=props.maxLength||!!pendingText} onClick={()=>{setError('');setNotice('');clip.current=null;setRetry(false);void recorder.current?.start();}}><Mic size={18}/><span>Dictar</span></button>:phase==='recording'?<button type="button" className="btn voice-stop" onClick={()=>recorder.current?.stop()} aria-label="Terminar grabación y transcribir"><Square size={16}/><span>Terminar y transcribir</span></button>:<span className="voice-progress" role="status"><LoaderCircle size={17} className="voice-spinner"/>{phase==='requesting'?'Esperando permiso del micrófono…':'Transcribiendo…'}</span>}
-   {phase==='recording'&&<span className="voice-timer" role="timer" aria-label={`${seconds} segundos grabados`}><span aria-hidden="true" className="voice-dot"/> {Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')} / 1:30</span>}
-   {phase!=='idle'&&<button type="button" className="btn" onClick={cancel} aria-label="Cancelar dictado"><X size={16}/>Cancelar</button>}
-   {retry&&phase==='idle'&&<button type="button" className="btn" disabled={props.disabled} onClick={()=>{if(clip.current)void transcribe(clip.current);}}><RotateCcw size={16}/>Reintentar transcripción</button>}
-   {(retry||pendingText)&&phase==='idle'&&<button type="button" className="btn" onClick={cancel}>Descartar dictado</button>}
+   {phase==='idle'?<button type="button" className="voice-action voice-mic" aria-label={props.label||'Dictar texto'} title="Dictar texto" disabled={locked||props.value.length>=props.maxLength||!!pendingText} onClick={()=>{setError('');setNotice('');clip.current=null;setRetry(false);void recorder.current?.start();}}><Mic size={18}/></button>:phase==='recording'?<button type="button" className="voice-action voice-stop" onClick={()=>recorder.current?.stop()} title="Terminar y transcribir" aria-label="Terminar y transcribir"><Square size={16}/></button>:<span className="voice-progress" role="status" title={phase==='requesting'?'Solicitando micrófono':'Transcribiendo voz'}><LoaderCircle size={18} className="voice-spinner"/><span className="sr-only">{phase==='requesting'?'Esperando permiso del micrófono…':'Transcribiendo…'}</span></span>}
+   {phase==='recording'&&<span className="voice-timer" role="timer" aria-label={seconds+' segundos grabados'}><span aria-hidden="true" className="voice-dot"/> {Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')}</span>}
+   {phase!=='idle'&&<button type="button" className="voice-action voice-cancel" title="Cancelar dictado" onClick={cancel} aria-label="Cancelar dictado"><X size={16}/></button>}
   </div>
-  <small className="muted">Hasta 90 segundos. Al terminar, el audio se envía a OpenAI para transcribirlo y no se guarda en Xperiments. Cada transcripción reserva 0,03 USD del límite de IA del equipo.</small>
-  {available===false&&<p className="small">Tu navegador no permite grabar aquí. Abre la aplicación con HTTPS en un navegador compatible; puedes seguir escribiendo.</p>}
-  {error&&<p className="error" role="alert">{error}</p>}{notice&&<p className="small voice-notice" role="status">{notice}</p>}
-  {pendingText&&<div className="voice-review"><label>Revisa o acorta la transcripción<textarea rows={4} value={pendingText} onChange={event=>setPendingText(event.target.value)}/></label><button type="button" className="btn" disabled={!pendingText.trim()||props.disabled} onClick={addPending}>Añadir texto</button></div>}
+  {(retry||pendingText)&&phase==='idle'&&<div className="voice-feedback voice-retry-actions">
+   {retry&&<button type="button" className="btn" disabled={props.disabled} onClick={()=>{if(clip.current)void transcribe(clip.current);}}><RotateCcw size={16}/>Reintentar</button>}
+   <button type="button" className="btn" onClick={cancel}>Descartar</button>
+  </div>}
+  {available===false&&<p className="voice-feedback small">El micrófono necesita HTTPS y un navegador compatible.</p>}
+  {error&&<p className="voice-feedback error" role="alert">{error}</p>}
+  {notice&&<p className="voice-feedback small voice-notice" role="status">{notice}</p>}
+  {pendingText&&<div className="voice-review voice-feedback"><label>Revisa la transcripción<textarea rows={4} value={pendingText} onChange={event=>setPendingText(event.target.value)}/></label><button type="button" className="btn" disabled={!pendingText.trim()||props.disabled} onClick={addPending}>Añadir texto</button></div>}
  </div>;
 }

@@ -19,7 +19,7 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Star,
+  Compass,
   Target,
   BarChart3,
   Users,
@@ -255,7 +255,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
   );
 }
 
-const nav: { id: View; label: string; icon: typeof Star }[] = [
+const nav: { id: View; label: string; icon: typeof Compass }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
@@ -278,7 +278,7 @@ function GoalTypeIcon({ item, size = 16 }: { item: Item; size?: number }) {
 function IconFor({ kind }: { kind: Kind }) {
   const I =
     kind === "north_star"
-      ? Star
+      ? Compass
       : kind === "experiment"
         ? FlaskConical
         : kind === "idea"
@@ -1201,7 +1201,7 @@ export default function Home() {
     if (!metric) {
       return (
         <div className={"north-star north-star-empty" + (compact ? " compact" : "")}>
-          <div className="north-icon"><Star size={compact ? 20 : 28} /></div>
+          <div className="north-icon"><Compass size={compact ? 20 : 28} /></div>
           <div className="north-content">
             <span>NORTH STAR METRIC</span>
             <h2>Sin definir</h2>
@@ -1216,7 +1216,7 @@ export default function Home() {
         className={"north-star" + (compact ? " compact" : "")}
         onClick={() => setSelected(stored || project)}
       >
-        <div className="north-icon"><Star size={compact ? 20 : 28} /></div>
+        <div className="north-icon"><Compass size={compact ? 20 : 28} /></div>
         <div className="north-content">
           <span>NORTH STAR METRIC</span>
           <h2>{metric.title}</h2>
@@ -1935,7 +1935,7 @@ export default function Home() {
               {nsm ? (
                 <button className="north-star" onClick={() => storedNsm ? setSelected(storedNsm) : setSelected(currentProject)}>
                   <div className="north-icon">
-                    <Star size={28} />
+                    <Compass size={28} />
                   </div>
                   <div className="north-content">
                     <span>NORTH STAR METRIC</span>
