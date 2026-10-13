@@ -33,7 +33,7 @@ export function AIPromptComposer({id,projectId,purpose,value,onChange,maxLength,
  function onDrop(e:DragEvent<HTMLDivElement>){e.preventDefault();e.stopPropagation();setDragging(false);add(Array.from(e.dataTransfer.files));}
  function onDragOver(e:DragEvent<HTMLDivElement>){e.preventDefault();if(allowFiles&&!disabled)setDragging(true);}
  function send(){if(canUse&&(value.trim()||files.length>0))onSubmit();}
- function keyDown(event:KeyboardEvent<HTMLTextAreaElement>){if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();send();}}
+ function keyDown(event:KeyboardEvent<HTMLTextAreaElement>){if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();send();}}
  function selectFile(event:ChangeEvent<HTMLInputElement>){add(Array.from(event.target.files||[]));event.target.value='';}
  return <div className={`ai-prompt-composer ${dragging?'ai-dragging':''}`} onDrop={onDrop} onDragOver={onDragOver} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setDragging(false);}}>
   {files.length>0&&<div className="ai-file-list" aria-label="Archivos adjuntos">{files.map((file,index)=><span className="ai-file-chip" key={index} title={file.name}><Paperclip size={13}/><span>{file.name}</span><button type="button" disabled={!canUse} aria-label={`Quitar ${file.name}`} onClick={()=>{onFiles(files.filter((_,i)=>i!==index));setError('');}}><X size={13}/></button></span>)}</div>}
