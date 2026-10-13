@@ -2958,15 +2958,34 @@ nav button,
 .ai-chat .ai-chat-intro{margin-bottom:16px}
 @media(max-width:500px){.ai-compose-line textarea{font-size:13px}.ai-compose-actions{gap:0}.ai-file-chip span{max-width:140px}}
 
-/* IA: transparent artwork, directly under the Exportar header, and simple brain icon. */
-.main-shell{position:relative}
-.ai-topright-mascot{position:absolute;top:74px;right:clamp(230px, 21vw, 340px);width:405px;height:auto;pointer-events:none;object-fit:contain;background:transparent;z-index:1}
-.ai-topright-mascot + main .page-heading{padding-right:480px;min-height:385px}
-.ai-intro-copy{min-width:0}
-.ai-intro-copy h2{display:flex;align-items:center;gap:11px;margin:0 0 13px;font-size:21px}
-.ai-intro-copy .ai-brain-icon{color:var(--blue-text);flex-shrink:0}
-.ai-intro-copy .ai-chat-intro{max-width:75ch;margin:0 0 15px}
-@media(max-width:1400px){.ai-topright-mascot{right:180px;width:340px}.ai-topright-mascot + main .page-heading{padding-right:385px;min-height:320px}}
-@media(max-width:1100px){.ai-topright-mascot{right:90px;top:76px;width:260px}.ai-topright-mascot + main .page-heading{padding-right:295px;min-height:245px}}
-@media(max-width:800px){.ai-topright-mascot{right:26px;top:78px;width:140px}.ai-topright-mascot + main .page-heading{padding-right:155px;min-height:125px}}
-@media(max-width:480px){.ai-topright-mascot{right:12px;top:78px;width:92px}.ai-topright-mascot + main .page-heading{padding-right:100px;min-height:95px}.ai-intro-copy h2{font-size:19px}}
+/* Einstein in the project AI panel, not in the application's main header. */
+.ai-intro-header {
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ gap:16px;
+ margin-bottom:14px;
+}
+.ai-intro-copy { flex:1; min-width:0; }
+.ai-intro-copy h2 { display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:21px; }
+.ai-intro-copy .ai-brain-icon {color:var(--blue-text);flex-shrink:0}
+.ai-intro-copy .ai-chat-intro {max-width:70ch;margin:0}
+.ai-project-mascot {
+ display:block;
+ width:clamp(115px,14vw,165px);
+ height:auto;
+ flex:0 0 auto;
+ object-fit:contain;
+ pointer-events:none;
+ background:transparent;
+}
+@media(max-width:800px) {
+ .ai-intro-header{gap:10px}
+ .ai-project-mascot{width:120px}
+}
+@media(max-width:480px) {
+ .ai-intro-header{gap:8px}
+ .ai-intro-copy h2{font-size:18px}
+ .ai-project-mascot{width:88px}
+ .ai-intro-copy .ai-chat-intro{font-size:12px}
+}

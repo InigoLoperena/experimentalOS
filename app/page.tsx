@@ -1758,7 +1758,6 @@ export default function Home() {
             </button>
           </div>
         </header>
-        {view === "ai" && <img className="ai-topright-mascot" src="/einstein-thinking-transparent.webp" width={135} height={123} alt="Albert Einstein pensando, con bombilla, probeta y una pizarra con E = mc²" loading="eager" decoding="async"/>}
         <main>
           {demo && (
             <div className="demo-banner">
@@ -1779,6 +1778,7 @@ export default function Home() {
               </button>
             </div>
           )}
+          {view !== "ai" && (
           <div className="page-heading">
             <div>
               <span className="eyebrow">
@@ -1830,6 +1830,7 @@ export default function Home() {
               )}
             </div>
           </div>
+          )}
           {error && !draft && (
             <div role="alert" className="error">
               {error}
