@@ -2960,11 +2960,13 @@ nav button,
 
 /* IA: transparent artwork, directly under the Exportar header, and simple brain icon. */
 .main-shell{position:relative}
-.ai-topright-mascot{position:absolute;top:76px;right:38px;width:135px;height:auto;pointer-events:none;object-fit:contain;background:transparent;z-index:1}
-.ai-topright-mascot + main .page-heading{padding-right:150px;min-height:120px}
+.ai-topright-mascot{position:absolute;top:74px;right:clamp(230px, 21vw, 340px);width:405px;height:auto;pointer-events:none;object-fit:contain;background:transparent;z-index:1}
+.ai-topright-mascot + main .page-heading{padding-right:480px;min-height:385px}
 .ai-intro-copy{min-width:0}
 .ai-intro-copy h2{display:flex;align-items:center;gap:11px;margin:0 0 13px;font-size:21px}
 .ai-intro-copy .ai-brain-icon{color:var(--blue-text);flex-shrink:0}
 .ai-intro-copy .ai-chat-intro{max-width:75ch;margin:0 0 15px}
-@media(max-width:800px){.ai-topright-mascot{right:26px;top:75px;width:108px}.ai-topright-mascot + main .page-heading{padding-right:116px;min-height:110px}}
-@media(max-width:480px){.ai-topright-mascot{right:13px;top:77px;width:80px}.ai-topright-mascot + main .page-heading{padding-right:85px;min-height:92px}.ai-intro-copy h2{font-size:19px}}
+@media(max-width:1400px){.ai-topright-mascot{right:180px;width:340px}.ai-topright-mascot + main .page-heading{padding-right:385px;min-height:320px}}
+@media(max-width:1100px){.ai-topright-mascot{right:90px;top:76px;width:260px}.ai-topright-mascot + main .page-heading{padding-right:295px;min-height:245px}}
+@media(max-width:800px){.ai-topright-mascot{right:26px;top:78px;width:140px}.ai-topright-mascot + main .page-heading{padding-right:155px;min-height:125px}}
+@media(max-width:480px){.ai-topright-mascot{right:12px;top:78px;width:92px}.ai-topright-mascot + main .page-heading{padding-right:100px;min-height:95px}.ai-intro-copy h2{font-size:19px}}
