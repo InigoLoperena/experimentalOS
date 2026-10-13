@@ -4,7 +4,6 @@ import type { User } from "@supabase/supabase-js";
 import {
   ArrowUpRight,
   BookOpen,
-  BrainCircuit,
   Check,
   ChevronDown,
   ChevronRight,
@@ -41,6 +40,7 @@ import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { ExperimentAssistant } from "./experiment-assistant";
 import { StrategicAI } from './strategic-ai';
+import { AIBrainChipIcon } from './ai-brain-chip-icon';
 import {applyPreparation,type Preparation} from '@/lib/ai-preparation';
 import {ExperimentExecution,ExecutionDetails} from './experiment-execution';
 import {IntegrationSettings} from './integration-settings';
@@ -255,11 +255,11 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
   );
 }
 
-const nav: { id: View; label: string; icon: typeof Compass }[] = [
+const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainChipIcon }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
-  { id: "ai", label: "IA", icon: BrainCircuit },
+  { id: "ai", label: "IA", icon: AIBrainChipIcon },
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },

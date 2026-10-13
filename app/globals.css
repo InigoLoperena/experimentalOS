@@ -2957,3 +2957,73 @@ nav button,
 .ai-chat .ai-messages:empty{display:none}
 .ai-chat .ai-chat-intro{margin-bottom:16px}
 @media(max-width:500px){.ai-compose-line textarea{font-size:13px}.ai-compose-actions{gap:0}.ai-file-chip span{max-width:140px}}
+
+/* Project AI illustration and recognizable full-brain / microchip mark. */
+.ai-brain-chip-icon {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: currentColor;
+  vertical-align: middle;
+}
+.ai-brain-chip-core {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  transform: translate(-50%, -50%);
+  color: var(--lime);
+  background: var(--surface);
+  border-radius: 2px;
+  padding: 1px;
+  box-sizing: content-box;
+}
+.ai-intro-header {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(12px, 2vw, 28px);
+  justify-content: space-between;
+  margin: 0 0 16px;
+}
+.ai-intro-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ai-intro-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 13px;
+  font-size: clamp(19px, 2vw, 23px);
+}
+.ai-intro-header .ai-brain-chip-icon {
+  color: var(--blue-text);
+}
+.ai-intro-header .ai-chat-intro {
+  max-width: 65ch;
+  margin: 0;
+}
+.ai-einstein-illustration {
+  width: clamp(135px, 16vw, 185px);
+  height: auto;
+  flex: 0 0 auto;
+  display: block;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(130, 198, 255, .3);
+  object-fit: contain;
+}
+.sidebar .ai-brain-chip-core {
+  background: var(--charcoal);
+}
+@media(max-width: 700px) {
+  .ai-intro-header { align-items: center; }
+  .ai-einstein-illustration { width: 110px; }
+}
+@media(max-width: 480px) {
+  .ai-intro-header { gap: 9px; }
+  .ai-einstein-illustration { width: 82px; border-radius: 10px; }
+  .ai-intro-header h2 { gap: 7px; font-size: 18px; }
+  .ai-intro-header .ai-chat-intro { font-size: 12px; }
+}
