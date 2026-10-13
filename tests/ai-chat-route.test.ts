@@ -24,11 +24,11 @@ for(const across of [false,true])test(`strategic chat uses ${across?'authorized 
    assert.doesNotMatch(body.input[0].content[0].text,/sk-unit-test/);
    assert.match(body.input[0].content[0].text,/campaign_statuses/);assert.match(body.input[0].content[0].text,/paused/);
    assert.match(body.instructions,/no demuestran publicación ni ejecución/);assert.match(body.instructions,/estados estructurados tienen prioridad/);
-   return json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({answer:'Según las entrevistas, probar un mapa es una hipótesis.',source_ids:['55555555-5555-4555-8555-555555555555','fabricated'],proposal:{ignored:'reader has no create permission'}})}]}]});
+   return json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({answer:'Según las entrevistas, probar un mapa es una hipótesis.\n\nSe han ejecutado campañas A/B.',source_ids:['55555555-5555-4555-8555-555555555555','fabricated'],proposal:{ignored:'reader has no create permission'}})}]}]});
   }
   if(path.startsWith('/rest/v1/')){
    if(options?.method==='POST'){
-    assert.equal(path,'/rest/v1/ai_chat_entries');const entry=JSON.parse(String(options.body));assert.equal(entry.user_id,u);assert.equal(entry.project_id,p);assert.equal(entry.workspace_id,w);assert.equal(entry.proposal,null);assert.equal(entry.sources.length,1);return json({...entry,created_at:'2026-10-13'});
+    assert.equal(path,'/rest/v1/ai_chat_entries');const entry=JSON.parse(String(options.body));assert.equal(entry.user_id,u);assert.equal(entry.project_id,p);assert.equal(entry.workspace_id,w);assert.equal(entry.proposal,null);assert.equal(entry.sources.length,1);assert.doesNotMatch(entry.answer,/Se han ejecutado/);assert.match(entry.answer,/Hay campañas o anuncios preparados/);return json({...entry,created_at:'2026-10-13'});
    }
    assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),path==='/rest/v1/ai_chat_entries'||!across?`eq.${p}`:null);
    if(path==='/rest/v1/ai_chat_entries')assert.equal(url.searchParams.get('user_id'),`eq.${u}`);

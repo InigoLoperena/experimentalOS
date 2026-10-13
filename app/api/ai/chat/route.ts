@@ -3,7 +3,7 @@ import {readJsonBody} from '@/lib/request-body';
 import {ApiError,authenticatedClient,authorizedProject} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
 import {readAllPages} from '@/lib/backup-service';
-import {chatInstructions,campaignStateInstructions,campaignStateContext,chatSchema,knowledgeMemory,parseChat,recordMemory,selectMemory,type ChatEntry,type Knowledge,type MemorySource} from '@/lib/ai-memory';
+import {chatInstructions,campaignStateInstructions,campaignStateContext,groundCampaignExecution,chatSchema,knowledgeMemory,parseChat,recordMemory,selectMemory,type ChatEntry,type Knowledge,type MemorySource} from '@/lib/ai-memory';
 import type {Item} from '@/lib/model';
 
 export const runtime='nodejs';
@@ -51,6 +51,7 @@ export async function POST(request:Request){
    console.warn('Strategic AI response rejected',{reason});throw new ApiError(`La respuesta de la IA necesita revisión: ${reason}`,502);
   }
   const {warning,...reply}=parsed;
+  reply.answer=groundCampaignExecution(reply.answer,context.campaign_statuses,observations);
   const entry={id:body.request_id,workspace_id:workspace,project_id:project.id,user_id:user.id,question:body.question.trim(),...reply,coverage:{...memory.coverage,warning,scope:across?'workspace':'project'}};
   const saved=await client.from('ai_chat_entries').insert(entry).select('*').single();
   if(saved.error)throw new ApiError('La respuesta no se pudo guardar en tu conversación. No se ha creado ningún experimento.',503);

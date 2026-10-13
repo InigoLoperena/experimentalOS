@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {campaignStateContext,knowledgeMemory,parseChat,parseKnowledge,recordMemory,selectMemory,type Knowledge,type MemorySource} from '../lib/ai-memory';
+import {campaignStateContext,groundCampaignExecution,knowledgeMemory,parseChat,parseKnowledge,recordMemory,selectMemory,type Knowledge,type MemorySource} from '../lib/ai-memory';
+
+test('unfounded campaign execution in a model summary is corrected without inventing non-execution or altering evidence-backed text',()=>{
+ const states=campaignStateContext([{experiment_id:'e',provider:'meta_ads',resource_type:'campaign',observed_status:'paused'}],[{id:'e',kind:'experiment',title:'Meta',date:'2026-10-13',excerpt:''}]);
+ for(const claim of ['Se han lanzado campañas A/B en Meta Ads.','Se han ejecutado campañas A/B, sin resultados observados.','Las campañas han sido publicadas.']){
+  const result=groundCampaignExecution(`1. Descripción del proyecto.\n\n2. ${claim}`,states,[]);
+  assert.match(result,/1\. Descripción del proyecto/);assert.doesNotMatch(result,/Se han (lanzado|ejecutado)/);assert.match(result,/2\. Hay campañas/);assert.match(result,/hay que comprobar/);
+ }
+ const negative='No se han ejecutado campañas; falta comprobarlas.';
+ assert.equal(groundCampaignExecution(negative,states,[]),negative);
+ const supported='Se han ejecutado campañas con 20 impresiones registradas.';
+ assert.equal(groundCampaignExecution(supported,states,[{experiment_id:'e',value:20,unit:'count'}]),supported);
+ assert.notEqual(groundCampaignExecution(supported,states,[{experiment_id:'other',value:20,unit:'count'}]),supported);
+});
 
 test('campaign context carries paused and unknown evidence beside selected experiments without inferring launch',()=>{
  const sources:MemorySource[]=[{id:'e',title:'Campaña preparada',kind:'experiment',date:'2026-10-13',excerpt:'Hipótesis'}, {id:'m',record_id:'e2',title:'Medición',kind:'measurement',date:'2026-10-13',excerpt:'Dato'}];

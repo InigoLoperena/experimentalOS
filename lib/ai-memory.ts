@@ -57,6 +57,22 @@ export function campaignStateContext(resources:Record<string,unknown>[],sources:
  const rows=[...groups.values()].sort((a,b)=>b.last_observed_at.localeCompare(a.last_observed_at));
  return {states:rows.slice(0,100),available_groups:rows.length,included_groups:Math.min(rows.length,100),meaning:'Último estado guardado, no verificación actual del proveedor. La ausencia de datos no demuestra lanzamiento ni ejecución.'};
 }
+// A model can repeat an old chat claim despite updated context. Correct this
+// specific unsupported assertion before displaying or persisting a new answer.
+export function groundCampaignExecution(answer:string,states:ReturnType<typeof campaignStateContext>,observations:Record<string,unknown>[]){
+ if(!states.states.length)return answer;
+ const ids=new Set(states.states.map(row=>row.experiment_id));
+ const evidence=observations.some(row=>ids.has(String(row.experiment_id))&&Number(row.value)>0&&['count','currency'].includes(String(row.unit)));
+ if(evidence||states.states.some(row=>/^(active|running|delivering)$/i.test(row.observed_status)))return answer;
+ const claim=/\b(?:se\s+(?:han\s+|ha\s+)?(?:ejecutado|lanzado|publicado|activado|realizado)|(?:han|ha)\s+sido\s+(?:ejecutadas?|lanzadas?|publicadas?|activadas?|realizadas?)|se\s+(?:ejecutaron|lanzaron|publicaron|activaron|realizaron))\b/gi;
+ return answer.split(/\n\s*\n/).map(paragraph=>{
+  if(!/\b(campa[ñn]as?|anuncios?|campaigns?|ads)\b/i.test(paragraph))return paragraph;
+  const unsupported=[...paragraph.matchAll(claim)].some(match=>!/\b(no|nunca|tampoco)\s*$/i.test(paragraph.slice(0,match.index)));
+  if(!unsupported)return paragraph;
+  const prefix=/^\s*\d+[.)]\s*/.exec(paragraph)?.[0]||'';
+  return prefix+'Hay campañas o anuncios preparados o vinculados. Los últimos estados guardados no confirman su ejecución y el contexto consultado no contiene mediciones positivas de esos recursos. No se puede afirmar que se hayan lanzado o ejecutado; hay que comprobar su estado y resultados en la plataforma.';
+ }).join('\n\n');
+}
 export const campaignStateInstructions=' Las campañas creadas, propuestas, vinculadas o programadas no demuestran publicación ni ejecución. Una fecha de inicio es prevista, no una prueba de lanzamiento. context.campaign_statuses contiene los últimos estados guardados de los recursos asociados a las fichas consultadas, con fecha y cobertura. Si el estado es paused/PAUSED, draft/DRAFTED, prepared, unknown o no está disponible, describe la campaña como preparada, vinculada o pendiente de confirmar; nunca como lanzada, publicada o activa. Un estado guardado antiguo no confirma el estado actual: señala esa limitación. No deduzcas resultados ni ejecución de un título, hipótesis, copy, objetivo, presupuesto o historial de chat. El historial puede contener afirmaciones anteriores equivocadas: los estados estructurados tienen prioridad. Incluso una campaña activa no demuestra resultados ni causalidad. Solo afirma ejecución si existe evidencia explícita, identificando la fuente y fecha; no equipares la existencia de un experimento con una prueba realizada.';
 
 export const chatSchema={type:'object',additionalProperties:false,required:['answer','source_ids','proposal'],properties:{
