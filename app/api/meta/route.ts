@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import { authenticatedClient, authorizedProject, ApiError } from '@/lib/server-access';
 import { metaAccount, metaCampaigns, metaReport,metaJson,metaId,metaIdentity } from '@/lib/meta-ads';
 import {resolvedMetaConnection} from '@/lib/integration-service';
@@ -10,10 +11,7 @@ const headers = {'Cache-Control':'private, no-store'};
 export async function POST(request: Request) {
   try {
     const {client} = await authenticatedClient(request);
-    const raw = await request.text();
-    if (Buffer.byteLength(raw)>5000) throw new ApiError('La solicitud es demasiado larga.',400);
-    let body;
-    try {body=JSON.parse(raw);} catch {throw new ApiError('La solicitud no es válida.',400);}
+    const body=await readJsonBody(request,5000);
     if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.project_id !== 'string') throw new ApiError('Selecciona un proyecto válido.',400);
     const project = await authorizedProject(client,body.project_id);
     if (body.action === 'connection') {

@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import type {Item} from '@/lib/model';
 import {metaAccount} from '@/lib/meta-ads';
@@ -10,8 +11,7 @@ const headers={'Cache-Control':'private, no-store'};
 export async function POST(request:Request){
   try{
     const {client,user}=await authenticatedClient(request);
-    const raw=await request.text();if(Buffer.byteLength(raw)>3000)throw new ApiError('La solicitud es demasiado larga.',400);
-    let body;try{body=JSON.parse(raw);}catch{throw new ApiError('Solicitud inválida.',400);}
+    const body=await readJsonBody(request,3000);
     if(!body||!['review','create'].includes(body.action)||typeof body.project_id!=='string'||! /^[0-9a-f-]{36}$/i.test(body.experiment_id||''))throw new ApiError('Selecciona un experimento válido.',400);
     const project=await authorizedProject(client,body.project_id);
     const member=await client.from('members').select('role').eq('workspace_id',project.workspace_id).eq('user_id',user.id).single();

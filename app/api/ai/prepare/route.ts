@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import { authenticatedClient,authorizedProject,ApiError } from '@/lib/server-access';
 import { parsePreparation,preparationSchemaForRequest,preparationKeys,humanSuccessCriterion,requiredPreparation } from '@/lib/ai-preparation';
 import {parseChannel,executionFromFields} from '@/lib/execution-plan';
@@ -13,10 +14,7 @@ const headers={'Cache-Control':'private, no-store'};
 export async function POST(request: Request) {
   try {
     const {client,user}=await authenticatedClient(request);
-    const raw=await request.text();
-    if (Buffer.byteLength(raw)>2200000) throw new ApiError('La solicitud es demasiado larga.',400);
-    let body;
-    try { body=JSON.parse(raw); } catch { throw new ApiError('La solicitud no es válida.',400); }
+    const body=await readJsonBody(request,2200000);
     if (typeof body.prompt!=='string' || !body.prompt.trim() || body.prompt.length>4000 || typeof body.project_id!=='string' || !/^[0-9a-f-]{36}$/i.test(body.request_id || '')) throw new ApiError('Describe el experimento y selecciona su proyecto.',400);
     let media,channel,execution;
     try{media=validateAiMedia(body.media);channel=parseChannel(body.fields?.channel);execution=executionFromFields(body.fields||{});}catch(error){throw new ApiError(error instanceof Error?error.message:'Revisa los materiales y el canal.',400);}

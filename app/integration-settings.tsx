@@ -9,24 +9,26 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
  const [provider,setProvider]=useState<IntegrationProvider>('openai');
  const [projectId,setProjectId]=useState(projects[0]?.id||'');
  const [data,setData]=useState<Payload|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+ const [failedChecks,setFailedChecks]=useState<Record<string,string>>({});
  const active=useRef(false),flight=useRef(false);
  useEffect(()=>{active.current=true;return()=>{active.current=false;onBusy(false);};},[onBusy]);
  useEffect(()=>{if(!projects.some(p=>p.id===projectId))setProjectId(projects[0]?.id||'');},[projects,projectId]);
  async function request(body:Record<string,unknown>){
   const session=await supabase!.auth.getSession();if(!session.data.session)throw new Error('Inicia sesión para continuar.');
   const response=await fetch('/api/integrations',{method:'POST',headers:{Authorization:`Bearer ${session.data.session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({...body,workspace_id:workspaceId})});
-  const value=await response.json();if(!response.ok)throw new Error(value.error||'No se pudo completar la configuración.');return value;
+  let value;try{value=await response.json();}catch{throw new Error('El servidor no respondió correctamente. La configuración no se ha confirmado; actualiza antes de reintentar.');}if(!response.ok)throw new Error(value.error||'No se pudo completar la configuración.');return value;
  }
  async function load(){const value=await request({action:'list'});if(active.current)setData(value);}
  useEffect(()=>{if(demo)return;void load().catch(err=>{if(active.current)setError(err.message);});},[workspaceId,demo]); // Remounted for each workspace.
  async function run(body:Record<string,unknown>){
   if(flight.current||demo)return;flight.current=true;setBusy(true);onBusy(true);setError('');setMessage('');
-  try{if(body.action!=='list')await request(body);await load();if(body.action==='save'&&provider==='posthog')await onSaved();if(active.current)setMessage(body.action==='save'?'Configuración guardada. Comprueba la conexión cuando esté disponible.':body.action==='verify'?'Comprobación terminada.':body.action==='list'?'Integraciones actualizadas.':'Estado actualizado.');}
-  catch(err){if(active.current)setError(err instanceof Error?err.message:'No se pudo guardar.');throw err;}
+  try{if(body.action!=='list')await request(body);await load();if(body.action==='save'&&provider==='posthog')await onSaved();if(active.current){if(body.action==='verify'||body.action==='save')setFailedChecks(previous=>{const next={...previous};delete next[`${body.provider}:${body.project_id??'workspace'}`];return next;});setMessage(body.action==='save'?'Configuración guardada. Comprueba la conexión cuando esté disponible.':body.action==='verify'?'Comprobación terminada.':body.action==='list'?'Integraciones actualizadas.':'Estado actualizado.');}}
+  catch(err){if(active.current){const reason=err instanceof Error?err.message:'No se pudo guardar.';setError(reason);if(body.action==='verify')setFailedChecks(previous=>({...previous,[`${body.provider}:${body.project_id??'workspace'}`]:reason}));}throw err;}
   finally{flight.current=false;onBusy(false);if(active.current)setBusy(false);}
  }
  const selectedProject=integrationCatalog[provider].scope==='workspace'?null:projectId;
  const connection=data?.connections.find(row=>row.provider===provider&&row.project_id===selectedProject)||null;
+ const failedCheck=failedChecks[`${provider}:${selectedProject??'workspace'}`];
  return <section className="integrations-panel">
   <div className="notice"><ShieldCheck size={18}/><span>Conexiones compartidas por equipo. Solo el superadministrador configura las APIs; los colaboradores consultan su estado. Las claves se guardan privadas, cifradas, y no vuelven a mostrarse.</span></div>
   {demo&&<p className="notice">La demostración permite explorar el panel. No introduzcas claves reales: las conexiones requieren una sesión de tu equipo.</p>}
@@ -35,12 +37,13 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
   {!demo&&<button type="button" className="btn" disabled={busy} onClick={()=>void run({action:'list'}).catch(()=>{})}>Actualizar integraciones</button>}
   {!data&&!demo&&!error&&<p role="status">Cargando integraciones…</p>}
   <div className="integration-layout"><nav className="integration-list" aria-label="Proveedores de integraciones">
-   {(Object.entries(integrationCatalog) as [IntegrationProvider,typeof integrationCatalog[IntegrationProvider]][]).map(([key,value])=><button type="button" key={key} disabled={busy} className={provider===key?'selected':''} aria-pressed={provider===key} onClick={()=>setProvider(key)}><Plug size={17}/>{value.name}</button>)}
+   {(Object.entries(integrationCatalog) as [IntegrationProvider,typeof integrationCatalog[IntegrationProvider]][]).map(([key,value])=><button type="button" key={key} disabled={busy} className={provider===key?'selected':''} aria-pressed={provider===key} onClick={()=>{setProvider(key);setError('');setMessage('');}}><Plug size={17}/>{value.name}</button>)}
   </nav><div className="panel integration-form">
    <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
-   {integrationCatalog[provider].scope==='project'?<label>Proyecto<select aria-label="Proyecto de la integración" disabled={busy} value={projectId} onChange={e=>setProjectId(e.target.value)}>{projects.map(project=><option value={project.id} key={project.id}>{project.title}</option>)}</select></label>:<p className="small">Una conexión de OpenAI para los proyectos de este equipo. Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
-   <p className="integration-status" role="status">{!connection?'Sin configurar':!connection.enabled?'Desactivada':connection.verified_at?'Conexión comprobada':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
-   {connection?.verified_at&&<p className="small">{connection.verification_note}<br/>Última comprobación: {new Date(connection.verified_at).toLocaleString('es')}</p>}
+   {integrationCatalog[provider].scope==='project'?<label>Proyecto<select aria-label="Proyecto de la integración" disabled={busy} value={projectId} onChange={e=>{setProjectId(e.target.value);setError('');setMessage('');}}>{projects.map(project=><option value={project.id} key={project.id}>{project.title}</option>)}</select></label>:<p className="small">Una conexión de OpenAI para los proyectos de este equipo. Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
+   <p className="integration-status" role="status">{!connection?'Sin configurar':!connection.enabled?'Desactivada':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
+   {failedCheck&&<p className="error">{failedCheck}</p>}
+   {connection?.verified_at&&<p className="small">{connection.verification_note}<br/>Última comprobación correcta: {new Date(connection.verified_at).toLocaleString('es')}</p>}
    {!data?.can_configure&&!demo&&data&&<p className="notice">Acceso de consulta. El superadministrador del equipo puede cambiar esta configuración.</p>}
    {data?.can_configure&&!data.storage_ready&&<p className="notice">El almacén privado necesita activarse en el servidor antes de guardar claves nuevas. Las conexiones existentes siguen disponibles.</p>}
    <ConnectionForm key={`${provider}:${selectedProject}:${connection?.updated_at||'new'}`} provider={provider} projectId={selectedProject} connection={connection} editable={!!data?.can_configure&&!demo&&data.storage_ready} busy={busy} run={run}/>

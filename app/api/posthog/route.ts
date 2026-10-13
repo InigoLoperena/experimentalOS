@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import {readJsonBody} from '@/lib/request-body';
 import { listPosthogExperiments, posthogIdentifier, posthogJson, PostHogError } from "@/lib/posthog-api";
 import { ApiError, authenticatedClient, authorizedProject } from "@/lib/server-access";
 import { resolvedPosthog } from "@/lib/integration-service";
+export const runtime='nodejs';
+export const maxDuration=60;
+const headers={'Cache-Control':'private, no-store'};
 
 export async function POST(request: NextRequest) {
   try {
     const { client: supabase } = await authenticatedClient(request);
-    const body = await request.json().catch(() => null);
+    const body = await readJsonBody(request,5000);
     if (!body || typeof body !== "object" || Array.isArray(body))
-      return NextResponse.json({ error: "La solicitud no es válida." }, { status: 400 });
+      return NextResponse.json({ error: "La solicitud no es válida." }, { status: 400,headers });
     const projectId = String(body.project_id || "");
     const experimentId = String(body.experiment_id || "");
-    if (!projectId) return NextResponse.json({ error: "Falta el proyecto." }, { status: 400 });
+    if (!projectId) return NextResponse.json({ error: "Falta el proyecto." }, { status: 400,headers });
 
     const project = await authorizedProject(supabase, projectId);
     const { projectId: externalProjectId, host, key: posthogKey } = await resolvedPosthog(supabase, project);
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     if (!experimentId) {
       const payload = await listPosthogExperiments(host, externalProjectId, posthogKey);
-      return NextResponse.json({ host, project_id: externalProjectId, experiments: payload });
+      return NextResponse.json({ host, project_id: externalProjectId, experiments: payload },{headers});
     }
 
     const externalExperimentId = posthogIdentifier(experimentId);
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
       results,
       results_error: resultsError,
       updated_at: new Date().toISOString(),
-    });
+    },{headers});
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error inesperado al consultar PostHog." },

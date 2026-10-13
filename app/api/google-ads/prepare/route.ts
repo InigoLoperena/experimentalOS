@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {resolvedGoogleAds} from '@/lib/integration-service';
 import {googleAccessToken,googleAccount} from '@/lib/google-ads';
@@ -12,9 +13,8 @@ const headers={'Cache-Control':'private, no-store'};
 export async function POST(request:Request){
  const started=Date.now();
  try{
-  const {client}=await authenticatedClient(request),raw=await request.text();
-  if(Buffer.byteLength(raw)>5000)throw new ApiError('Solicitud demasiado larga.',400);
-  let body;try{body=JSON.parse(raw);}catch{throw new ApiError('Solicitud inválida.',400);}
+  const {client}=await authenticatedClient(request);
+  const body=await readJsonBody(request,5000);
   if(!body||!['review','create'].includes(body.action)||typeof body.experiment_id!=='string'||! /^[0-9a-f-]{36}$/i.test(body.experiment_id))throw new ApiError('Selecciona un experimento válido.',400);
   const project=await authorizedProject(client,body.project_id);
   const permission=await client.rpc('can_record_action',{w:project.workspace_id,k:'experiment',a:'edit'});

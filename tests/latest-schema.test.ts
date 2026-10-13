@@ -276,6 +276,14 @@ test("complete migration chain preserves existing teams, invitation-only access 
     // Granular permissions protect SQL/RPC paths, not just the interface.
     await as(owner);
     const connection=await scalar<{id:string;updated_at:string}>("select to_jsonb(r) as value from save_integration($1,$2,'meta_ads','{\"account_id\":\"123\"}',array['access_token'],$3,null) r",[w,p,'v1.'+'a'.repeat(50)]);
+    await db.query("select set_integration_state($1,$2,true,'Lectura comprobada')",[connection.id,connection.updated_at]);
+    assert.equal(await scalar<boolean>('select updated_at=$2::timestamptz as value from integration_connections where id=$1',[connection.id,connection.updated_at]),true);
+    assert.equal(await scalar<boolean>('select verified_at is not null as value from integration_connections where id=$1',[connection.id]),true);
+    await db.query('select set_integration_state($1,$2,false)',[connection.id,connection.updated_at]);
+    assert.equal(await scalar<boolean>('select updated_at<>$2::timestamptz as value from integration_connections where id=$1',[connection.id,connection.updated_at]),true);
+    await assert.rejects(db.query("select set_integration_state($1,$2,true,'Stale check')",[connection.id,connection.updated_at]),/ha cambiado/);
+    const disabledRevision=await scalar('select updated_at as value from integration_connections where id=$1',[connection.id]);
+    await db.query('select set_integration_state($1,$2,true)',[connection.id,disabledRevision]);
     await assert.rejects(db.query("select save_integration($1,$2,'meta_ads','{}',array['access_token'],$3,null)",[w,p,'b'.repeat(50)]),/ha cambiado/);
     await assert.rejects(db.query("select save_integration($1,$2,'meta_ads','{}',array['access_token'],$3,null)",[w,p2,'b'.repeat(50)]),/Proyecto no autorizado/);
     await db.query("select set_member_permissions($1,$2,array['experiments.create'])",[w,editor]);

@@ -1012,6 +1012,7 @@ export default function Home() {
       return;
     }
     setSaving(true);
+    try {
     setError("");
     const exists = allItems.some((i) => i.id === draft.id);
     if (
@@ -1113,7 +1114,11 @@ export default function Home() {
       setMetaPreparationTarget(prepareMeta&&record.kind==='experiment'&&record.fields.channel==='meta_ads'?record.id:null);
       if (supportsAttachments(record.kind)) setSelected(normalizeExperiment(r.data[0] as Item));
     }
-    setSaving(false);
+    } catch {
+      setError("No se pudo terminar el guardado. Conserva esta ficha y actualiza los datos antes de volver a intentarlo.");
+    } finally {
+      setSaving(false);
+    }
   }
   async function deleteRecord(record: Item) {
     if (!can(record.kind,'delete') || demo || publicMode) return;

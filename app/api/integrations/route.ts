@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {type Connection,integrationProvider,integrationCatalog,integrationFields,validateIntegration} from '@/lib/integrations';
 import {connectionSecrets,storedConnection} from '@/lib/integration-service';
@@ -37,8 +38,7 @@ async function verify(row:Connection,secrets:Record<string,string>){
 export async function POST(request:Request){
  try{
   const {client,user}=await authenticatedClient(request);
-  const raw=await request.text();if(Buffer.byteLength(raw)>60000)throw new ApiError('La configuración es demasiado larga.',400);
-  let body;try{body=JSON.parse(raw);}catch{throw new ApiError('Solicitud inválida.',400);}
+  const body=await readJsonBody(request,60000);
   if(!body||typeof body.workspace_id!=='string'||!['list','save','verify','state'].includes(body.action))throw new ApiError('Selecciona una acción y un equipo válidos.',400);
   const member=await client.from('members').select('role').eq('workspace_id',body.workspace_id).eq('user_id',user.id).single();
   if(member.error||!member.data)throw new ApiError('No tienes acceso a ese equipo.',403);

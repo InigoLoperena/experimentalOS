@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {resolvedMetaConnection} from '@/lib/integration-service';
 import {metaAccount,metaId,metaJson} from '@/lib/meta-ads';
@@ -17,8 +18,7 @@ export async function POST(request:Request){
  const startedAt=Date.now();
  try{
   const {client}=await authenticatedClient(request);
-  const raw=await request.text();if(Buffer.byteLength(raw)>30000)throw new ApiError('Solicitud demasiado larga.',400);
-  let body;try{body=JSON.parse(raw);}catch{throw new ApiError('Solicitud inválida.',400);}
+  const body=await readJsonBody(request,30000);
   if(!body||!uuid(body.experiment_id)||!uuid(body.project_id)||!['context','review','begin','step','preview'].includes(body.action))throw new ApiError('Selecciona un experimento válido.',400);
   const project=await authorizedProject(client,body.project_id);
   const permission=await client.rpc('can_record_action',{w:project.workspace_id,k:'experiment',a:'edit'});

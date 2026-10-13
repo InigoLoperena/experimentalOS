@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {connectionSecrets,storedConnection} from '@/lib/integration-service';
 import {metricoolBrand,metricoolNetwork,metricoolPeriod,metricoolPosts} from '@/lib/metricool';
@@ -8,8 +9,7 @@ const headers={'Cache-Control':'private, no-store'};
 export async function POST(request:Request){
  try{
   const {client}=await authenticatedClient(request);
-  const raw=await request.text();if(Buffer.byteLength(raw)>4000)throw new ApiError('Solicitud demasiado larga.',400);
-  let body;try{body=JSON.parse(raw);}catch{throw new ApiError('Solicitud inválida.',400);}
+  const body=await readJsonBody(request,4000);
   if(typeof body?.project_id!=='string')throw new ApiError('Selecciona un proyecto.',400);
   const project=await authorizedProject(client,body.project_id);
   const row=await storedConnection(client,project.workspace_id,'metricool',project.id);

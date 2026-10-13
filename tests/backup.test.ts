@@ -76,10 +76,19 @@ test("the full-data service scopes every query to the authenticated workspace an
   tables.meta_preparation_steps=[{request_id:'request',run_id:'run',status:'succeeded',result:{id:'123'}}];
   tables.integration_connections=[{id:'connection',provider:'meta',config:{account_id:'123'}}];
   tables.ai_knowledge=[{id:'knowledge',title:'Entrevista',content:'Información cualitativa',project_id:'p',validation:'unverified'}];
+  tables.google_ads_preparations=[{experiment_id:'e',request_id:'g',campaign_id:'123',status:'linked'}];
+  tables.smartlead_preparations=[{experiment_id:'e',request_id:'s',campaign_id:'456',status:'linked'}];
+  tables.ai_chat_entries=[{id:'chat',project_id:'p',user_id:'u',question:'Pregunta',answer:'Respuesta'}];
+  tables.ai_preparation_usage=[{request_id:'usage',user_id:'u',reserved_usd:0.03,model:'gpt-4o-mini-transcribe-2025-12-15'}];
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 14); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(queries.length, 18); assert.ok(queries.every(q => q.scope === "w"));
   assert.equal(JSON.parse(backupJson(backup)).monitoring.ai_knowledge[0].content,'Información cualitativa');
-  assert.equal(backup.schema_version,6); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  assert.equal(backup.schema_version,7); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  for(const table of ['google_ads_preparations','smartlead_preparations','ai_chat_entries','ai_preparation_usage']){
+    assert.deepEqual(JSON.parse(backupJson(backup)).monitoring[table],tables[table]);
+    assert.ok(backupCsv(backup).includes(table));
+  }
+  assert.ok(backup.notes.some(note=>note.includes('conversaciones de otros miembros permanecen privadas')));
   assert.equal(backup.monitoring?.meta_preparation_steps[0].request_id,'request');
   assert.ok(backup.notes.some(note=>note.includes('no se exportan')));
   assert.ok(backupCsv(backup).includes('EXP-P-0001')); assert.equal(JSON.parse(backupJson(backup)).monitoring.metric_observations[0].metric,'clicks');

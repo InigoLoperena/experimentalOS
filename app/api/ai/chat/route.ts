@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {readJsonBody} from '@/lib/request-body';
 import {ApiError,authenticatedClient,authorizedProject} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
 import {readAllPages} from '@/lib/backup-service';
@@ -10,9 +11,8 @@ export const maxDuration=60;
 const headers={'Cache-Control':'no-store'};
 export async function POST(request:Request){
  try{
-  if(Number(request.headers.get('content-length')||0)>16000)throw new ApiError('Acorta tu mensaje.',413);
   const {client,user}=await authenticatedClient(request);
-  const body=await request.json();
+  const body=await readJsonBody(request,32000);
   if(typeof body.question!=='string'||!body.question.trim()||body.question.length>6000||!/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(body.request_id||''))throw new ApiError('Escribe una pregunta de hasta 6.000 caracteres.',400);
   const project=await authorizedProject(client,body.project_id);
   const workspace=project.workspace_id;
