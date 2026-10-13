@@ -69,6 +69,6 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
   </section>}
   {!!runs.length&&<div className="monitoring-block"><h4>Borradores anteriores</h4>{runs.map(r=><p key={r.id}>{new Date(r.created_at).toLocaleString()}<button type="button" className="btn" disabled={busy||locked} onClick={()=>void task(async()=>{setRunId(r.id);await execute(r.id);})}>Continuar borrador aprobado</button></p>)}</div>}
   {busy&&runId&&<button type="button" className="btn" onClick={()=>{stop.current=true;}}>Detener al terminar este paso</button>}
-  {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="error" role="alert">{error} Completa o corrige únicamente esos datos mediante el prompt en Editar ficha → Preparar con IA.</p>}
+  {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="error" role="alert">{error} {/(píxel|Integraciones|token)/i.test(error)?'Revisa esa conexión en Integraciones. El objetivo y el evento se ajustan mediante el prompt.':'Corrige esos datos mediante el prompt en Editar ficha → Preparar con IA.'}</p>}
  </details>;
 }
