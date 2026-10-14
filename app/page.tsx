@@ -250,7 +250,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
       <div>
         <strong>Vista pública.</strong>
         <p>
-          Estás viendo los proyectos publicados por Imagine Builder en modo solo lectura.
+          Estás explorando los proyectos, experimentos, aprendizajes y GOI Tree publicados por Imagine Builder en modo solo lectura.
         </p>
       </div>
       <button onClick={onSignup}>Acceder al equipo</button>
@@ -591,9 +591,10 @@ export default function Home() {
       void getPublicPreview(supabase).then((preview) => {
         if (!alive) return;
         if (preview?.workspace) {
-          // Anonymous visitors land on projects, regardless of the initial URL.
-          setView("projects");
-          if (window.location.pathname !== "/proyectos") window.history.replaceState(window.history.state,"","/proyectos");
+          // The home page opens Proyectos; direct links to other reader views remain shareable.
+          const requestedSection = viewForPath(window.location.pathname);
+          setView(requestedSection || "projects");
+          if (window.location.pathname === "/" || !requestedSection) window.history.replaceState(window.history.state,"","/proyectos");
           setPublicMode(true);
           setWorkspace(preview.workspace);
           setItems((preview.records || []).map(normalizeExperiment));
@@ -1676,7 +1677,7 @@ export default function Home() {
           <span className="identity-subtitle">Innovation OS</span>
         </div>
         <nav>
-          {nav.filter(item=>!publicMode || item.id==="projects").map(({ id, label, icon: I }) => (
+          {nav.map(({ id, label, icon: I }) => (
             <Fragment key={id}>
               <button
                 className={view === id ? "active" : ""}
@@ -2200,19 +2201,17 @@ export default function Home() {
                       <ArrowUpRight size={14} />
                     </a>
                   )}
-                  {!publicMode && <p className="small">
+                  <p className="small">
                     {workspaceItems.filter((e) => e.kind === "experiment" && e.project_id === p.id).length} experimentos
-                  </p>}
+                  </p>
                   <div className="row">
                     <Action
                       onClick={() => {
-                        if (publicMode) { requestAuth("signup"); return; }
-                        if (publicMode) { requestAuth("signup"); return; }
                         setProjectId(p.id);
                         navigateView("map");
                       }}
                     >
-                      {publicMode ? "Acceder para explorar" : "Abrir GOI Tree"}
+                      Abrir GOI Tree
                     </Action>
                     {can('project','edit') && (
                       <Action onClick={() => setSelected(p)}>
@@ -2310,7 +2309,10 @@ export default function Home() {
               )}
             </div>
           )}
-          {view === "team" && (
+          {view === "team" && publicMode && (
+            <div className="panel"><h2>Equipo</h2><p>La configuración, los miembros y las invitaciones del equipo son privados. Puedes consultar el trabajo de cada proyecto en las demás secciones.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Acceder al equipo</button></div>
+          )}
+          {view === "team" && !publicMode && (
             <>
               <div className="panel">
                 <div className="section-heading">
@@ -2500,7 +2502,10 @@ export default function Home() {
           )}
           {view === "method" && <Method />}
           {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record){if(record.kind==='project')setProjectId(record.id);else if(record.project_id)setProjectId(record.project_id);setSelected(record);}}}/>}
-          {view === 'integrations' && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
+          {view === 'integrations' && publicMode && (
+            <div className="panel"><h2>Integraciones</h2><p>Las conexiones, credenciales y configuraciones de servicios externos son privadas. Inicia sesión para gestionar las conexiones de tu equipo.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Acceder al equipo</button></div>
+          )}
+          {view === 'integrations' && !publicMode && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Innovation OS · Imagine Builder</span>
             <a href="/privacy-policy">Política de privacidad</a>
@@ -2596,7 +2601,7 @@ export default function Home() {
                   {!publicMode&&!demo&&selected.fields.channel==='google_ads'&&<GoogleAdsPreparation key={selected.id} experiment={selected} openOnArrival={googlePreparationTarget===selected.id} editable={can('experiment','edit')} locked={false} onBusy={setMonitoringBusy} onSaved={load}/>}
                 </>:<>
                   <ExecutionDetails key={selected.id} experiment={selected}/>
-                  {['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
+                  {!publicMode&&['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
                   {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
                     editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
                   <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>

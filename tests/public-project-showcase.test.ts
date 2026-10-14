@@ -18,10 +18,10 @@ test('public SQL exposes an allowlisted project summary without other records or
  assert.doesNotMatch(sql,/to_jsonb\(r\)/);
  assert.doesNotMatch(sql,/set enabled\s*=\s*true/i);
 });
-test('anonymous views omit internal navigation and project integrations',async()=>{
+test('anonymous views include all project navigation while hiding private integrations',async()=>{
  const page=await readFile(new URL('../app/page.tsx',import.meta.url),'utf8');
- assert.match(page,/nav\.filter\(item=>!publicMode \|\| item\.id==="projects"\)/);
+ assert.match(page,/\{nav\.map\(\(\{ id, label, icon: I \}\) => \(/);
  assert.match(page,/!publicMode && <PostHogProjectPanel/);
- assert.match(page,/if \(publicMode\) \{ requestAuth\("signup"\); return; \}/);
- assert.match(page,/window\.history\.replaceState\(window\.history\.state,"","\/proyectos"\)/);
+ assert.match(page,/view === "team" && !publicMode/);
+ assert.match(page,/if \(window\.location\.pathname === "\/" \|\| !requestedSection\)/);
 });
