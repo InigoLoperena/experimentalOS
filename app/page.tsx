@@ -250,7 +250,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
       <div>
         <strong>Vista pública.</strong>
         <p>
-          Estás viendo los proyectos y experimentos reales publicados por Imagine Builder en modo solo lectura.
+          Estás viendo los proyectos publicados por Imagine Builder en modo solo lectura.
         </p>
       </div>
       <button onClick={onSignup}>Acceder al equipo</button>
@@ -591,6 +591,9 @@ export default function Home() {
       void getPublicPreview(supabase).then((preview) => {
         if (!alive) return;
         if (preview?.workspace) {
+          // Anonymous visitors land on projects, regardless of the initial URL.
+          setView("projects");
+          if (window.location.pathname !== "/proyectos") window.history.replaceState(window.history.state,"","/proyectos");
           setPublicMode(true);
           setWorkspace(preview.workspace);
           setItems((preview.records || []).map(normalizeExperiment));
@@ -1663,7 +1666,7 @@ export default function Home() {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            navigateView("map");
+            navigateView(publicMode?"projects":"map");
           }}
         >
           <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation OS" />
@@ -1673,7 +1676,7 @@ export default function Home() {
           <span className="identity-subtitle">Innovation OS</span>
         </div>
         <nav>
-          {nav.map(({ id, label, icon: I }) => (
+          {nav.filter(item=>!publicMode || item.id==="projects").map(({ id, label, icon: I }) => (
             <Fragment key={id}>
               <button
                 className={view === id ? "active" : ""}
@@ -2197,36 +2200,33 @@ export default function Home() {
                       <ArrowUpRight size={14} />
                     </a>
                   )}
-                  <p className="small">
-                    {
-                      workspaceItems.filter(
-                        (e) => e.kind === "experiment" && e.project_id === p.id,
-                      ).length
-                    }{" "}
-                    experimentos
-                  </p>
+                  {!publicMode && <p className="small">
+                    {workspaceItems.filter((e) => e.kind === "experiment" && e.project_id === p.id).length} experimentos
+                  </p>}
                   <div className="row">
                     <Action
                       onClick={() => {
+                        if (publicMode) { requestAuth("signup"); return; }
+                        if (publicMode) { requestAuth("signup"); return; }
                         setProjectId(p.id);
                         navigateView("map");
                       }}
                     >
-                      Abrir GOI Tree
+                      {publicMode ? "Acceder para explorar" : "Abrir GOI Tree"}
                     </Action>
                     {can('project','edit') && (
                       <Action onClick={() => setSelected(p)}>
                         Editar proyecto
                       </Action>
                     )}
-                    <PostHogProjectPanel
+                    {!publicMode && <PostHogProjectPanel
                       project={p}
                       experiments={workspaceItems.filter((e) => e.kind === "experiment" && e.project_id === p.id)}
                       workspaceId={workspace.id}
                       userId={user?.id || null}
                       editable={can('experiment','create') && !demo && !publicMode}
                       onSynced={() => load()}
-                    />
+                    />}
                   </div>
                 </section>
               ))}
