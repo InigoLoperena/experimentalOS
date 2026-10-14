@@ -253,7 +253,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
           Estás explorando los proyectos, experimentos, aprendizajes y GOI Tree publicados por Imagine Builder en modo solo lectura.
         </p>
       </div>
-      <button onClick={onSignup}>Acceder al equipo</button>
+      <button onClick={onSignup}>Crear mi espacio gratis</button>
     </aside>
   );
 }
@@ -1761,7 +1761,7 @@ export default function Home() {
           </div>
           <div>
             {publicMode
-              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Acceder al equipo</span></button>
+              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio gratis</span></button>
               : <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>}
             <span className={"top-status" + (publicMode ? " public-status" : "")}>
               {publicMode ? "Vista pública · solo lectura" : demo ? "Datos de ejemplo" : "Espacio privado"}
@@ -2310,7 +2310,7 @@ export default function Home() {
             </div>
           )}
           {view === "team" && publicMode && (
-            <div className="panel"><h2>Equipo</h2><p>La configuración, los miembros y las invitaciones del equipo son privados. Puedes consultar el trabajo de cada proyecto en las demás secciones.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Acceder al equipo</button></div>
+            <div className="panel"><h2>Equipo</h2><p>La configuración, los miembros y las invitaciones del equipo son privados. Puedes consultar el trabajo de cada proyecto en las demás secciones.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
           )}
           {view === "team" && !publicMode && (
             <>
@@ -2503,14 +2503,14 @@ export default function Home() {
           {view === "method" && <Method />}
           {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record){if(record.kind==='project')setProjectId(record.id);else if(record.project_id)setProjectId(record.project_id);setSelected(record);}}}/>}
           {view === 'integrations' && publicMode && (
-            <div className="panel"><h2>Integraciones</h2><p>Las conexiones, credenciales y configuraciones de servicios externos son privadas. Inicia sesión para gestionar las conexiones de tu equipo.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Acceder al equipo</button></div>
+            <div className="panel"><h2>Integraciones</h2><p>Las conexiones, credenciales y configuraciones de servicios externos son privadas. Inicia sesión para gestionar las conexiones de tu equipo.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
           )}
           {view === 'integrations' && !publicMode && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
             <span>Experimental Innovation OS · Imagine Builder</span>
             <a href="/privacy-policy">Política de privacidad</a>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
-              {publicMode ? "Acceder al equipo" : "Exportar copia completa"}
+              {publicMode ? "Crear mi espacio gratis" : "Exportar copia completa"}
             </button>
           </footer>
         </main>
