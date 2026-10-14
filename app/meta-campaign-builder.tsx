@@ -27,12 +27,12 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
  useEffect(()=>{active.current=true;return()=>{active.current=false;stop.current=true;};},[]);
  async function api(action:string,extra:Record<string,unknown>={}){
   const session=await supabase!.auth.getSession();if(!session.data.session)throw new Error('Inicia sesión para continuar.');
-  const response=await fetch('/api/meta/build',{method:'POST',headers:{Authorization:`Bearer ${session.data.session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({action,project_id:experiment.project_id,experiment_id:experiment.id,...extra})});
+  let response;try{response=await fetch('/api/meta/build',{method:'POST',headers:{Authorization:`Bearer ${session.data.session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({action,project_id:experiment.project_id,experiment_id:experiment.id,...extra})});}catch{throw new Error('Se interrumpió la conexión. Los pasos confirmados quedan guardados; usa «Continuar borrador aprobado» para retomar sin crear otra campaña.');}
   const value=await response.json();if(!response.ok)throw new Error(value.error||'No se pudo completar la preparación.');return value;
  }
  async function task(fn:()=>Promise<unknown>){
   if(flight.current||locked)return;flight.current=true;setBusy(true);onBusy(true);setError('');
-  try{await fn();}catch(err){if(active.current)setError(err instanceof Error?err.message:'No se pudo completar la preparación.');}
+  try{await fn();}catch(err){if(active.current){setError(err instanceof Error?err.message:'No se pudo completar la preparación.');if(runId){try{await load();}catch{/* Keep the original failure; never retry an external write. */}}}}
   finally{flight.current=false;onBusy(false);if(active.current)setBusy(false);}
  }
  async function load(){
@@ -71,6 +71,6 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
   </section>}
   {!!runs.length&&<div className="monitoring-block"><h4>Borradores anteriores</h4>{runs.map(r=><p key={r.id}>{new Date(r.created_at).toLocaleString()}<button type="button" className="btn" disabled={busy||locked} onClick={()=>void task(async()=>{setRunId(r.id);await execute(r.id);})}>Continuar borrador aprobado</button></p>)}</div>}
   {busy&&runId&&<button type="button" className="btn" onClick={()=>{stop.current=true;}}>Detener al terminar este paso</button>}
-  {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="error" role="alert">{error} {/(píxel|Integraciones|token)/i.test(error)?'Revisa esa conexión en Integraciones. El objetivo y el evento se ajustan mediante el prompt.':'Corrige esos datos mediante el prompt en Editar ficha → Preparar con IA.'}</p>}
+  {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="error" role="alert">{error} {/interrumpió la conexión/i.test(error)?'':/(píxel|Integraciones|token)/i.test(error)?'Revisa esa conexión en Integraciones.':'Revisa el estado guardado antes de continuar el envío.'}</p>}
  </details>;
 }
