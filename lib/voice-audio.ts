@@ -4,7 +4,7 @@ export const voiceMaxBytes=44+voiceSampleRate*voiceMaxSeconds*2;
 export const voiceUploadMaxBytes=voiceMaxBytes+65536;
 export const voiceModel='gpt-4o-mini-transcribe-2025-12-15';
 
-export function appendDictation(current:string,transcript:string,maxLength:number){
+export function appendDictation(current:string,transcript:string,maxLength=Infinity){
  const text=transcript.trim();if(!text)throw new Error('No se ha detectado texto en el audio. Vuelve a intentarlo.');
  const next=current.trimEnd()+(current.trim()?'\n':'')+text;
  if(next.length>maxLength)throw new Error(`El texto supera el límite de ${maxLength.toLocaleString('es')} caracteres. Acorta la transcripción antes de añadirla.`);

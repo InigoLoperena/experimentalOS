@@ -5,7 +5,7 @@ import {supabase} from '@/lib/supabase';
 import {appendDictation,encodeVoiceWav} from '@/lib/voice-audio';
 import {VoiceRecorder,browserRecorderDependencies,type VoicePhase} from '@/lib/voice-recorder';
 
-type Props={projectId:string|null;purpose:'chat'|'experiment';value:string;onChange:(value:string)=>void;maxLength:number;disabled?:boolean;onBusy?:(busy:boolean)=>void;label?:string};
+type Props={projectId:string|null;purpose:'chat'|'experiment';value:string;onChange:(value:string)=>void;maxLength?:number;disabled?:boolean;onBusy?:(busy:boolean)=>void;label?:string};
 export function VoiceInput(props:Props){
  const [phase,setPhase]=useState<VoicePhase>('idle'),[seconds,setSeconds]=useState(0),[available,setAvailable]=useState<boolean|null>(null);
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[pendingText,setPendingText]=useState(''),[retry,setRetry]=useState(false);
@@ -44,7 +44,7 @@ export function VoiceInput(props:Props){
  const locked=props.disabled||!props.projectId||!supabase||available!==true;
  return <div className="voice-input">
   <div className="voice-controls">
-   {phase==='idle'?<button type="button" className="voice-action voice-mic" aria-label={props.label||'Dictar texto'} title="Dictar texto" disabled={locked||props.value.length>=props.maxLength||!!pendingText} onClick={()=>{setError('');setNotice('');clip.current=null;setRetry(false);void recorder.current?.start();}}><Mic size={18}/></button>:phase==='recording'?<button type="button" className="voice-action voice-stop" onClick={()=>recorder.current?.stop()} title="Terminar y transcribir" aria-label="Terminar y transcribir"><Square size={16}/></button>:<span className="voice-progress" role="status" title={phase==='requesting'?'Solicitando micrófono':'Transcribiendo voz'}><LoaderCircle size={18} className="voice-spinner"/><span className="sr-only">{phase==='requesting'?'Esperando permiso del micrófono…':'Transcribiendo…'}</span></span>}
+   {phase==='idle'?<button type="button" className="voice-action voice-mic" aria-label={props.label||'Dictar texto'} title="Dictar texto" disabled={locked||(props.maxLength!==undefined&&props.value.length>=props.maxLength)||!!pendingText} onClick={()=>{setError('');setNotice('');clip.current=null;setRetry(false);void recorder.current?.start();}}><Mic size={18}/></button>:phase==='recording'?<button type="button" className="voice-action voice-stop" onClick={()=>recorder.current?.stop()} title="Terminar y transcribir" aria-label="Terminar y transcribir"><Square size={16}/></button>:<span className="voice-progress" role="status" title={phase==='requesting'?'Solicitando micrófono':'Transcribiendo voz'}><LoaderCircle size={18} className="voice-spinner"/><span className="sr-only">{phase==='requesting'?'Esperando permiso del micrófono…':'Transcribiendo…'}</span></span>}
    {phase==='recording'&&<span className="voice-timer" role="timer" aria-label={seconds+' segundos grabados'}><span aria-hidden="true" className="voice-dot"/> {Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')}</span>}
    {phase!=='idle'&&<button type="button" className="voice-action voice-cancel" title="Cancelar dictado" onClick={cancel} aria-label="Cancelar dictado"><X size={16}/></button>}
   </div>

@@ -6,7 +6,7 @@ import {chatFileAccept,experimentFileAccept,validatePromptFiles} from '@/lib/ai-
 
 type Props={
  id:string;projectId:string|null;purpose:'chat'|'experiment';
- value:string;onChange:(next:string)=>void;maxLength:number;
+ value:string;onChange:(next:string)=>void;maxLength?:number;
  disabled:boolean;voiceBusy:boolean;onVoiceBusy:(active:boolean)=>void;
  files:File[];onFiles:(next:File[])=>void;
  onSubmit:()=>void;busy:boolean;placeholder:string;allowFiles?:boolean;
