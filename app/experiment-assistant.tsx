@@ -51,14 +51,14 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
     {error && <p className="error" role="alert">{error}</p>}
     {proposal && <div className="assistant-proposal"><h3>{proposal.title}</h3>
       {proposal.channel&&<p><strong>Canal principal</strong><br/>{channels[proposal.channel]}</p>}
-      {proposal.execution&&draft.fields.channel!=='meta_ads'&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
+      {proposal.execution&&!['meta_ads','google_ads'].includes(String(draft.fields.channel))&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
       {Object.entries(proposal.fields).filter(([,value]) => value!==null).map(([key,value]) => <p key={key}><strong>{experimentFields.find(field => field.key===key)?.label || key}</strong><br/>{value}</p>)}
       {!!proposal.missing.length && <><h4>Falta confirmar</h4><ul>{proposal.missing.map((value,index) => <li key={index}>{experimentFields.find(field => field.key===value)?.label || value}</li>)}</ul></>}
       {!!proposal.assumptions.length && <><h4>Supuestos de la IA</h4><ul>{proposal.assumptions.map((value,index) => <li key={index}>{value}</li>)}</ul></>}
       {!!proposal.recommendations?.length&&<><h4>Recomendaciones para revisar</h4><ul>{proposal.recommendations.map((value,index)=><li key={index}>{value}</li>)}</ul></>}
       {!!proposal.questions?.length&&<><h4>La IA necesita tus respuestas</h4><ol>{proposal.questions.map((value,index)=><li key={index}>{value}</li>)}</ol><AIPromptComposer id="experiment-ai-followup" projectId={draft.project_id} purpose="experiment" value={answers} onChange={setAnswers} maxLength={2000} files={files} onFiles={onFiles} allowFiles={allowAttachments} disabled={disabled||busy} voiceBusy={voiceBusy} onVoiceBusy={voiceActivity} busy={busy} placeholder="Responde a la IA…" onSubmit={()=>void prepare()}/></>}
       <button type="button" className="btn primary" disabled={disabled || busy || voiceBusy} onClick={() => { onApply({...draft,title:proposal.title,fields:applyPreparation(draft.fields,proposal)});setProposal(null); }}>Rellenar formulario para revisar</button>
-      <p className="small">Rellena el formulario para revisar y después guarda la ficha.{draft.fields.channel==='meta_ads'&&' Usa «Guardar y revisar envío a Meta» para pasar a la revisión de campaña y creatividades antes de enviarlas.'} La IA no modifica el responsable, las relaciones ni los IDs.</p>
+      <p className="small">Rellena el formulario para revisar y después guarda la ficha.{draft.fields.channel==='meta_ads'&&' Usa «Guardar y revisar envío a Meta» para pasar a la revisión de campaña y creatividades antes de enviarlas.'}{draft.fields.channel==='google_ads'&&' Usa «Guardar y enviar a Google Ads» para revisar el borrador y confirmar su creación.'} La IA no modifica el responsable, las relaciones ni los IDs.</p>
     </div>}
   </details>;
 }

@@ -39,6 +39,7 @@ import { PostHogResults } from "./posthog-results";
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { MetaExperimentDelivery } from './meta-experiment-delivery';
+import {GoogleAdsPreparation} from './google-ads-preparation';
 import { ExperimentAssistant } from "./experiment-assistant";
 import { StrategicAI } from './strategic-ai';
 import {viewForPath,pathForView,type SectionView} from '@/lib/section-routes';
@@ -431,6 +432,7 @@ export default function Home() {
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
   const [metaPreparationTarget,setMetaPreparationTarget]=useState<string|null>(null);
+  const [googlePreparationTarget,setGooglePreparationTarget]=useState<string|null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
   useEffect(()=>setDraftFiles([]),[draft?.id]);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
@@ -1008,7 +1010,7 @@ export default function Home() {
     setDraft({id:crypto.randomUUID(),workspace_id:workspace.id,project_id:currentProject.id,kind:'experiment',parent_id:null,related_id:null,title:proposal.title,owner_id:user?.id||null,
       fields:{impact:5,confidence:5,ease:5,...applyPreparation({},proposal)},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:user?.id||null,updated_by:user?.id||null});
   }
-  async function save(prepareMeta=false) {
+  async function save(prepareMeta=false,prepareGoogle=false) {
     if (!draft || saving || attachmentsBusy || assistantBusy) return;
     if(!can(draft.kind,allItems.some(i=>i.id===draft.id)?'edit':'create')){setError('No tienes permiso para guardar esta ficha.');return;}
     if (!demo && !schemaReady) {
@@ -1129,6 +1131,7 @@ export default function Home() {
       tell("Cambios guardados");
       await load();
       setMetaPreparationTarget(prepareMeta&&record.kind==='experiment'&&record.fields.channel==='meta_ads'?record.id:null);
+      setGooglePreparationTarget(prepareGoogle&&record.kind==='experiment'&&record.fields.channel==='google_ads'?record.id:null);
       if (supportsAttachments(record.kind)) setSelected(normalizeExperiment(r.data[0] as Item));
     }
     } catch {
@@ -2587,10 +2590,10 @@ export default function Home() {
               {({ links, files }) => selected.kind === "experiment" ? <>
                 <FieldDetails record={selected} fields={selected.fields.channel==='meta_ads'?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
                 {links}
-                {selected.fields.channel==='meta_ads'?<>
-                  <p><strong>Canal:</strong> Meta Ads</p>
-                  {!publicMode&&<MetaExperimentDelivery key={selected.id} experiment={selected} openOnArrival={metaPreparationTarget===selected.id}
-                    editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
+                {['meta_ads','google_ads'].includes(String(selected.fields.channel))?<>
+                  <p><strong>Canal:</strong> {selected.fields.channel==='meta_ads'?'Meta Ads':'Google Ads'}</p>
+                  {!publicMode&&selected.fields.channel==='meta_ads'&&<MetaExperimentDelivery key={selected.id} experiment={selected} openOnArrival={metaPreparationTarget===selected.id} editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
+                  {!publicMode&&!demo&&selected.fields.channel==='google_ads'&&<GoogleAdsPreparation key={selected.id} experiment={selected} openOnArrival={googlePreparationTarget===selected.id} editable={can('experiment','edit')} locked={false} onBusy={setMonitoringBusy} onSaved={load}/>}
                 </>:<>
                   <ExecutionDetails key={selected.id} experiment={selected}/>
                   {['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
@@ -2705,7 +2708,7 @@ export default function Home() {
             onSubmit={(e) => {
               e.preventDefault();
               const submitter=(e.nativeEvent as SubmitEvent).submitter;
-              void save(submitter instanceof HTMLButtonElement&&submitter.dataset.prepareMeta==='true');
+              void save(submitter instanceof HTMLButtonElement&&submitter.dataset.prepareMeta==='true',submitter instanceof HTMLButtonElement&&submitter.dataset.prepareGoogle==='true');
             }}
           >
             <div className="dialog-head">
@@ -2840,6 +2843,7 @@ export default function Home() {
                 {saving ? "Guardando…" : "Guardar ficha"}
               </button>
               {draft.kind==='experiment'&&draft.fields.channel==='meta_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-meta="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y revisar envío a Meta</button>}
+              {draft.kind==='experiment'&&draft.fields.channel==='google_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-google="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y enviar a Google Ads</button>}
             </div>
           </form>
         )}

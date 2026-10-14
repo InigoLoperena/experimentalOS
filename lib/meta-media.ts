@@ -1,15 +1,8 @@
 import sharp from 'sharp';
-import type {SupabaseClient} from '@supabase/supabase-js';
-import {attachmentBucket,attachmentLimit,type Attachment} from './attachments';
 import {metaFormats} from './meta-options';
 import {digest,type MetaStep} from './meta-build';
 import {ApiError} from './server-access';
-export async function privateMetaFile(client:SupabaseClient,attachment:Attachment){
- if(!attachment.storage_path?.startsWith(`${attachment.workspace_id}/${attachment.record_id}/`)||!attachment.size||attachment.size>attachmentLimit)throw new ApiError('El adjunto privado no es válido.',400);
- const result=await client.storage.from(attachmentBucket).download(attachment.storage_path);
- if(result.error||!result.data||result.data.size!==attachment.size)throw new ApiError('No se pudo leer el adjunto privado. Guarda los materiales antes de preparar.',400);
- return Buffer.from(await result.data.arrayBuffer());
-}
+export {privateAttachmentBytes as privateMetaFile} from './attachment-bytes';
 export async function renderMetaImage(bytes:Buffer,step:MetaStep){
  if(!step.placement||!step.crop)throw new ApiError('Falta el formato de imagen.',400);
  const size=metaFormats[step.placement];

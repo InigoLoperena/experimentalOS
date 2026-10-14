@@ -59,7 +59,7 @@ export async function resolvedGoogleAds(client:SupabaseClient,project:Item){
  const row=await storedConnection(client,project.workspace_id,'google_ads',project.id);
  if(!row)throw new ApiError('Configura Google Ads para este proyecto en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);
- return {customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,revision:row.updated_at};
+ return {customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token,revision:row.updated_at};
 }
 
 export async function resolvedSmartlead(client:SupabaseClient,project:Item){

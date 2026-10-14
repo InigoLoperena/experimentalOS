@@ -5,6 +5,7 @@ import {supabase} from '@/lib/supabase';
 import type {Item} from '@/lib/model';
 import {integrationCatalog,integrationFields,type IntegrationProvider,type Connection} from '@/lib/integrations';
 import {MetaConnectionGuide} from './meta-connection-guide';
+import {GoogleConnectionGuide} from './google-connection-guide';
 type Payload={connections:Connection[];can_configure:boolean;storage_ready:boolean};
 export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{workspaceId:string;projects:Item[];demo:boolean;onSaved:()=>Promise<void>;onBusy:(busy:boolean)=>void}){
  const [provider,setProvider]=useState<IntegrationProvider>('openai');
@@ -43,6 +44,7 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
   </nav><div className="panel integration-form">
    <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
    {provider==='meta_ads'&&<MetaConnectionGuide/>}
+   {provider==='google_ads'&&<GoogleConnectionGuide/>}
    {integrationCatalog[provider].scope==='project'?<label>Proyecto<select aria-label="Proyecto de la integración" disabled={busy} value={projectId} onChange={e=>{setProjectId(e.target.value);setError('');setMessage('');}}>{projects.map(project=><option value={project.id} key={project.id}>{project.title}</option>)}</select></label>:<p className="small">Una conexión de OpenAI para los proyectos de este equipo. Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
    {sharedMeta&&<p className="notice">Cuenta de Meta compartida: {sharedMeta.config.account_id}. {sharedMeta.enabled?'Los proyectos sin una conexión propia utilizan esta cuenta, página e Instagram.':'La conexión compartida está desactivada.'} Se administra desde {projects.find(p=>p.id===sharedMeta.project_id)?.title||'su proyecto de origen'}. Cada campaña y sus datos siguen asociados a su experimento.</p>}
    <p className="integration-status" role="status">{!connection?(sharedMeta?.enabled?'Usando la conexión compartida de Meta':'Sin configurar'):!connection.enabled?'Desactivada':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>

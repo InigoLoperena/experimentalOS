@@ -1,5 +1,6 @@
 import type { Fields } from './model';
 import {channels,executionSchema,parseChannel,parseExecution,executionFromFields,type Channel,type ExecutionPlan} from './execution-plan';
+import {googleAdsOptionsSchema} from './google-ads-options';
 
 export const preparationKeys = ['context','hypothesis','metric','success_criteria','start','tags','secondary_metrics','audience','traffic_plan','risks'] as const;
 export type Preparation = { title: string; fields: Record<typeof preparationKeys[number], string | null>; missing: string[]; assumptions: string[]; questions?:string[]; recommendations?:string[]; channel?:Channel|null; execution?:ExecutionPlan|null };
@@ -18,7 +19,9 @@ export function preparationSchemaForRequest(channel:Channel|null,prompt:string){
   const ab=channel==='google_ads'||channel==='smartlead'||channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
   if(!ab)return preparationRequestSchema;
   const variants=executionSchema.properties.variants;
-  const execution={...executionSchema,properties:{...executionSchema.properties,variants:{...variants,minItems:2,maxItems:2,...(channel==='smartlead'?{items:{...variants.items,properties:{...variants.items.properties,headline:{...variants.items.properties.headline,maxLength:200}}}}:{})}}};
+  const requestedGoogle=[['DISPLAY',/\bdisplay\b/i],['SEARCH',/\bsearch\b|\bbúsqueda\b/i],['VIDEO',/\bvídeo\b|\bvideo\b|\byoutube\b/i],['DEMAND_GEN',/\bdemand\s*gen\b/i],['PERFORMANCE_MAX',/\bperformance\s*max\b/i],['SHOPPING',/\bshopping\b/i]].filter(([,pattern])=>(pattern as RegExp).test(prompt)).map(([type])=>type as string);
+  const googleSchema=channel==='google_ads'&&requestedGoogle.length===1?{...googleAdsOptionsSchema,properties:{...googleAdsOptionsSchema.properties,type:{type:'string',enum:requestedGoogle}}}:googleAdsOptionsSchema;
+  const execution={...executionSchema,properties:{...executionSchema.properties,google:{anyOf:[googleSchema,{type:'null'}]},variants:{...variants,minItems:2,maxItems:2,...(channel==='smartlead'?{items:{...variants.items,properties:{...variants.items.properties,headline:{...variants.items.properties.headline,maxLength:200}}}}:{})}}};
   return {...preparationRequestSchema,properties:{...preparationRequestSchema.properties,execution:{anyOf:[execution,{type:'null'}]}}};
 }
 export function parsePreparation(value: unknown): Preparation {
@@ -78,7 +81,7 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
     if(!['meta_ads','google_ads'].includes(proposal.channel)&&!plan?.currency)missing.push('Confirma la moneda del presupuesto.');
     if(!['meta_ads','google_ads'].includes(proposal.channel)&&!plan?.duration_days)missing.push('Confirma la duración.');
     if(!plan?.location)missing.push('Confirma la ubicación del público.');
-    if(!mediaCount)missing.push('Adjunta y asigna las creatividades a las variantes.');
+    if(!mediaCount&&(proposal.channel!=='google_ads'||plan?.google?.type==='DISPLAY'))missing.push('Adjunta y asigna las creatividades a las variantes.');
     if(!plan?.variants.length || plan.variants.some(v=>!v.headline||!v.body))missing.push('Completa titulares y textos de las variantes.');
     if(proposal.channel==='meta_ads')missing.push('Antes de crear en Meta: verificar la página, segmentación y permisos de escritura.');
   }

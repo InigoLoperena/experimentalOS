@@ -1,7 +1,8 @@
 import {ApiError} from './server-access';
 import {metaPeriod} from './meta-ads';
 import type {CsvMetric} from './monitoring';
-export type GoogleAdsConnection={customerId:string;loginCustomerId?:string;clientId:string;clientSecret:string;refreshToken:string};
+export type GoogleAdsConnection={customerId:string;loginCustomerId?:string;clientId:string;clientSecret:string;refreshToken:string;developerToken?:string};
+export function googleHeaders(c:GoogleAdsConnection,token:string){return {Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(c.loginCustomerId?{'login-customer-id':googleId(c.loginCustomerId)}:{}),...(c.developerToken?{'developer-token':c.developerToken}:{})};}
 export type GoogleAdsCampaign={id:string;name:string;status:string;type:string;url:string};
 export type GoogleAdsAccount={id:string;name:string;currency:string;timezone:string;test:boolean;manager:boolean};
 export type GoogleAdsReport={resource_id:string|null;name:string;status:string;metrics:CsvMetric[];fetched_at:string;account:GoogleAdsAccount};
@@ -17,7 +18,7 @@ export async function googleAccessToken(connection:GoogleAdsConnection,fetcher:t
 export async function googleSearch(connection:GoogleAdsConnection,token:string,query:string,fetcher:typeof fetch=fetch){
  const rows:Record<string,any>[]=[];let pageToken:string|undefined;const seen=new Set<string>();
  for(let page=0;page<20;page++){
-  let response;try{response=await fetcher(`https://googleads.googleapis.com/v25/customers/${googleId(connection.customerId)}/googleAds:search`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(connection.loginCustomerId?{'login-customer-id':googleId(connection.loginCustomerId)}:{})},body:JSON.stringify({query,...(pageToken?{pageToken}:{})}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new ApiError('Google Ads no respondió. No se importaron datos incompletos.',502);}
+  let response;try{response=await fetcher(`https://googleads.googleapis.com/v25/customers/${googleId(connection.customerId)}/googleAds:search`,{method:'POST',headers:googleHeaders(connection,token),body:JSON.stringify({query,...(pageToken?{pageToken}:{})}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new ApiError('Google Ads no respondió. No se importaron datos incompletos.',502);}
   const result=await response.json().catch(()=>null);
   if(!response.ok||result?.error){const codes=JSON.stringify(result?.error?.details?.map((d:any)=>d.errors?.map((e:any)=>e.errorCode))||[]);throw new ApiError(/CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION|ACTION_NOT_PERMITTED/.test(codes)?'Google Cloud solo permite cuentas de prueba. Solicita acceso Explorer para consultar esta cuenta real.':'Google Ads rechazó la consulta. Revisa la cuenta, el acceso de Cloud y los permisos OAuth.',502);}
   if(!result||!Array.isArray(result.results??[])||result.nextPageToken!=null&&typeof result.nextPageToken!=='string')throw new ApiError('Google Ads devolvió datos no válidos.',502);

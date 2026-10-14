@@ -1,7 +1,7 @@
 import type { Fields } from './model';
 import {googlePlaySchema,parseGooglePlay,type GooglePlayOptions} from './google-play-options';
 import {metaOptionsSchema,parseMetaOptions,type MetaOptions} from './meta-options';
-import {googleAdsOptionsSchema,parseGoogleAdsOptions,type GoogleAdsOptions} from './google-ads-options';
+import {googleCampaignTypes,googleAdsOptionsSchema,parseGoogleAdsOptions,type GoogleAdsOptions} from './google-ads-options';
 
 export const channels = {
   web_app:'Web app', mobile_ios:'App móvil · iOS', mobile_android:'App móvil · Android',
@@ -71,5 +71,5 @@ export function executionFromFields(fields:Fields):ExecutionPlan|null {
   return parseExecution(JSON.parse(String(fields.execution_config)));
 }
 export function executionSummary(channel:Channel|null,plan:ExecutionPlan):string {
-  return [`Canal: ${channel?channels[channel]:'Pendiente'}`,...(channel==='meta_ads'?[`Objetivo en Meta: ${plan.meta?.objective||'Pendiente'}`,`Enlace del anuncio: ${plan.destination||'Pendiente'}`,`Inversión diaria en Meta: ${plan.daily_budget??'Pendiente'} ${plan.currency||''}`,`Días de campaña en Meta: ${plan.duration_days??'Pendiente'}`]:[]),...(channel==='google_ads'?[`Tipo: Búsqueda`,`Enlace: ${plan.destination||'Pendiente'}`,`Presupuesto diario medio: ${plan.daily_budget??'Pendiente'} ${plan.currency||''}`,`Duración: ${plan.duration_days??'Pendiente'} días`,`Países: ${plan.google?.countries.join(', ')||'Pendiente'}`,`Palabras clave: ${plan.google?.keywords.join(', ')||'Pendiente'}`,`Puja: Maximizar clics; CPC máximo ${plan.google?.cpc_limit??'Pendiente'}`,`Google optimiza la rotación; no se aplica un reparto aleatorio 50/50.`]:[]),...plan.variants.map(v=>`\nVariante ${v.label} (${v.allocation??'pendiente'}%): ${v.description||''}\nTitular: ${v.headline||'Pendiente'}\nTexto: ${v.body||'Pendiente'}\nCTA: ${v.call_to_action||'Pendiente'}`)].join('\n');
+  return [`Canal: ${channel?channels[channel]:'Pendiente'}`,...(channel==='meta_ads'?[`Objetivo en Meta: ${plan.meta?.objective||'Pendiente'}`,`Enlace del anuncio: ${plan.destination||'Pendiente'}`,`Inversión diaria en Meta: ${plan.daily_budget??'Pendiente'} ${plan.currency||''}`,`Días de campaña en Meta: ${plan.duration_days??'Pendiente'}`]:[]),...(channel==='google_ads'?[`Tipo: ${plan.google?.type?googleCampaignTypes[plan.google.type]:'Pendiente'}`,`Enlace: ${plan.destination||'Pendiente'}`,`Presupuesto diario medio: ${plan.daily_budget??'Pendiente'} ${plan.currency||''}`,`Duración: ${plan.duration_days??'Pendiente'} días`,`Países: ${plan.google?.countries.join(', ')||'Pendiente'}`,`Palabras clave: ${plan.google?.keywords.join(', ')||'Pendiente'}`,`Puja: ${plan.google?.type==='DISPLAY'?'CPC manual':'Maximizar clics'}; CPC máximo ${plan.google?.cpc_limit??'Pendiente'}`,`Google optimiza la rotación; no se aplica un reparto aleatorio 50/50.`]:[]),...plan.variants.map(v=>`\nVariante ${v.label} (${v.allocation??'pendiente'}%): ${v.description||''}\nTitular: ${v.headline||'Pendiente'}\nTexto: ${v.body||'Pendiente'}\nCTA: ${v.call_to_action||'Pendiente'}`)].join('\n');
 }

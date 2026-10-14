@@ -14,7 +14,7 @@ export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
 async function verify(row:Connection,secrets:Record<string,string>){
  if(row.provider==='smartlead'){const campaigns=await smartleadCampaigns({key:secrets.api_key,revision:row.updated_at});return `Conexión comprobada · ${campaigns.length} campañas accesibles.`;}
- if(row.provider==='google_ads'){const c={customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token};const account=await googleAccount(c,await googleAccessToken(c));return `Cuenta comprobada: ${account.name} · ${account.currency} · ${account.timezone}${account.test?' · prueba':''}.`;}
+ if(row.provider==='google_ads'){const c={customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token};const account=await googleAccount(c,await googleAccessToken(c));return `Cuenta comprobada: ${account.name} · ${account.currency} · ${account.timezone}${account.test?' · prueba':''}.`;}
  if(row.provider==='metricool'){const brand=await metricoolBrand({userId:row.config.user_id,blogId:row.config.blog_id,token:secrets.api_key});return `Marca comprobada: ${brand.name} · ${brand.timezone}.`;}
  if(row.provider==='meta_ads'){
   const account=await metaAccount({accountId:row.config.account_id,token:secrets.access_token});
