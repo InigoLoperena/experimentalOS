@@ -81,7 +81,9 @@ export function metaStepPayload(recipe:MetaRecipe,step:MetaStep,results:Record<s
  const campaign=recipe.selection.mode==='campaign'?results.campaign?.id:recipe.selection.parent_id;
  const prefix=step.key.replace(/_(adset|creative|ad)$/,'');
  const options=recipe.selection.meta;
- const targeting={geo_locations:options.city_key?{cities:[{key:options.city_key}]}:{countries:options.countries},age_min:options.age_min,age_max:options.age_max,publisher_platforms:['facebook','instagram'],facebook_positions:[step.placement==='feed'?'feed':step.placement==='story'?'story':'facebook_reels'],instagram_positions:[step.placement==='feed'?'stream':step.placement==='story'?'story':'reels']};
+ // Meta v26 requires an explicit Advantage+ Audience choice. Disable expansion
+ // to preserve the countries and age bounds from the reviewed prompt.
+ const targeting={geo_locations:options.city_key?{cities:[{key:options.city_key}]}:{countries:options.countries},age_min:options.age_min,age_max:options.age_max,targeting_automation:{advantage_audience:0},publisher_platforms:['facebook','instagram'],facebook_positions:[step.placement==='feed'?'feed':step.placement==='story'?'story':'facebook_reels'],instagram_positions:[step.placement==='feed'?'stream':step.placement==='story'?'story':'reels']};
  if(step.kind==='campaign')return {name:recipe.name,objective:recipe.objective,status:'PAUSED',special_ad_categories:[],is_adset_budget_sharing_enabled:false};
  if(step.kind==='adset')return {name:`${recipe.name} · ${step.label}`.slice(0,200),campaign_id:campaign,...(recipe.budget_period==='daily'?{daily_budget:step.budget}:{lifetime_budget:step.budget}),billing_event:'IMPRESSIONS',optimization_goal:recipe.optimization,bid_strategy:'LOWEST_COST_WITHOUT_CAP',destination_type:recipe.optimization==='POST_ENGAGEMENT'?'ON_AD':'WEBSITE',start_time:recipe.start,...(recipe.end?{end_time:recipe.end}:{}),targeting,status:'PAUSED',...(recipe.pixel?{promoted_object:{pixel_id:recipe.pixel,custom_event_type:options.conversion_event}}:{})};
  if(step.kind==='creative'){

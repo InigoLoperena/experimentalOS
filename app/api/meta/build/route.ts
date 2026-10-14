@@ -114,7 +114,8 @@ export async function POST(request:Request){
   try{result=await writeMetaStep({...connection,token:connection.writeToken},recipe,step,next.results,file);}
   catch(error){
    const status=error instanceof MetaCreationError&&error.uncertain?'uncertain':'rejected';
-   const finish=await client.rpc('finish_meta_step',{p_request:requestId,p_status:status,p_result:{}});
+   const diagnostic=error instanceof MetaCreationError?error.diagnostic:undefined;
+   const finish=await client.rpc('finish_meta_step',{p_request:requestId,p_status:status,p_result:diagnostic?{error:diagnostic}:{}});
    if(finish.error)throw new ApiError('No se pudo guardar el resultado. Revisa Meta antes de repetir.',502);throw error;
   }
   const type=['campaign','adset','ad'].includes(step.kind)?step.kind:null;

@@ -9,7 +9,17 @@ export async function metaPost(connection:MetaConnection,edge:'campaigns'|'adset
  let result:Record<string,unknown>;
  try{result=await response.json();}catch{throw new MetaCreationError('Meta devolvió una respuesta incompleta. Revisa Ads Manager.',true);}
  if(!result||typeof result!=='object'||Array.isArray(result))throw new MetaCreationError('Meta no confirmó el resultado.',true);
- if(!response.ok||result.error){const error=result.error as {code?:number;error_subcode?:number;error_user_msg?:string;error_user_title?:string};console.warn('Meta preparation rejected',{status:response.status,code:error?.code,subcode:error?.error_subcode});const developmentMode=error?.error_subcode===1885183;throw new MetaCreationError(error?.code===190?'Renueva el token de Meta en Integraciones.':developmentMode?'Meta bloquea la creatividad porque su aplicación está en modo desarrollo (100/1885183). Revisa el modo de la aplicación en Meta for Developers. Después continúa esta preparación guardada: los recursos ya confirmados no se repetirán.':`Meta rechazó el paso (código ${error?.code||response.status}${error?.error_subcode?`/${error.error_subcode}`:''}). Revisa permisos, identidad, presupuesto mínimo y compatibilidad del objetivo en Ads Manager.`,response.status>=500||!result.error);}
+ if(!response.ok||result.error){
+  const error=result.error as {code?:number;error_subcode?:number;error_user_msg?:string;error_user_title?:string};
+  const code=Number.isSafeInteger(error?.code)?error.code:undefined,subcode=Number.isSafeInteger(error?.error_subcode)?error.error_subcode:undefined;
+  console.warn('Meta preparation rejected',{status:response.status,code,subcode,edge});
+  // Only the provider's user-facing explanation is retained. Never expose raw
+  // OAuth messages, request payloads, token-bearing URLs or credentials.
+  const clean=(value:unknown)=>typeof value==='string'?value.split(connection.token).join('[credencial omitida]').replace(/https?:\/\/[^\s<>]+/gi,'[enlace omitido]').replace(/\bBearer\s+\S+/gi,'[credencial omitida]').replace(/\b(?:access_token|appsecret_proof|authorization)\s*[:=]\s*[^\s,;]+/gi,'[credencial omitida]').replace(/\b[A-Za-z0-9_=-]{60,}\b/g,'[identificador omitido]').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,700):'';
+  const explanation=[clean(error?.error_user_title),clean(error?.error_user_msg)].filter(Boolean).join(': ');
+  const detail=code===190?'Renueva el token de Meta en Integraciones.':subcode===1885183?'Meta bloquea la creatividad porque su aplicación está en modo desarrollo. Revisa el modo en Meta for Developers.':subcode===1870227?'Meta exige indicar explícitamente la configuración de audiencia Advantage+. La preparación debe enviarla conservando la segmentación elegida.':explanation||([10,200].includes(code||0)?'La integración no tiene permiso para este recurso. Revisa su acceso en Integraciones.':'Meta no incluyó una explicación para el usuario. Consulta este código en Ads Manager.');
+  throw new MetaCreationError(`Meta rechazó ${edge} (${code||response.status}${subcode?`/${subcode}`:''}): ${detail} Los pasos confirmados están guardados; continúa esta preparación después de resolver la causa.`,response.status>=500||!result.error,{code,subcode,detail});
+ }
  return result;
 }
 export async function writeMetaStep(connection:MetaConnection,recipe:MetaRecipe,step:MetaStep,results:Record<string,MetaStepResult>,file?:Buffer,fetcher:typeof fetch=fetch):Promise<MetaStepResult>{

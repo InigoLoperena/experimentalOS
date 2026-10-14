@@ -42,6 +42,28 @@ test('Meta development mode rejection explains recovery without echoing provider
  await assert.rejects(metaPost(connection,'adcreatives',new URLSearchParams(),fetcher),error=>error instanceof MetaCreationError&&!error.uncertain&&error.message.includes('modo desarrollo')&&!error.message.includes('private-provider-detail'));
 });
 
+test('Greenroute ES targeting explicitly opts out of Advantage+ without changing age bounds or approved receipt fingerprint',()=>{
+ const recipe=build({...selection,meta:{...selection.meta,countries:['ES'],age_min:25,age_max:55}});
+ const before=digest(recipe);
+ const payload=metaStepPayload(recipe,recipe.steps.find(s=>s.kind==='adset')!,{campaign:{id:'987'}});
+ assert.ok('targeting' in payload);
+ assert.deepEqual(payload.targeting?.targeting_automation,{advantage_audience:0});
+ assert.equal(payload.targeting?.age_min,25);assert.equal(payload.targeting?.age_max,55);
+ assert.deepEqual(payload.targeting?.geo_locations,{countries:['ES']});
+ assert.equal(payload.status,'PAUSED');assert.equal(digest(recipe),before);
+});
+
+test('provider rejections retain the actual user-facing cause and codes with secrets and URLs redacted',async()=>{
+ const fetcher=(async()=>Response.json({error:{code:100,error_subcode:999,error_user_title:'Falta un dato',error_user_msg:`Añade el beneficiario. ${connection.token} https://graph.facebook.com/?access_token=hidden`}}, {status:400})) as typeof fetch;
+ await assert.rejects(metaPost(connection,'adsets',new URLSearchParams(),fetcher),error=>{
+  assert.ok(error instanceof MetaCreationError);assert.equal(error.uncertain,false);
+  assert.equal(error.diagnostic?.code,100);assert.equal(error.diagnostic?.subcode,999);
+  assert.ok(error.message.includes('Añade el beneficiario'));assert.ok(!error.message.includes(connection.token));
+  assert.ok(!error.message.includes('access_token=hidden'));assert.ok(!error.message.includes('presupuesto mínimo'));
+  return true;
+ });
+});
+
 test('approval fingerprint survives JSONB object key ordering while detecting actual changes',()=>{
  const original={recipe:build(),approved:{v0_story_media:'hash1',v0_feed_media:'hash2'}};
  const reorder=(value:unknown):unknown=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reorder(item)])):value;

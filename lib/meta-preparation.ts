@@ -19,7 +19,7 @@ export function campaignFingerprint(payload:ReturnType<typeof pausedCampaign>,re
   return createHash('sha256').update(JSON.stringify({payload,revision})).digest('hex');
 }
 export class MetaCreationError extends ApiError{
-  constructor(message:string,public uncertain:boolean){super(message,502);}
+  constructor(message:string,public uncertain:boolean,public diagnostic?:{code?:number;subcode?:number;detail:string}){super(message,502);}
 }
 export async function createPausedCampaign(connection:MetaConnection,payload:ReturnType<typeof pausedCampaign>,fetcher:typeof fetch=fetch){
   if(!/^\d{1,30}$/.test(connection.accountId)||payload.status!=='PAUSED'||payload.objective!=='OUTCOME_TRAFFIC'||payload.special_ad_categories.length)
