@@ -15,7 +15,7 @@ export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
 async function verify(row:Connection,secrets:Record<string,string>){
  if(row.provider==='smartlead'){const campaigns=await smartleadCampaigns({key:secrets.api_key,revision:row.updated_at});return `Conexión comprobada · ${campaigns.length} campañas accesibles.`;}
- if(row.provider==='google_ads'){const c={customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token};const account=await googleAccount(c,await googleAccessToken(c));return `Cuenta comprobada: ${account.name} · ${account.currency} · ${account.timezone}${account.test?' · prueba':''}.`;}
+ if(row.provider==='google_ads'){const c={customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token,serviceAccount:row.config.auth_method==='service_account'?secrets.service_account:undefined};const account=await googleAccount(c,await googleAccessToken(c));return `Cuenta comprobada: ${account.name} · ${account.currency} · ${account.timezone}${account.test?' · prueba':''}.`;}
  if(row.provider==='metricool'){const brand=await metricoolBrand({userId:row.config.user_id,blogId:row.config.blog_id,token:secrets.api_key});return `Marca comprobada: ${brand.name} · ${brand.timezone}.`;}
  if(row.provider==='meta_ads'){
   const account=await metaAccount({accountId:row.config.account_id,token:secrets.access_token});
@@ -99,14 +99,14 @@ export async function POST(request:Request){
     try{previous=await connectionSecrets(client,{...row,enabled:true},project);}
     catch(error){
      // Full replacement permits recovery after key loss; partial replacement must fail closed.
-     const complete=integrationFields(provider).filter(f=>f.secret&&f.required).every(f=>String(replacements[f.key]||'').trim());
+     const complete=provider==='google_ads'?(body.config?.auth_method==='service_account'?!!String(replacements.service_account||'').trim():!!String(replacements.client_secret||'').trim()&&!!String(replacements.refresh_token||'').trim()):integrationFields(provider).filter(f=>f.secret&&f.required).every(f=>String(replacements[f.key]||'').trim());
      if(!complete)throw error;
     }
    }
    const secrets={...previous,...Object.fromEntries(Object.entries(replacements).filter(([,v])=>String(v).trim()))};
    const identity=provider==='meta_ads'?'account_id':provider==='posthog'?'project_id':provider==='metricool'?'blog_id':provider==='google_ads'?'customer_id':null;
    if(row&&identity&&(body.config?.[identity]!==row.config[identity]||(provider==='posthog'&&body.config?.host!==row.config.host)||(provider==='metricool'&&body.config?.user_id!==row.config.user_id)||(provider==='google_ads'&&(body.config?.client_id!==row.config.client_id||body.config?.login_customer_id!==row.config.login_customer_id)))){
-    const requiredSecret=provider==='meta_ads'?'access_token':provider==='google_ads'?'refresh_token':'api_key';
+    const requiredSecret=provider==='meta_ads'?'access_token':provider==='google_ads'?(body.config?.auth_method==='service_account'?'service_account':'refresh_token'):'api_key';
     if(!String(replacements[requiredSecret]||'').trim())throw new ApiError('Al cambiar de cuenta o proyecto externo debes introducir una nueva clave para esa conexión.',400);
     if(provider==='meta_ads'&&!String(replacements.write_token||'').trim())delete secrets.write_token;
    }

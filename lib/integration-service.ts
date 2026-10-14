@@ -71,7 +71,7 @@ export async function resolvedGoogleAds(client:SupabaseClient,project:Item){
  const row=await workspaceConnection(client,project.workspace_id,'google_ads',project.id);
  if(!row)throw new ApiError('Conecta Google Ads una vez para este espacio de trabajo en Integraciones. La misma cuenta se utilizará en todos sus proyectos.',403);
  const secrets=await connectionSecrets(client,row,project);
- return {customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token,revision:row.updated_at};
+ return {customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token,serviceAccount:row.config.auth_method==='service_account'?secrets.service_account:undefined,revision:row.updated_at};
 }
 
 export async function resolvedSmartlead(client:SupabaseClient,project:Item){

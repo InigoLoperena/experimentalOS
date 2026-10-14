@@ -37,6 +37,9 @@ implementación. Compartir su configuración no implementa operaciones pendiente
 Pruebas de migración y servidor cubren preservación del cifrado, aislamiento entre
 equipos, configuración exclusiva del owner, acceso de consulta de colaboradores,
 actualizaciones obsoletas, selección de perfiles, desactivación y supervivencia de
-la cuenta común al borrar su proyecto de origen. Google Ads necesita credenciales
-OAuth reales guardadas una vez para probar creación real; una sesión en Ads Manager
-no constituye una conexión API.
+la cuenta común al borrar su proyecto de origen. Google Ads admite una cuenta de
+servicio (JSON privado) o las credenciales OAuth existentes, guardadas una vez por
+equipo. La cuenta técnica requiere acceso Estándar en Google Ads y su proyecto
+Cloud necesita un nivel API válido para la cuenta real. Una sesión en Ads Manager
+no constituye una conexión API. El intercambio JWT fija el destino, alcance y
+audiencia de Google y no permite suplantación de usuarios desde el JSON importado.

@@ -61,16 +61,26 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
  </section>;
 }
 function ConnectionForm({provider,projectId,connection,editable,busy,run}:{provider:IntegrationProvider;projectId:string|null;connection:Connection|null;editable:boolean;busy:boolean;run:(body:Record<string,unknown>)=>Promise<void>}){
- const [config,setConfig]=useState<Record<string,string>>(connection?.config||(provider==='posthog'?{host:'https://us.posthog.com'}:{})),[secrets,setSecrets]=useState<Record<string,string>>({});
- const fields=integrationFields(provider),canSave=editable&&(integrationCatalog[provider].scope==='workspace'||!!projectId);
+ const [config,setConfig]=useState<Record<string,string>>(connection?.config||(provider==='posthog'?{host:'https://us.posthog.com'}:provider==='google_ads'?{auth_method:'service_account'}:{})),[secrets,setSecrets]=useState<Record<string,string>>({});
+ const [fileError,setFileError]=useState('');
+ const service=provider==='google_ads'&&config.auth_method==='service_account';
+ const fields=integrationFields(provider).filter(field=>provider!=='google_ads'||field.key!=='developer_token'&&(service?!['client_id','client_secret','refresh_token'].includes(field.key):field.key!=='service_account')),canSave=editable&&(integrationCatalog[provider].scope==='workspace'||!!projectId);
  const common={provider,project_id:projectId,connection_id:connection?.id,expected:connection?.updated_at??null};
  async function action(body:Record<string,unknown>){try{await run({...common,...body});setSecrets({});}catch{/* The parent shows the sanitized error. */}}
+ async function importServiceFile(file:File|undefined){
+  setFileError('');if(!file)return;
+  if(file.size>30000){setFileError('El archivo JSON supera el tamaño admitido. Usa la clave original de Google Cloud.');return;}
+  try{const raw=await file.text(),parsed=JSON.parse(raw);if(parsed?.type!=='service_account'||typeof parsed.private_key!=='string'||typeof parsed.client_email!=='string')throw new Error();setSecrets(previous=>({...previous,service_account:raw}));}
+  catch{setFileError('Selecciona el archivo JSON privado de una cuenta de servicio de Google Cloud.');}
+ }
  return <form onSubmit={e=>{e.preventDefault();void action({action:'save',config,secrets});}}>
+  {service&&<label>Importar archivo JSON privado<input type="file" accept=".json,application/json" disabled={!canSave||busy} onChange={e=>void importServiceFile(e.target.files?.[0])}/><span className="small">El archivo solo se envía al servidor al guardar la conexión. Su clave queda cifrada y no se muestra después.</span></label>}
+  {fileError&&<p className="error" role="alert">{fileError}</p>}
   <div className="integration-fields">{fields.map(field=><label key={field.key}>{field.label}{field.required?' *':' · opcional'}
-   {field.format==='host'?<select aria-label={field.label} disabled={!canSave||busy} value={config[field.key]||'https://us.posthog.com'} onChange={e=>setConfig({...config,[field.key]:e.target.value})}><option value="https://us.posthog.com">PostHog US</option><option value="https://eu.posthog.com">PostHog EU</option><option value="https://app.posthog.com">PostHog Cloud</option></select>:
+   {field.format==='google_auth'?<select aria-label={field.label} disabled={!canSave||busy} value={config.auth_method||'oauth'} onChange={e=>setConfig({...config,auth_method:e.target.value})}><option value="service_account">Cuenta de servicio · recomendada para tu cuenta</option><option value="oauth">OAuth · autorización de un usuario</option></select>:field.format==='host'?<select aria-label={field.label} disabled={!canSave||busy} value={config[field.key]||'https://us.posthog.com'} onChange={e=>setConfig({...config,[field.key]:e.target.value})}><option value="https://us.posthog.com">PostHog US</option><option value="https://eu.posthog.com">PostHog EU</option><option value="https://app.posthog.com">PostHog Cloud</option></select>:
     ['pem','json'].includes(field.format||'')?<textarea aria-label={field.label} rows={4} autoComplete="off" spellCheck={false} disabled={!canSave||busy} value={secrets[field.key]||''} placeholder={connection?.secret_fields.includes(field.key)?'Guardada · deja vacío para conservarla':''} onChange={e=>setSecrets({...secrets,[field.key]:e.target.value})}/>:
      <input aria-label={field.label} type={field.secret?'password':field.format==='date'?'date':'text'} autoComplete={field.secret?'new-password':'off'} spellCheck={false} disabled={!canSave||busy} maxLength={field.secret?30000:300} value={(field.secret?secrets:config)[field.key]||''} placeholder={field.secret&&connection?.secret_fields.includes(field.key)?'Guardada · deja vacío para conservarla':''} onChange={e=>field.secret?setSecrets({...secrets,[field.key]:e.target.value}):setConfig({...config,[field.key]:e.target.value})}/>
-   }{field.secret&&connection?.secret_fields.includes(field.key)&&<span className="small">Clave guardada y privada. Introduce otra solamente para reemplazarla.</span>}
+   }{field.secret&&connection?.secret_fields.includes(field.key)&&<span className="small">Clave guardada y privada. Introduce otra solamente para reemplazarla.</span>}{field.help&&<span className="small">{field.help}</span>}
   </label>)}</div>
   <p className="small">Guardar no prueba ni publica campañas. «Comprobar conexión» consulta únicamente el proveedor. Desactivar conserva la configuración y detiene su uso en Experimental OS.</p>
   {editable&&<div className="row integration-actions"><button type="submit" className="btn primary" disabled={!canSave||busy}>{busy?'Procesando…':'Guardar configuración'}</button>

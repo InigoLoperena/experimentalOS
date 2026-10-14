@@ -1,7 +1,8 @@
 import {ApiError} from './server-access';
 import {metaPeriod} from './meta-ads';
 import type {CsvMetric} from './monitoring';
-export type GoogleAdsConnection={customerId:string;loginCustomerId?:string;clientId:string;clientSecret:string;refreshToken:string;developerToken?:string};
+import {googleServiceAssertion} from './google-service-account';
+export type GoogleAdsConnection={customerId:string;loginCustomerId?:string;clientId?:string;clientSecret?:string;refreshToken?:string;developerToken?:string;serviceAccount?:string};
 export function googleHeaders(c:GoogleAdsConnection,token:string){return {Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(c.loginCustomerId?{'login-customer-id':googleId(c.loginCustomerId)}:{}),...(c.developerToken?{'developer-token':c.developerToken}:{})};}
 export type GoogleAdsCampaign={id:string;name:string;status:string;type:string;url:string};
 export type GoogleAdsAccount={id:string;name:string;currency:string;timezone:string;test:boolean;manager:boolean};
@@ -9,10 +10,15 @@ export type GoogleAdsReport={resource_id:string|null;name:string;status:string;m
 export function googleId(value:unknown):string{if(typeof value!=='string'||!/^\d{1,30}$/.test(value))throw new ApiError('Introduce un ID numérico de Google Ads.',400);return value;}
 export async function googleAccessToken(connection:GoogleAdsConnection,fetcher:typeof fetch=fetch){
  if(!/^\d{10}$/.test(connection.customerId)||(connection.loginCustomerId&&!/^\d{10}$/.test(connection.loginCustomerId)))throw new ApiError('Revisa el ID de cuenta de Google Ads (10 dígitos).',400);
- if(!connection.clientId||!connection.clientSecret||!connection.refreshToken)throw new ApiError('Completa OAuth de Google Ads en Integraciones.',403);
- let response;try{response=await fetcher('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'refresh_token',client_id:connection.clientId,client_secret:connection.clientSecret,refresh_token:connection.refreshToken}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(12000)});}catch{throw new ApiError('Google no respondió al renovar OAuth.',502);}
+ let body:URLSearchParams;
+ if(connection.serviceAccount)body=new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:googleServiceAssertion(connection.serviceAccount)});
+ else{
+  if(!connection.clientId||!connection.clientSecret||!connection.refreshToken)throw new ApiError('Guarda el JSON de cuenta de servicio o completa OAuth en Integraciones → Google Ads.',403);
+  body=new URLSearchParams({grant_type:'refresh_token',client_id:connection.clientId,client_secret:connection.clientSecret,refresh_token:connection.refreshToken});
+ }
+ let response;try{response=await fetcher('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,cache:'no-store',redirect:'error',signal:AbortSignal.timeout(12000)});}catch{throw new ApiError('Google no respondió al renovar la autorización API.',502);}
  const result=await response.json().catch(()=>null);
- if(!response.ok||typeof result?.access_token!=='string'||!result.access_token||result.token_type?.toLowerCase()!=='bearer')throw new ApiError('Google rechazó OAuth. Reautoriza la conexión; comprueba si el refresh token de una app en pruebas ha caducado.',403);
+ if(!response.ok||typeof result?.access_token!=='string'||!result.access_token||result.token_type?.toLowerCase()!=='bearer')throw new ApiError(connection.serviceAccount?'Google rechazó la cuenta de servicio. Comprueba que su clave sigue activa y que la cuenta está habilitada en Google Cloud.':'Google rechazó OAuth. Reautoriza la conexión; comprueba si el refresh token de una app en pruebas ha caducado.',403);
  return result.access_token as string;
 }
 export async function googleSearch(connection:GoogleAdsConnection,token:string,query:string,fetcher:typeof fetch=fetch){
