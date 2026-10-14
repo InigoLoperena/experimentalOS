@@ -29,7 +29,7 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
       if (!session.data.session) throw new Error('Inicia sesión para utilizar el asistente.');
       const {media,documents}=await preparePromptFiles(files,'experiment');
       const response=await fetch('/api/ai/prepare',{method:'POST',headers:{Authorization:`Bearer ${session.data.session.access_token}`,'Content-Type':'application/json'},
-        body:JSON.stringify({project_id:draft.project_id,request_id:crypto.randomUUID(),prompt:fullPrompt,fields:previous?applyPreparation(draft.fields,previous):draft.fields,media,documents})});
+        body:JSON.stringify({project_id:draft.project_id,experiment_id:draft.id,request_id:crypto.randomUUID(),prompt:fullPrompt,fields:previous?applyPreparation(draft.fields,previous):draft.fields,media,documents})});
       const value=await response.json();
       if (!response.ok) throw new Error(value.error || 'No se pudo preparar la propuesta.');
       setProposal(parsePreparation(value.proposal)); setUsage(value.reserved_usd);conversation.current+=followup;setAnswers('');

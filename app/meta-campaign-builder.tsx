@@ -7,7 +7,7 @@ import {emptyMeta} from '@/lib/meta-options';
 import {automaticMetaSelection} from '@/lib/meta-auto-selection';
 import type {MetaSelection} from '@/lib/meta-build';
 type Preview={key:string;label:string;preview:string;width:number;height:number;upscaled:boolean};
-type Review={fingerprint:string;account:{name:string;id:string};name:string;objective:string;optimization:string;currency:string;total:number;budget_period?:'daily'|'total';start:string|null;end:string|null;previews:Preview[];write_available:boolean;selection:MetaSelection;steps:{key:string;kind:string;label:string;budget?:number}[]};
+type Review={fingerprint:string;account:{name:string;id:string};name:string;objective:string;optimization:string;currency:string;total:number;budget_period?:'daily'|'total';start:string|null;end:string|null;previews:Preview[];write_available:boolean;selection:MetaSelection;notes?:string[];steps:{key:string;kind:string;label:string;budget?:number;attachment_name?:string}[]};
 type Run={id:string;selection:MetaSelection;created_at:string};
 export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnArrival=false}:{experiment:Item;locked:boolean;onBusy:(busy:boolean)=>void;onCreated:()=>Promise<void>;openOnArrival?:boolean}){
  let plan:ReturnType<typeof executionFromFields>=null;
@@ -62,6 +62,8 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
   {review&&<section className="assistant-proposal"><h4>{review.name}</h4><p>Cuenta: {review.account.name}<br/>Objetivo: {review.objective}<br/>Presupuesto {review.budget_period==='daily'?'diario':'total'}: {review.total.toFixed(2)} {review.currency}<br/>Inicio: {review.start?new Date(review.start).toLocaleString():'Conjunto existente'} · Fin: {review.end?new Date(review.end).toLocaleString():'Conjunto existente'}</p>
    <p className="small">{review.steps.filter(s=>s.kind==='ad').length} anuncios. Público: {review.selection.meta.countries.join(', ')} · {review.selection.meta.age_min}–{review.selection.meta.age_max} años. Los intereses escritos en el prompt no se aplican en este flujo; se usa esa zona y edad.</p>
    {plan?.variants.map(v=><p key={v.label}><strong>{v.label}: {v.headline}</strong><br/>{v.body}</p>)}
+   {review.notes?.map(note=><p key={note} className="small">{note}</p>)}
+   <p className="small">Archivos elegidos automáticamente: {[...new Set(review.steps.filter(s=>s.attachment_name).map(s=>`${s.label}: ${s.attachment_name}`))].join(' · ')}. Se pueden revisar en Meta después de crear el borrador.</p>
    <div className="meta-previews">{review.previews.map(p=><figure key={p.key}><img src={p.preview} alt={p.label} width={280}/><figcaption>{p.label}<br/>{p.width} × {p.height}{p.upscaled&&' · ampliada: revisa nitidez'}</figcaption></figure>)}</div>
    <label className="check"><input type="checkbox" disabled={busy||locked} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>He revisado el público, presupuesto, anuncios y recortes. No es publicidad de categorías especiales. Autorizo enviar los materiales y crear estos recursos pausados.</label>
    {!review.write_available&&<p className="notice">Configura el acceso de escritura en Integraciones.</p>}

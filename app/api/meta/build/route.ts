@@ -7,6 +7,7 @@ import {buildMetaRecipe,parseMetaSelection,digest,nextMetaStep,type MetaStepResu
 import {privateMetaFile,renderMetaImage} from '@/lib/meta-media';
 import {writeMetaStep,metaVideoReady} from '@/lib/meta-write';
 import {MetaCreationError} from '@/lib/meta-preparation';
+import {metaDraftDefaults} from '@/lib/meta-draft-defaults';
 import type {Item} from '@/lib/model';
 import type {Attachment} from '@/lib/attachments';
 import type {Variant} from '@/lib/monitoring';
@@ -49,13 +50,14 @@ export async function POST(request:Request){
    const run=await client.from('meta_preparation_runs').select('*').eq('id',body.run_id).eq('experiment_id',experiment.id).single();
    if(run.error||!run.data)throw new ApiError('No tienes acceso a esta preparación.',403);savedRun=run.data;
   }
-  const selection=parseMetaSelection(savedRun?savedRun.selection:{...body.selection,name_mode:'experiment'});
+  let selection=parseMetaSelection(savedRun?savedRun.selection:{...body.selection,name_mode:'experiment'});
   const spec=await client.from('experiment_specs').select('code').eq('experiment_id',experiment.id).single();
   const variants=await client.from('experiment_variants').select('*').eq('experiment_id',experiment.id);
   if(spec.error||variants.error)throw new ApiError('Guarda el experimento y sus variantes antes de continuar.',400);
   const connection=await resolvedMetaConnection(client,project);
   const account=await metaAccount(connection);
-  const recipe=buildMetaRecipe(experiment,spec.data.code,selection,attachments,variants.data as Variant[],{...connection,currency:account.currency},savedRun?0:Date.now());if(!account.active)throw new ApiError('La cuenta de Meta no está activa.',400);
+  const defaults=metaDraftDefaults(experiment,project,selection,{...connection,currency:account.currency});selection=defaults.selection;
+  const recipe=buildMetaRecipe(defaults.experiment,spec.data.code,selection,attachments,variants.data as Variant[],{...connection,currency:account.currency},savedRun?0:Date.now());if(!account.active)throw new ApiError('La cuenta de Meta no está activa.',400);
   if(account.currency!==recipe.currency)throw new ApiError(`La cuenta utiliza ${account.currency}. Guarda el presupuesto de la ficha en esa moneda antes de preparar Meta.`,400);
   // Parent identity/status/objective verified against the configured account on every request.
   if(selection.mode!=='campaign'){
@@ -85,7 +87,7 @@ export async function POST(request:Request){
   }
   const fingerprint=digest({recipe,approved});
   if(savedRun&&savedRun.fingerprint!==fingerprint)throw new ApiError('La ficha, materiales o integración cambiaron. Revisa una preparación nueva antes de continuar.',409);
-  if(body.action==='review')return NextResponse.json({fingerprint,account,name:recipe.name,objective:recipe.objective,optimization:recipe.optimization,currency:recipe.currency,total:recipe.total/100,budget_period:recipe.budget_period||'total',start:recipe.start,end:recipe.end,steps:recipe.steps.map(({attachment,...s})=>({...s,attachment_name:attachment?.name})),previews,write_available:!!connection.writeToken,selection},{headers});
+  if(body.action==='review')return NextResponse.json({fingerprint,account,name:recipe.name,objective:recipe.objective,optimization:recipe.optimization,currency:recipe.currency,total:recipe.total/100,budget_period:recipe.budget_period||'total',start:recipe.start,end:recipe.end,steps:recipe.steps.map(({attachment,...s})=>({...s,attachment_name:attachment?.name})),previews,write_available:!!connection.writeToken,selection,notes:defaults.notes},{headers});
   if(!connection.writeToken)throw new ApiError('Configura el token ads_management en Integraciones.',400);
   if(body.action==='begin'){
    if(body.confirmed!==true||body.fingerprint!==fingerprint||!uuid(body.request_id))throw new ApiError('Revisa y aprueba esta configuración y sus recortes.',409);

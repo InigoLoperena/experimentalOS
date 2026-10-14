@@ -2,7 +2,7 @@ import type {Item} from './model';
 import {preparationKeys} from './ai-preparation';
 import {knowledgeMemory,selectMemory,type Knowledge,type MemorySource} from './ai-memory';
 export type PreparationRecord=Pick<Item,'id'|'kind'|'title'|'fields'|'updated_at'>;
-const projectKeys=['description','context','north_star','north_star_description','url','website','target','metric','definition'];
+const projectKeys=['description','context','north_star','north_star_description','site_url','url','website','target','metric','definition'];
 const historyKeys=['description','definition','context','hypothesis','metric','success_criteria','result','evidence','learning','decision','next_steps','tags','channel','validation'];
 const fields=(record:PreparationRecord,keys:string[],excerpt=false)=>Object.fromEntries(keys.filter(key=>record.fields?.[key]!==undefined).map(key=>[key,excerpt?String(record.fields[key]).slice(0,1000):record.fields[key]]));
 export function preparationContext(project:PreparationRecord,records:PreparationRecord[],imported:Knowledge[],current:Record<string,unknown>,prompt:string){

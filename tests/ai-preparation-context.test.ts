@@ -18,7 +18,8 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
  globalThis.fetch=async(input,options)=>{
   const url=new URL(String(input)),path=url.pathname;
   if(path==='/auth/v1/user')return json({id:u,aud:'authenticated',role:'authenticated'});
-  if(path.endsWith('/records')&&url.searchParams.has('id'))return json({id:p,workspace_id:w,kind:'project',title:'Greenhunt',fields:{description,north_star:'Objetos rescatados',api_key:'SECRET_PROJECT'},updated_at:'2026-10-14'});
+  if(path.endsWith('/records')&&url.searchParams.has('id'))return json(url.searchParams.get('id')===`eq.${p}`?{id:p,workspace_id:w,kind:'project',title:'Greenhunt',fields:{description,north_star:'Objetos rescatados',site_url:'https://greenhunt.net/',api_key:'SECRET_PROJECT'},updated_at:'2026-10-14'}:{id:'66666666-6666-4666-8666-666666666666'});
+  if(path.endsWith('/record_attachments')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('record_id'),'eq.66666666-6666-4666-8666-666666666666');return json([{name:'valorization.png',kind:'image'},{name:'tutorial-report.png',kind:'image'}]);}
   if(path.endsWith('/members'))return json({role:'owner'});
   if(path.endsWith('/rpc/can_record_action'))return json(true);
   if(path.endsWith('/integration_connections'))return json({id:'openai',provider:'openai',enabled:true,source:'environment',config:{}});
@@ -32,7 +33,8 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
    calls++;const payload=JSON.parse(String(options?.body)),content=payload.input[0].content;
    assert.equal(content.at(-1).text,`Solicitud actual del usuario (incluye sus respuestas más recientes):\n${prompt}`);
    const context=JSON.parse(content[0].text.split('\n').slice(1).join('\n'));
-   assert.equal(context.channel,channel);assert.equal(context.project.fields.description,description);assert.equal(context.current.context,current);
+   assert.equal(context.channel,channel);assert.equal(context.project.fields.description,description);assert.equal(context.project.fields.site_url,'https://greenhunt.net/');assert.equal(context.current.context,current);
+   assert.deepEqual(context.saved_materials,[{name:'valorization.png',kind:'image'},{name:'tutorial-report.png',kind:'image'}]);
    assert.ok(Buffer.byteLength(JSON.stringify(context.knowledge))<=24000);
    assert.ok(context.context_ids.includes('older-learning'));assert.ok(context.coverage.included<context.coverage.available);
    assert.doesNotMatch(JSON.stringify(context),/SECRET_NOT_CONTEXT|PRIVATE_PROVIDER_PAYLOAD|SECRET_PROJECT/);
@@ -42,7 +44,7 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
   throw new Error(`Unexpected endpoint ${path}`);
  };
  try{
-  const response=await POST(new Request('https://app.test/api/ai/prepare',{method:'POST',headers:{Authorization:'Bearer unit','Content-Type':'application/json'},body:JSON.stringify({project_id:p,request_id:'55555555-5555-4555-8555-555555555555',prompt,fields:{channel,context:current},media:[],documents:[]})}));
+  const response=await POST(new Request('https://app.test/api/ai/prepare',{method:'POST',headers:{Authorization:'Bearer unit','Content-Type':'application/json'},body:JSON.stringify({project_id:p,experiment_id:'66666666-6666-4666-8666-666666666666',request_id:'55555555-5555-4555-8555-555555555555',prompt,fields:{channel,context:current},media:[],documents:[]})}));
   const result=await response.json();assert.equal(response.status,200,JSON.stringify(result));assert.equal(result.proposal.channel,channel);assert.equal(calls,1);assert.equal(recordsPages,2);assert.ok(result.context_ids.includes('older-learning'));
  }finally{globalThis.fetch=original;process.env=env;}
 });

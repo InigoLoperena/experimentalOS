@@ -30,7 +30,7 @@ test('prompt-only preparation binds private images to variants and creates match
  assert.equal(recipe.name,'Experimento · Exact experiment title');assert.equal(recipe.steps.filter(s=>s.kind==='ad').length,6);
  assert.equal(buildMetaRecipe({...exp,title:'Historical exact title'},'EXP-GREENHUNT-0042',{...selection,name_mode:'exact'},attachments,variants,connection,0).name,'Historical exact title');
  assert.equal(recipe.steps.filter(s=>s.kind==='adset').reduce((sum,s)=>sum+s.budget!,0),7000);
- assert.throws(()=>automaticMetaSelection({...plan,variants:[{...plan.variants[0],media_names:['missing.jpg']}]},attachments,undefined,0),/asignación única/);
+ assert.equal(automaticMetaSelection({...plan,variants:[{...plan.variants[0],media_names:['missing.jpg']}]},attachments,undefined,0).assignments[0].attachment_id,attachments[0].id);
  assert.equal(plan.variants[0].allocation,null); // reviewed defaults never mutate the stored prompt proposal
  const ongoing=buildMetaRecipe({...exp,fields:{channel:'meta_ads',execution_config:JSON.stringify({...plan,duration_days:null})}},'EXP-GREENHUNT-0042',automatic,[...attachments,second],variants,{...connection,currency:'USD'},0);
  const payload=metaStepPayload(ongoing,ongoing.steps.find(s=>s.kind==='adset')!,{campaign:{id:'987'}}) as Record<string,unknown>;
