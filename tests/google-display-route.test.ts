@@ -20,7 +20,7 @@ for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configu
  const plan={...emptyExecution(),destination:'https://example.org/',daily_budget:10,currency:null,duration_days:7,google:{...emptyGoogleAds(),type,countries:['US'],language_ids:['1000'],keywords:type==='SEARCH'?['free furniture']:[],cpc_limit:1,eu_political:false,business_name:type==='DISPLAY'?'Customer Brand':null,long_headlines:type==='DISPLAY'?['Find free furniture near you','Give a useful item a new life']:[]},variants:['A','B'].map(label=>({label,headline:type==='DISPLAY'?`Free Furniture ${label}`:`Free Furniture ${label}\nFind Local Treasures\nTry Us Today`,body:type==='DISPLAY'?'Find useful furniture in your community.':'Find furniture near you.\nGive useful things a new life.',description:null,call_to_action:null,allocation:null,media_names:[`${label}.png`]}))};
  const project={id:p,workspace_id:w,kind:'project',title:'Customer project',fields:{}},experiment={id:e,workspace_id:w,project_id:p,kind:'experiment',title:'Customer experiment',updated_at:'revision',fields:{channel:'google_ads',execution_config:JSON.stringify(plan)}};
  const variants=['A','B'].map((label,i)=>({id:`variant${i}`,label}));
- let row:Connection|null=null,envelope='',mutations=0,validations=0,role='owner',allowEdit=true,changed=false;
+ let row:Connection|null=null,envelope='',mutations=0,validations=0,role='owner',allowEdit=true,changed=false,foreignGoogle=false;
  let savedResources:Record<string,any>[]=[];
  globalThis.fetch=async(input,options)=>{
   const url=new URL(String(input)),path=url.pathname,json=(value:unknown)=>Response.json(value),body=()=>JSON.parse(String(options?.body||'{}'));
@@ -29,6 +29,7 @@ for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configu
    assert.ok(path.startsWith(`/v25/customers/${config.customer_id}/`));const headers=new Headers(options?.headers);assert.equal(headers.get('Authorization'),'Bearer customer-access');assert.equal(headers.get('developer-token'),secrets.developer_token);assert.equal(headers.get('login-customer-id'),config.login_customer_id);
    if(path.endsWith('googleAds:search')){const query=body().query;
     if(query.includes('FROM customer'))return json({results:[{customer:{id:config.customer_id,descriptiveName:'Customer account',currencyCode:'USD',timeZone:'UTC',manager:false}}]});
+    if(query.includes('FROM campaign')){assert.ok(query.includes('campaign.id IN (101)'));assert.equal(query.includes('metrics.'),false);return json({results:[{campaign:{id:foreignGoogle?'999':'101',name:'Experimento · Customer experiment',status:'ENABLED'}}]});}
     if(query.includes('FROM geo_target_constant'))return json({results:[{geoTargetConstant:{id:'2840',countryCode:'US'}}]});
     if(query.includes('FROM language_constant'))return json({results:[{languageConstant:{id:'1000',name:'English'}}]});
     throw new Error(`Unexpected Google query: ${query}`);
@@ -57,6 +58,8 @@ for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configu
   if(path.endsWith('/experiment_specs'))return json({code:'EXP-CUSTOMER-0001'});
   if(path.endsWith('/experiment_variants'))return json(variants);
   if(path.endsWith('/record_attachments')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('record_id'),`eq.${e}`);return json(attachments);}
+  if(path.endsWith('/external_resources')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);assert.equal(url.searchParams.get('experiment_id'),`eq.${e}`);return json(savedResources.filter(r=>r.type==='campaign').map(r=>({external_id:r.id,label:r.label,observed_status:'paused'})));}
+  if(path.endsWith('/google_ads_preparations'))return json([]);
   if(path.startsWith('/storage/v1/object/')){assert.ok(path.includes(`${w}/${e}/`));return new Response(new Uint8Array(changed?changedSource:source),{headers:{'Content-Type':'image/png'}});}
   if(path.endsWith('/rpc/reserve_google_ads')){const b=body();assert.equal(b.p_experiment,e);assert.equal(b.p_account,config.customer_id);return json(b.p_id);}
   if(path.endsWith('/rpc/finish_google_ads')){const b=body();assert.equal(b.p_status,'succeeded');savedResources=b.p_resources;return json(null);}
@@ -74,6 +77,8 @@ for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configu
    changed=false;attachments.forEach(a=>a.size=source.length);
   }
   const created=await request(prepare,{action:'create',project_id:p,experiment_id:e,fingerprint:proposal.fingerprint,confirmed:true,request_id:requestId});assert.equal(created.status,200);assert.equal(mutations,1);assert.equal(savedResources.length,4);assert.equal(savedResources[2].variant,variants[0].id);assert.equal(savedResources[3].variant,variants[1].id);if(type==='DISPLAY')assert.equal(savedResources[2].images.length,2);
+  const live=await request(reports,{action:'status',project_id:p,experiment_id:e,refresh:true});assert.equal(live.status,200);assert.deepEqual((await live.json()).campaigns,[{id:'101',name:'Experimento · Customer experiment',status:'ENABLED',live:true}]);assert.equal(mutations,1);
+  foreignGoogle=true;const foreign=await request(reports,{action:'status',project_id:p,experiment_id:e,refresh:true});assert.equal(foreign.status,502);foreignGoogle=false;
   role='editor';const denied=await request(integrations,{action:'save',workspace_id:w,project_id:p,provider:'google_ads',config,secrets});assert.equal(denied.status,403);
   allowEdit=false;const blocked=await request(prepare,{action:'create',project_id:p,experiment_id:e});assert.equal(blocked.status,403);assert.equal(mutations,1);assert.ok(validations>=3);
  }finally{globalThis.fetch=original;process.env=env;}

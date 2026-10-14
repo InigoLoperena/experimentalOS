@@ -1460,7 +1460,7 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" || ["web_app", "mobile_ios", "mobile_android"].includes(String(draft.fields.channel))).map((f) => (
+  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || (f.key !== "posthog_experiment_id" || ["web_app", "mobile_ios", "mobile_android"].includes(String(draft.fields.channel))) && (!['meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 <label
@@ -2593,7 +2593,7 @@ export default function Home() {
               record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
-                <FieldDetails record={selected} fields={selected.fields.channel==='meta_ads'?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
+                <FieldDetails record={selected} fields={['meta_ads','google_ads'].includes(String(selected.fields.channel))?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
                 {links}
                 {['meta_ads','google_ads'].includes(String(selected.fields.channel))?<>
                   <p><strong>Canal:</strong> {selected.fields.channel==='meta_ads'?'Meta Ads':'Google Ads'}</p>
@@ -2848,7 +2848,7 @@ export default function Home() {
                 {saving ? "Guardando…" : "Guardar ficha"}
               </button>
               {draft.kind==='experiment'&&draft.fields.channel==='meta_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-meta="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y revisar envío a Meta</button>}
-              {draft.kind==='experiment'&&draft.fields.channel==='google_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-google="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y enviar a Google Ads</button>}
+              {draft.kind==='experiment'&&draft.fields.channel==='google_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-google="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Enviar a Google Ads</button>}
             </div>
           </form>
         )}
