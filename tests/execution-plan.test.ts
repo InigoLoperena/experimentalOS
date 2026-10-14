@@ -46,6 +46,13 @@ test('execution proposals preserve the chosen channel and unknown human settings
   const revised=applyPreparation({channel:'web_app',execution_config:JSON.stringify({...old,variants:[variant]})},{...proposal,execution:{...emptyExecution(),variants:[{...variant,description:'Nueva propuesta',headline:null,body:null,call_to_action:null,allocation:null}]}});
   assert.deepEqual(executionFromFields(revised)?.variants[0],{...variant,description:'Nueva propuesta'});
 });
+
+test('Meta prompts with creatives do not ask for technical defaults before preparing a paused draft',()=>{
+ const proposal=parsePreparation({title:'Prueba con imágenes',fields:{...Object.fromEntries(preparationKeys.map(k=>[k,null])),hypothesis:'La propuesta A recibe más clics'},channel:'meta_ads',execution:{...emptyExecution(),variants:[{label:'A',description:null,headline:'Texto A',body:'Propuesta A',call_to_action:null,allocation:null}]},missing:[],assumptions:[],questions:[]});
+ const result=requiredPreparation(proposal,2);
+ assert.deepEqual(result.missing,[]);assert.deepEqual(result.questions,[]);
+ assert.equal(result.execution?.daily_budget,null);assert.equal(result.execution?.duration_days,null);
+});
 test('invalid financial values, duplicate variants and unsafe destinations are rejected',()=>{
   const base=emptyExecution();
   for(const value of [{...base,destination:'javascript:alert(1)'},{...base,daily_budget:-1},{...base,currency:'dollar'},{...base,duration_days:1.5}])assert.throws(()=>parseExecution(value));
