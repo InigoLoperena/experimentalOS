@@ -114,13 +114,15 @@ export async function POST(request:Request){
   try{result=await writeMetaStep({...connection,token:connection.writeToken},recipe,step,next.results,file);}
   catch(error){
    const status=error instanceof MetaCreationError&&error.uncertain?'uncertain':'rejected';
-   const diagnostic=error instanceof MetaCreationError?error.diagnostic:undefined;
-   const finish=await client.rpc('finish_meta_step',{p_request:requestId,p_status:status,p_result:diagnostic?{error:diagnostic}:{}});
+   // The receipt RPC only accepts id/hash keys. Keep rejections empty so a
+   // definitive provider failure can be safely resumed, and report diagnostics
+   // in the API response instead of leaving an unfinishable pending receipt.
+   const finish=await client.rpc('finish_meta_step',{p_request:requestId,p_status:status,p_result:{}});
    if(finish.error)throw new ApiError('No se pudo guardar el resultado. Revisa Meta antes de repetir.',502);throw error;
   }
   const type=['campaign','adset','ad'].includes(step.kind)?step.kind:null;
   const finish=await client.rpc('finish_meta_step',{p_request:requestId,p_status:'succeeded',p_result:result,p_type:type,p_variant:step.variant_id,p_label:step.label});
   if(finish.error)return NextResponse.json({error:'Meta confirmó el recurso, pero no se pudo guardar su vínculo. No repitas este paso. Comprueba el ID en Ads Manager.',external_id:result.id,image_hash:result.hash},{status:502,headers});
   return NextResponse.json({done:false,step:step.label,result},{headers});
- }catch(error){return NextResponse.json({error:error instanceof ApiError?error.message:'No se pudo completar la preparación. Revisa los datos antes de continuar.'},{status:error instanceof ApiError?error.status:502,headers});}
+ }catch(error){return NextResponse.json({error:error instanceof ApiError?error.message:'No se pudo completar la preparación. Revisa los datos antes de continuar.',...(error instanceof MetaCreationError&&error.diagnostic?{meta_error:error.diagnostic}:{})},{status:error instanceof ApiError?error.status:502,headers});}
 }
