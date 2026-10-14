@@ -5,7 +5,7 @@ import {POST as prepare} from '../app/api/google-ads/prepare/route';
 import {POST as integrations} from '../app/api/integrations/route';
 import {POST as reports} from '../app/api/google-ads/route';
 import {emptyExecution} from '../lib/execution-plan';
-import {emptyGoogleAds} from '../lib/google-ads-options';
+import {emptyGoogleAds,parseGoogleAdsOptions} from '../lib/google-ads-options';
 import {preparationSchemaForRequest} from '../lib/ai-preparation';
 import type {Connection} from '../lib/integrations';
 
@@ -84,4 +84,8 @@ test('a Display prompt constrains the AI schema to Display instead of silently c
  const execution=schema.properties.execution.anyOf[0];assert.ok('properties' in execution);
  const google=execution.properties.google.anyOf[0];assert.ok('properties' in google);
  assert.deepEqual(google.properties.type.enum,['DISPLAY']);
+});
+test('an image-only Display comparison can keep identical long headlines across variants',()=>{
+ const options=parseGoogleAdsOptions({...emptyGoogleAds(),type:'DISPLAY',business_name:'Brand',long_headlines:['Same message','Same message']});
+ assert.deepEqual(options?.long_headlines,['Same message','Same message']);
 });
