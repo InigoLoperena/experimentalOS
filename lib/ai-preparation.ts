@@ -59,6 +59,7 @@ export function applyPreparation(current: Fields, proposal: Preparation): Fields
       if(!previous)return variant;
       return {...variant,...Object.fromEntries(Object.entries(variant).filter(([,value])=>value===null).map(([key])=>[key,previous[key as keyof typeof previous]]))};
     });
+    if((current.channel||proposal.channel)==='google_ads')execution.variants=execution.variants.map(variant=>({...variant,allocation:null}));
     next.execution_config=JSON.stringify(parseExecution(execution));
   }
   return next;
@@ -70,7 +71,13 @@ export function humanSuccessCriterion(proposal: Preparation, current: unknown): 
 }
 
 export function requiredPreparation(proposal:Preparation,mediaCount:number):Preparation{
-  const missing=[...proposal.missing];const plan=proposal.execution;
+  const isGoogle=proposal.channel==='google_ads';
+  // These drafts use one campaign budget and provider-controlled ad delivery.
+  // Do not carry a model's percentages into the reviewed or persisted plan.
+  const plan=isGoogle&&proposal.execution?{...proposal.execution,variants:proposal.execution.variants.map(variant=>({...variant,allocation:null}))}:proposal.execution;
+  const missing=proposal.missing.filter(value=>!(isGoogle&&!proposal.fields.start&&/^(?:start|fecha de inicio)[.\s]*$/i.test(value.trim())));
+  const deliveryNotice='Google decide la entrega entre los dos anuncios; no se garantiza reparto 50/50 ni presupuesto igual por variante.';
+  const assumptions=isGoogle?proposal.assumptions.map(value=>/repart|distribu|asigna/i.test(value)&&/equita|igual|50\s*(?:\/|%)/i.test(value)&&/presup|tr[aá]fico/i.test(value)?deliveryNotice:value):proposal.assumptions;
   if(!proposal.channel)missing.push('Selecciona el canal principal.');
   if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
   if(!['meta_ads','google_ads','smartlead'].includes(proposal.channel||'')&&!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
@@ -85,5 +92,5 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
     if(!plan?.variants.length || plan.variants.some(v=>!v.headline||!v.body))missing.push('Completa titulares y textos de las variantes.');
     if(proposal.channel==='meta_ads')missing.push('Antes de crear en Meta: verificar la página, segmentación y permisos de escritura.');
   }
-  return {...proposal,missing:[...new Set(missing)].slice(0,20)};
+  return {...proposal,execution:plan,assumptions:[...new Set(assumptions)],recommendations:isGoogle?[deliveryNotice,...(proposal.recommendations||[]).filter(value=>value!==deliveryNotice)].slice(0,20):proposal.recommendations,missing:[...new Set(missing)].slice(0,20)};
 }

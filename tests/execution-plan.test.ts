@@ -43,7 +43,7 @@ test('execution proposals preserve the chosen channel and unknown human settings
   assert.throws(()=>parseChannel('constructor'));
   assert.ok(requiredPreparation({...proposal,channel:'meta_ads'},0).missing.some(row=>row.includes('creatividades')));
   const variant={label:'A',description:'Humana',headline:'Titular revisado',body:'Texto revisado',call_to_action:'Ver más',allocation:100};
-  const revised=applyPreparation({execution_config:JSON.stringify({...old,variants:[variant]})},{...proposal,execution:{...emptyExecution(),variants:[{...variant,description:'Nueva propuesta',headline:null,body:null,call_to_action:null,allocation:null}]}});
+  const revised=applyPreparation({channel:'web_app',execution_config:JSON.stringify({...old,variants:[variant]})},{...proposal,execution:{...emptyExecution(),variants:[{...variant,description:'Nueva propuesta',headline:null,body:null,call_to_action:null,allocation:null}]}});
   assert.deepEqual(executionFromFields(revised)?.variants[0],{...variant,description:'Nueva propuesta'});
 });
 test('invalid financial values, duplicate variants and unsafe destinations are rejected',()=>{

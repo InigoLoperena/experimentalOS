@@ -6,7 +6,7 @@ import {POST as integrations} from '../app/api/integrations/route';
 import {POST as reports} from '../app/api/google-ads/route';
 import {emptyExecution} from '../lib/execution-plan';
 import {emptyGoogleAds,parseGoogleAdsOptions} from '../lib/google-ads-options';
-import {preparationSchemaForRequest} from '../lib/ai-preparation';
+import {preparationSchemaForRequest,requiredPreparation,applyPreparation,preparationKeys,type Preparation} from '../lib/ai-preparation';
 import type {Connection} from '../lib/integrations';
 
 for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configures Google OAuth and creates ${type} paused resources with private assets and automatic IDs`,async()=>{
@@ -88,4 +88,19 @@ test('a Display prompt constrains the AI schema to Display instead of silently c
 test('an image-only Display comparison can keep identical long headlines across variants',()=>{
  const options=parseGoogleAdsOptions({...emptyGoogleAds(),type:'DISPLAY',business_name:'Brand',long_headlines:['Same message','Same message']});
  assert.deepEqual(options?.long_headlines,['Same message','Same message']);
+});
+test('Google proposals never promise equal delivery or require an optional start date',()=>{
+ const execution={...emptyExecution(),google:{...emptyGoogleAds(),type:'SEARCH' as const},variants:['A','B'].map(label=>({label,headline:'Headline',body:'Description',description:null,call_to_action:null,allocation:50,media_names:[]}))};
+ const proposal:Preparation={title:'Comparison',channel:'google_ads',execution,fields:Object.fromEntries(preparationKeys.map(key=>[key,null])) as Preparation['fields'],missing:['Fecha de inicio','Confirma el idioma.'],assumptions:['El presupuesto diario es distribuido equitativamente entre las variantes.']};
+ const normalized=requiredPreparation(proposal,0);
+ assert.equal(normalized.missing.includes('Fecha de inicio'),false);
+ assert.ok(normalized.missing.includes('Confirma el idioma.'));
+ assert.ok(!normalized.missing.some(value=>value.includes('creatividades')));
+ assert.ok(normalized.assumptions.every(value=>!value.includes('equitativamente')));
+ assert.ok(normalized.recommendations?.some(value=>value.includes('no se garantiza')));
+ assert.ok(normalized.execution?.variants.every(variant=>variant.allocation===null));
+ const applied=applyPreparation({channel:'google_ads',execution_config:JSON.stringify(execution)},normalized);
+ assert.equal(typeof applied.execution_config,'string');
+ assert.ok(JSON.parse(String(applied.execution_config)).variants.every((variant:{allocation:number|null})=>variant.allocation===null));
+ assert.ok(requiredPreparation({...proposal,channel:'meta_ads'},2).missing.includes('Fecha de inicio'));
 });
