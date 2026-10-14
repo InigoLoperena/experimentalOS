@@ -44,7 +44,7 @@ export async function metaJson(path: string, params: Record<string,string>, toke
     const error = body.error as {code?: number} | undefined;
     console.warn('Meta read rejected', {status:response.status,code:error?.code});
     // Never return raw provider error messages or token-bearing URLs.
-    if (error?.code === 190) throw new ApiError('El token de Meta ha caducado o fue revocado. Renueva el secreto en Vercel.', 502);
+    if (error?.code === 190) throw new ApiError('El token de Meta ha caducado o fue revocado. Renueva la clave en Integraciones → Meta Ads.', 502);
     if ([4,17,32,613].includes(error?.code || 0) || response.status === 429) throw new ApiError('Meta ha alcanzado su límite de consultas. Espera antes de actualizar.', 429);
     throw new ApiError('Meta rechazó la consulta. Revisa los permisos de lectura y el acceso a la cuenta publicitaria.', 502);
   }

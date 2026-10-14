@@ -130,16 +130,25 @@ test("complete migration chain preserves existing teams, invitation-only access 
     // A second real workspace; membership in both does not permit mixing references.
     await db.exec('reset role');
     const beta=randomUUID(); await db.query("insert into auth.users(id,raw_user_meta_data) values($1,'{}')",[beta]);
-    const w2=await scalar("insert into workspaces(name,created_by) values('Other',$1) returning id as value",[beta]);
-    await db.query("insert into members(workspace_id,user_id,role) values($1,$2,'owner'),($1,$3,'editor')",[w2,beta,editor]);
+    await as(beta);
+    const w2=await scalar("select create_team('Other') as value");
+    assert.equal(await scalar("select member_role($1) as value",[w2]),'owner');
+    await db.exec('reset role');
+    await db.query("insert into members(workspace_id,user_id,role) values($1,$2,'editor')",[w2,editor]);
     await as(beta);
     const p2=await scalar("insert into records(workspace_id,kind,title) values($1,'project','Private') returning id as value",[w2]);
+    const customerMeta=await scalar<{id:string;updated_at:string}>("select to_jsonb(r) as value from save_integration($1,$2,'meta_ads','{\"account_id\":\"999999\",\"app_id\":\"888888\"}',array['access_token','write_token'],$3,null) r",[w2,p2,'v1.'+'c'.repeat(50)]);
+    await db.query('select set_meta_workspace_default($1,$2,true)',[customerMeta.id,customerMeta.updated_at]);
+    assert.equal(await scalar('select read_integration_envelope($1) as value',[customerMeta.id]),'v1.'+'c'.repeat(50));
     assert.equal(Number(await scalar('select reserve_ai_chat($1,$2) as value',[w2,randomUUID()])),0.03);
     const e2=await scalar("insert into records(workspace_id,project_id,kind,title) values($1,$2,'experiment','Private') returning id as value",[w2,p2]);
     await as(editor);
     await assert.rejects(db.query("insert into ai_knowledge(workspace_id,project_id,title,content,format) values($1,$2,'Cruzado','Privado','text')",[w,p2]));
     await assert.rejects(db.query("insert into external_resources(workspace_id,project_id,experiment_id,variant_id,provider,resource_type,external_id) values($1,$2,$3,$4,'meta_ads','campaign','cross')",[w2,p2,e2,variant]));
     await as(owner);
+    assert.equal((await db.query('select * from integration_connections where id=$1',[customerMeta.id])).rows.length,0);
+    await assert.rejects(db.query('select read_integration_envelope($1)',[customerMeta.id]),/no autorizada/);
+    await assert.rejects(db.query('select set_meta_workspace_default($1,$2,true)',[customerMeta.id,customerMeta.updated_at]),/superadministrador/);
     assert.equal((await db.query("select * from experiment_specs where workspace_id=$1",[w2])).rows.length,0);
     await assert.rejects(db.query("select reserve_ai_preparation($1,$2)",[w2,randomUUID()]));
     await db.exec('reset role'); await db.query("delete from members where workspace_id=$1 and user_id=$2",[w2,editor]);

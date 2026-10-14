@@ -4,6 +4,7 @@ import {Plug,ShieldCheck} from 'lucide-react';
 import {supabase} from '@/lib/supabase';
 import type {Item} from '@/lib/model';
 import {integrationCatalog,integrationFields,type IntegrationProvider,type Connection} from '@/lib/integrations';
+import {MetaConnectionGuide} from './meta-connection-guide';
 type Payload={connections:Connection[];can_configure:boolean;storage_ready:boolean};
 export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{workspaceId:string;projects:Item[];demo:boolean;onSaved:()=>Promise<void>;onBusy:(busy:boolean)=>void}){
  const [provider,setProvider]=useState<IntegrationProvider>('openai');
@@ -31,7 +32,7 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
  const sharedMeta=provider==='meta_ads'?data?.connections.find(row=>row.provider==='meta_ads'&&row.workspace_default):null;
  const failedCheck=failedChecks[`${provider}:${selectedProject??'workspace'}`];
  return <section className="integrations-panel">
-  <div className="notice"><ShieldCheck size={18}/><span>Conexiones compartidas por equipo. Solo el superadministrador configura las APIs; los colaboradores consultan su estado. Las claves se guardan privadas, cifradas, y no vuelven a mostrarse.</span></div>
+  <div className="notice"><ShieldCheck size={18}/><span>Conexiones compartidas dentro de cada equipo. El administrador de cada equipo configura sus APIs; los colaboradores consultan su estado. Las claves se guardan privadas, cifradas, y no vuelven a mostrarse.</span></div>
   {demo&&<p className="notice">La demostración permite explorar el panel. No introduzcas claves reales: las conexiones requieren una sesión de tu equipo.</p>}
   {error&&<p className="error" role="alert">{error}</p>}
   {message&&<p className="notice" role="status">{message}</p>}
@@ -41,12 +42,13 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
    {(Object.entries(integrationCatalog) as [IntegrationProvider,typeof integrationCatalog[IntegrationProvider]][]).map(([key,value])=><button type="button" key={key} disabled={busy} className={provider===key?'selected':''} aria-pressed={provider===key} onClick={()=>{setProvider(key);setError('');setMessage('');}}><Plug size={17}/>{value.name}</button>)}
   </nav><div className="panel integration-form">
    <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
+   {provider==='meta_ads'&&<MetaConnectionGuide/>}
    {integrationCatalog[provider].scope==='project'?<label>Proyecto<select aria-label="Proyecto de la integración" disabled={busy} value={projectId} onChange={e=>{setProjectId(e.target.value);setError('');setMessage('');}}>{projects.map(project=><option value={project.id} key={project.id}>{project.title}</option>)}</select></label>:<p className="small">Una conexión de OpenAI para los proyectos de este equipo. Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
    {sharedMeta&&<p className="notice">Cuenta de Meta compartida: {sharedMeta.config.account_id}. {sharedMeta.enabled?'Los proyectos sin una conexión propia utilizan esta cuenta, página e Instagram.':'La conexión compartida está desactivada.'} Se administra desde {projects.find(p=>p.id===sharedMeta.project_id)?.title||'su proyecto de origen'}. Cada campaña y sus datos siguen asociados a su experimento.</p>}
    <p className="integration-status" role="status">{!connection?(sharedMeta?.enabled?'Usando la conexión compartida de Meta':'Sin configurar'):!connection.enabled?'Desactivada':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
    {failedCheck&&<p className="error">{failedCheck}</p>}
    {connection?.verified_at&&<p className="small">{connection.verification_note}<br/>Última comprobación correcta: {new Date(connection.verified_at).toLocaleString('es')}</p>}
-   {!data?.can_configure&&!demo&&data&&<p className="notice">Acceso de consulta. El superadministrador del equipo puede cambiar esta configuración.</p>}
+   {!data?.can_configure&&!demo&&data&&<p className="notice">Acceso de consulta. El administrador de tu equipo puede cambiar esta configuración.</p>}
    {data?.can_configure&&!data.storage_ready&&<p className="notice">El almacén privado necesita activarse en el servidor antes de guardar claves nuevas. Las conexiones existentes siguen disponibles.</p>}
    <ConnectionForm key={`${provider}:${selectedProject}:${connection?.updated_at||'new'}`} provider={provider} projectId={selectedProject} connection={connection} editable={!!data?.can_configure&&!demo&&data.storage_ready} busy={busy} run={run}/>
    <a className="project-link" href={integrationCatalog[provider].docs} target="_blank" rel="noopener noreferrer">Dónde obtener los datos de {integrationCatalog[provider].name}</a>
