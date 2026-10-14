@@ -32,7 +32,7 @@ export function MetaCampaignBuilder({experiment,locked,onBusy,onCreated,openOnAr
  }
  async function task(fn:()=>Promise<unknown>){
   if(flight.current||locked)return;flight.current=true;setBusy(true);onBusy(true);setError('');
-  try{await fn();}catch(err){if(active.current){setError(err instanceof Error?err.message:'No se pudo completar la preparación.');if(runId){try{await load();}catch{/* Keep the original failure; never retry an external write. */}}}}
+  try{await fn();}catch(err){if(active.current){setError(err instanceof Error?err.message:'No se pudo completar la preparación.');if(runId||err instanceof Error&&err.message.includes('interrumpió la conexión')){try{await load();}catch{/* Keep the original failure; never retry an external write. */}}}}
   finally{flight.current=false;onBusy(false);if(active.current)setBusy(false);}
  }
  async function load(){
