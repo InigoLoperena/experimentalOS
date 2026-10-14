@@ -16,14 +16,14 @@ test('a different team owner saves private Meta credentials, reads campaigns and
  process.env.NEXT_PUBLIC_SUPABASE_URL='https://customer.supabase.co';process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY='public-unit';process.env.INTEGRATIONS_ENCRYPTION_KEY='a'.repeat(64);
  process.env.META_ADS_WORKSPACE_ID='pilot-only';process.env.META_ADS_PROJECT_ID='pilot-only';process.env.META_ADS_ACCESS_TOKEN='pilot-read';process.env.META_ADS_WRITE_ACCESS_TOKEN='pilot-write';
  const config={account_id:'999999',app_id:'888888',page_id:'777777',instagram_id:'666666'};
- const plan={...emptyExecution(),meta:{...emptyMeta(),objective:'traffic' as const,countries:['US'],placements:['feed','story','reels'] as ('feed'|'story'|'reels')[]},goal:'traffic' as const,destination:'https://example.org/',daily_budget:10,currency:'USD',duration_days:7,variants:['A','B'].map(label=>({label,description:null,headline:`Headline ${label}`,body:`Copy ${label}`,call_to_action:'LEARN_MORE',allocation:null,media_names:[`${label}.png`]}))};
+ const plan={...emptyExecution(),meta:{...emptyMeta(),objective:'traffic' as const,countries:['ES'],age_min:25,age_max:55,placements:['feed','story','reels'] as ('feed'|'story'|'reels')[]},goal:'traffic' as const,destination:'https://example.org/',daily_budget:10,currency:'USD',duration_days:7,variants:['A','B'].map(label=>({label,description:null,headline:`Headline ${label}`,body:`Copy ${label}`,call_to_action:'LEARN_MORE',allocation:null,media_names:[`${label}.png`]}))};
  const project={id:p,kind:'project',workspace_id:w,title:'Customer project',fields:{}};
  const experiment={id:e,workspace_id:w,project_id:p,kind:'experiment',title:'Customer test',updated_at:'2026-10-01T00:00:00.000Z',fields:{channel:'meta_ads',execution_config:JSON.stringify(plan)}};
  const image=await sharp({create:{width:1440,height:2560,channels:3,background:'#b6fc46'}}).png().toBuffer();
  const attachments=['A','B'].map((label,i)=>({id:`${i+7}7777777-7777-4777-8777-777777777777`,workspace_id:w,record_id:e,name:`${label}.png`,kind:'image',mime_type:'image/png',size:image.length,storage_path:`${w}/${e}/${label}.png`})) as Attachment[];
  const variants=['A','B'].map((label,i)=>({id:`v${i}`,label,workspace_id:w,project_id:p,experiment_id:e}));
  let row:Connection|null=null,envelope='',role='owner',canEdit=true;
- let run:Record<string,unknown>|null=null,graphWrites=0;
+ let run:Record<string,unknown>|null=null,graphWrites=0,rejectedOnce=false;
  const receipts:{step_key:string;status:string;result:unknown}[]=[];
  const reservations=new Map<string,string>(),resources:Record<string,unknown>[]=[];
  globalThis.fetch=async(input,options)=>{
@@ -40,6 +40,11 @@ test('a different team owner saves private Meta credentials, reads campaigns and
      return json({images:{file:{hash:'a'.repeat(32)}}});
     }
     if(!path.endsWith('/adcreatives'))assert.equal(payload.get('status'),'PAUSED');
+    if(path.endsWith('/adsets')){
+     const targeting=JSON.parse(payload.get('targeting')!);
+     assert.deepEqual(targeting.targeting_automation,{advantage_audience:0});assert.equal(targeting.age_min,25);assert.equal(targeting.age_max,55);
+     if(!rejectedOnce){rejectedOnce=true;return Response.json({error:{code:100,error_subcode:999,error_user_title:'Parámetro requerido',error_user_msg:'Revisa este parámetro en Meta.'}},{status:400});}
+    }
     if(path.endsWith('/campaigns'))assert.equal(payload.get('name'),'Experimento · Customer test');
     if(path.endsWith('/adcreatives')){
      const creative=JSON.parse(payload.get('object_story_spec')!);assert.equal(creative.page_id,config.page_id);assert.equal(creative.instagram_user_id,config.instagram_id);assert.equal(creative.link_data.image_hash,'a'.repeat(32));
@@ -70,7 +75,7 @@ test('a different team owner saves private Meta credentials, reads campaigns and
   if(path.endsWith('/meta_preparation_steps'))return json(receipts);
   if(path.endsWith('/rpc/begin_meta_run')){const saved=body();assert.equal(saved.p_experiment,e);run={id:runId,selection:saved.p_selection,fingerprint:saved.p_fingerprint};return json(runId);}
   if(path.endsWith('/rpc/reserve_meta_step')){const saved=body();assert.equal(saved.p_run,runId);reservations.set(saved.p_request,saved.p_step);return json(null);}
-  if(path.endsWith('/rpc/finish_meta_step')){const saved=body();receipts.push({step_key:reservations.get(saved.p_request)!,status:saved.p_status,result:saved.p_result});if(saved.p_type)resources.push({type:saved.p_type,id:saved.p_result.id});return json(null);}
+  if(path.endsWith('/rpc/finish_meta_step')){const saved=body();assert.ok(Object.keys(saved.p_result).every(key=>['id','hash'].includes(key)));const key=reservations.get(saved.p_request)!;const previous=receipts.findIndex(r=>r.step_key===key);if(previous>=0)receipts.splice(previous,1);receipts.push({step_key:key,status:saved.p_status,result:saved.p_result});if(saved.p_type)resources.push({type:saved.p_type,id:saved.p_result.id});return json(null);}
   throw new Error(`Unexpected test request: ${path}`);
  };
  const request=(handler:(request:Request)=>Promise<Response>,body:unknown)=>handler(new Request('https://app.test/api',{method:'POST',headers:{Authorization:'Bearer customer-session','Content-Type':'application/json'},body:JSON.stringify(body)}));
@@ -81,9 +86,12 @@ test('a different team owner saves private Meta credentials, reads campaigns and
   const selection=automaticMetaSelection(plan,attachments,undefined);
   const reviewed=await request(build,{action:'review',project_id:p,experiment_id:e,selection});assert.equal(reviewed.status,200);const review=await reviewed.json();assert.equal(review.name,'Experimento · Customer test');assert.equal(review.previews.length,6);assert.equal(review.write_available,true);assert.equal(graphWrites,0);
   const begun=await request(build,{action:'begin',project_id:p,experiment_id:e,selection:review.selection,fingerprint:review.fingerprint,confirmed:true,request_id:runId});assert.equal(begun.status,200);
-  for(let i=0;i<25;i++){const stepped=await request(build,{action:'step',project_id:p,experiment_id:e,run_id:runId});assert.equal(stepped.status,200);assert.equal((await stepped.json()).done,false);}
-  const finished=await request(build,{action:'step',project_id:p,experiment_id:e,run_id:runId});assert.equal((await finished.json()).done,true);assert.equal(graphWrites,25);assert.equal(resources.filter(r=>r.type==='campaign').length,1);assert.equal(resources.filter(r=>r.type==='ad').length,6);
-  role='editor';const forbidden=await request(integrations,{action:'save',workspace_id:w,project_id:p,provider:'meta_ads',config,secrets:{}});assert.equal(forbidden.status,403);assert.equal(graphWrites,25);
-  canEdit=false;const denied=await request(build,{action:'review',project_id:p,experiment_id:e,selection});assert.equal(denied.status,403);assert.equal(graphWrites,25);
+  for(let i=0;i<25;i++){
+   if(i===2){const failed=await request(build,{action:'step',project_id:p,experiment_id:e,run_id:runId});assert.equal(failed.status,502);const cause=await failed.json();assert.equal(cause.meta_error.subcode,999);assert.match(cause.error,/Revisa este parámetro/);assert.equal(receipts.find(r=>r.step_key==='v0_feed_adset')?.status,'rejected');assert.deepEqual(receipts.find(r=>r.step_key==='v0_feed_adset')?.result,{});assert.equal(resources.filter(r=>r.type==='campaign').length,1);}
+   const stepped=await request(build,{action:'step',project_id:p,experiment_id:e,run_id:runId});assert.equal(stepped.status,200);assert.equal((await stepped.json()).done,false);
+  }
+  const finished=await request(build,{action:'step',project_id:p,experiment_id:e,run_id:runId});assert.equal((await finished.json()).done,true);assert.equal(graphWrites,26);assert.equal(resources.filter(r=>r.type==='campaign').length,1);assert.equal(resources.filter(r=>r.type==='ad').length,6);
+  role='editor';const forbidden=await request(integrations,{action:'save',workspace_id:w,project_id:p,provider:'meta_ads',config,secrets:{}});assert.equal(forbidden.status,403);assert.equal(graphWrites,26);
+  canEdit=false;const denied=await request(build,{action:'review',project_id:p,experiment_id:e,selection});assert.equal(denied.status,403);assert.equal(graphWrites,26);
  }finally{globalThis.fetch=originalFetch;process.env=env;}
 });
