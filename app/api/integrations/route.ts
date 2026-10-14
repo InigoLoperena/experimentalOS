@@ -2,12 +2,13 @@ import {NextResponse} from 'next/server';
 import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {type Connection,integrationProvider,integrationCatalog,integrationFields,validateIntegration} from '@/lib/integrations';
-import {connectionSecrets,storedConnection} from '@/lib/integration-service';
+import {connectionSecrets,storedConnection,workspaceConnection} from '@/lib/integration-service';
 import {sealSecrets} from '@/lib/integration-secrets';
 import {metaAccount} from '@/lib/meta-ads';
 import {googleAccessToken,googleAccount} from '@/lib/google-ads';
 import {smartleadCampaigns} from '@/lib/smartlead';
-import {metricoolBrand} from '@/lib/metricool';
+import {metricoolBrand,metricoolJson} from '@/lib/metricool';
+import {integrationProfileFields} from '@/lib/workspace-connection';
 import {posthogHost,posthogIdentifier} from '@/lib/posthog-api';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -39,7 +40,7 @@ export async function POST(request:Request){
  try{
   const {client,user}=await authenticatedClient(request);
   const body=await readJsonBody(request,60000);
-  if(!body||typeof body.workspace_id!=='string'||!['list','save','verify','state','share'].includes(body.action))throw new ApiError('Selecciona una acción y un equipo válidos.',400);
+  if(!body||typeof body.workspace_id!=='string'||!['list','save','verify','state','share','profile','brands'].includes(body.action))throw new ApiError('Selecciona una acción y un equipo válidos.',400);
   const member=await client.from('members').select('role').eq('workspace_id',body.workspace_id).eq('user_id',user.id).single();
   if(member.error||!member.data)throw new ApiError('No tienes acceso a ese equipo.',403);
   if(body.action==='list'){
@@ -47,16 +48,49 @@ export async function POST(request:Request){
    if(result.error)throw new ApiError('No se pudo cargar Integraciones. Actualiza los datos.',503);
    const legacy:Partial<Record<string,Record<string,string|undefined>>>={openai:{api_key:process.env.OPENAI_API_KEY},meta_ads:{access_token:process.env.META_ADS_ACCESS_TOKEN,write_token:process.env.META_ADS_WRITE_ACCESS_TOKEN},posthog:{api_key:process.env.POSTHOG_PERSONAL_API_KEY}};
    const connections=(result.data as Connection[]).map(row=>({...row,secret_fields:row.source==='server'?integrationFields(row.provider).filter(f=>f.secret&&!!legacy[row.provider]?.[f.key]).map(f=>f.key):row.secret_fields}));
-   return NextResponse.json({connections,can_configure:member.data.role==='owner',storage_ready:/^[a-f0-9]{64}$/i.test(process.env.INTEGRATIONS_ENCRYPTION_KEY||'')},{headers});
+   const profiles=await client.from('integration_project_profiles').select('*').eq('workspace_id',body.workspace_id);
+   if(profiles.error)throw new ApiError('No se pudieron cargar los perfiles de las integraciones.',503);
+   return NextResponse.json({connections,profiles:profiles.data,can_configure:member.data.role==='owner',storage_ready:/^[a-f0-9]{64}$/i.test(process.env.INTEGRATIONS_ENCRYPTION_KEY||'')},{headers});
   }
   if(member.data.role!=='owner')throw new ApiError('Solo el superadministrador configura las APIs. Tus permisos sobre fichas se gestionan en Equipo.',403);
-  const provider=integrationProvider(body.provider),scope=integrationCatalog[provider].scope;
+  const provider=integrationProvider(body.provider);
   let project;
-  if(scope==='project'){
-   if(typeof body.project_id!=='string')throw new ApiError('Selecciona un proyecto.',400);
+  // Accept old project-scoped clients during rollout; the new UI always sends
+  // a workspace account ID and stores credentials independently of projects.
+  const legacy=body.project_id!=null&&!['profile','brands'].includes(body.action);
+  if(body.project_id!=null){
+   if(typeof body.project_id!=='string')throw new ApiError('Selecciona un proyecto válido.',400);
    project=await authorizedProject(client,body.project_id);if(project.workspace_id!==body.workspace_id)throw new ApiError('Proyecto de otro equipo.',403);
-  }else if(body.project_id!=null)throw new ApiError('OpenAI se configura para el equipo.',400);
-  const row=await storedConnection(client,body.workspace_id,provider,project?.id||null);
+  }
+  let row=legacy?await storedConnection(client,body.workspace_id,provider,project!.id):await workspaceConnection(client,body.workspace_id,provider);
+  if(body.connection_id!=null){
+   const selected=await client.from('integration_connections').select('*').eq('workspace_id',body.workspace_id).eq('provider',provider).eq('id',body.connection_id).single();
+   if(selected.error||!selected.data)throw new ApiError('Conexión de otro equipo o proveedor.',403);row=selected.data as Connection;
+  }
+  if(row?.project_id&&!project)project=await authorizedProject(client,row.project_id);
+  if(body.action==='brands'){
+   if(provider!=='metricool'||!row)throw new ApiError('Conecta Metricool antes de elegir una marca.',400);
+   const secrets=await connectionSecrets(client,row,project);
+   const result=await metricoolJson({userId:row.config.user_id,blogId:row.config.blog_id,token:secrets.api_key},'/admin/simpleProfiles');
+   if(!Array.isArray(result.data))throw new ApiError('Metricool no devolvió sus marcas.',502);
+   return NextResponse.json({brands:result.data.filter((b:{id:unknown})=>/^\d{1,30}$/.test(String(b.id))).map((b:{id:unknown;label:unknown})=>({id:String(b.id),name:String(b.label||b.id)}))},{headers});
+  }
+  if(body.action==='profile'){
+   if(!project||!row||!integrationProfileFields[provider])throw new ApiError('Selecciona una cuenta, proveedor y proyecto válidos.',400);
+   const profile=body.profile;
+   if(!profile||typeof profile!=='object'||Array.isArray(profile))throw new ApiError('Revisa el perfil.',400);
+   const keys=Object.keys(profile),fields=integrationProfileFields[provider]!;
+   if(keys.some(k=>!fields.some(f=>f.key===k))||Object.values(profile).some(v=>typeof v!=='string'))throw new ApiError('El perfil solo admite identificadores públicos, nunca claves.',400);
+   if(keys.length){
+    const secrets=await connectionSecrets(client,row,project);
+    const validated=validateIntegration(provider,{...row.config,...profile},secrets);
+    if(provider==='metricool')await metricoolBrand({userId:row.config.user_id,blogId:validated.config.blog_id,token:secrets.api_key});
+    if(provider==='posthog')await verify({...row,config:validated.config},secrets);
+   }
+   const saved=await client.rpc('save_integration_profile',{p_workspace:body.workspace_id,p_project:project.id,p_provider:provider,p_connection:row.id,p_config:profile,p_expected:body.expected??null});
+   if(saved.error)throw new ApiError('No se pudo guardar el perfil. Actualiza y comprueba la cuenta compartida.',409);
+   return NextResponse.json({saved:true},{headers});
+  }
   if(body.action==='save'){
    let previous:Record<string,string>={};
    const replacements=body.secrets;
@@ -77,18 +111,17 @@ export async function POST(request:Request){
     if(provider==='meta_ads'&&!String(replacements.write_token||'').trim())delete secrets.write_token;
    }
    let validated;try{validated=validateIntegration(provider,body.config,secrets);}catch(error){throw new ApiError(error instanceof Error?error.message:'Revisa los datos.',400);}
-   const bound={workspace_id:body.workspace_id,project_id:project?.id||null,provider,config:validated.config};
+   const bound={workspace_id:body.workspace_id,project_id:legacy?project!.id:null,provider,config:validated.config};
    const envelope=sealSecrets(bound,validated.secrets);
-   const saved=await client.rpc('save_integration',{p_workspace:body.workspace_id,p_project:project?.id||null,p_provider:provider,p_config:validated.config,p_fields:Object.keys(validated.secrets),p_envelope:envelope,p_expected:body.expected??null});
+   const saved=legacy?await client.rpc('save_integration',{p_workspace:body.workspace_id,p_project:project!.id,p_provider:provider,p_config:validated.config,p_fields:Object.keys(validated.secrets),p_envelope:envelope,p_expected:body.expected??null}):await client.rpc('save_workspace_integration',{p_workspace:body.workspace_id,p_connection:row?.id||null,p_provider:provider,p_config:validated.config,p_fields:Object.keys(validated.secrets),p_envelope:envelope,p_expected:body.expected??null});
    if(saved.error)throw new ApiError('No se pudo guardar: la configuración puede haber cambiado. Actualiza y revisa los campos.',409);
    return NextResponse.json({saved:true},{headers});
   }
   if(!row)throw new ApiError('Guarda primero esta conexión.',400);
   if(body.expected!==row.updated_at)throw new ApiError('La configuración ha cambiado. Actualiza antes de continuar.',409);
   if(body.action==='share'){
-   if(provider!=='meta_ads'||typeof body.shared!=='boolean')throw new ApiError('Selecciona una conexión de Meta.',400);
-   const changed=await client.rpc('set_meta_workspace_default',{p_id:row.id,p_expected:row.updated_at,p_shared:body.shared});
-   if(changed.error)throw new ApiError('No se pudo cambiar la conexión compartida. Actualiza y comprueba que la conexión de Meta está activa y guardada de forma privada.',409);
+   const changed=await client.rpc('choose_workspace_integration',{p_id:row.id,p_expected:row.updated_at});
+   if(changed.error)throw new ApiError('No se pudo elegir la cuenta compartida. Actualiza y comprueba que la conexión está guardada de forma privada.',409);
    return NextResponse.json({changed:true},{headers});
   }
   if(body.action==='verify'){

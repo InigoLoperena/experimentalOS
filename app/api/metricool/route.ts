@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
 import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
-import {connectionSecrets,storedConnection} from '@/lib/integration-service';
+import {resolvedMetricool} from '@/lib/integration-service';
 import {metricoolBrand,metricoolNetwork,metricoolPeriod,metricoolPosts} from '@/lib/metricool';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -12,10 +12,7 @@ export async function POST(request:Request){
   const body=await readJsonBody(request,4000);
   if(typeof body?.project_id!=='string')throw new ApiError('Selecciona un proyecto.',400);
   const project=await authorizedProject(client,body.project_id);
-  const row=await storedConnection(client,project.workspace_id,'metricool',project.id);
-  if(!row)throw new ApiError('Configura el token de esta marca en Integraciones → Metricool. Requiere acceso API de Metricool.',403);
-  const secrets=await connectionSecrets(client,row,project);
-  const connection={userId:row.config.user_id,blogId:row.config.blog_id,token:secrets.api_key};
+  const connection=await resolvedMetricool(client,project);
   const brand=await metricoolBrand(connection);
   if(body.action==='connection')return NextResponse.json({brand},{headers});
   if(body.action!=='posts')throw new ApiError('Selecciona una operación válida.',400);

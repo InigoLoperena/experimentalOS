@@ -5,6 +5,7 @@ import {openSecrets} from './integration-secrets';
 import {ApiError} from './server-access';
 import {metaConnection} from './meta-ads';
 import {verifiedPosthogConnection} from './posthog-connection';
+import type {IntegrationProfile} from './workspace-connection';
 export async function storedConnection(client:SupabaseClient,workspace:string,provider:IntegrationProvider,project:string|null){
  let query=client.from('integration_connections').select('*').eq('workspace_id',workspace).eq('provider',provider);
  query=project?query.eq('project_id',project):query.is('project_id',null);
@@ -31,40 +32,57 @@ export async function connectionSecrets(client:SupabaseClient,row:Connection,pro
  throw new ApiError('La integración no tiene una conexión autorizada.',403);
 }
 export async function resolvedMetaConnection(client:SupabaseClient,project:Item){
- let row=await storedConnection(client,project.workspace_id,'meta_ads',project.id);
- // An explicit project connection (even disabled) takes precedence. Inheritance
- // requires an owner-selected encrypted connection in this exact workspace.
- if(!row){
-  const shared=await client.from('integration_connections').select('*').eq('workspace_id',project.workspace_id).eq('provider','meta_ads').eq('workspace_default',true).eq('source','encrypted').maybeSingle();
-  if(shared.error)throw new ApiError('No se pudo cargar la conexión compartida de Meta.',503);
-  row=shared.data as Connection|null;
- }
- if(!row)throw new ApiError('Configura Meta Ads para este proyecto en Integraciones.',403);
+ const row=await workspaceConnection(client,project.workspace_id,'meta_ads',project.id);
+ if(!row)throw new ApiError('Conecta Meta Ads una vez para este espacio de trabajo en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);
- return {accountId:row.config.account_id,token:secrets.access_token,writeToken:secrets.write_token,pageId:row.config.page_id,instagramId:row.config.instagram_id,pixelId:row.config.pixel_id,revision:row.updated_at};
+ const profile=await projectConnectionProfile(client,row,project);
+ return {accountId:row.config.account_id,token:secrets.access_token,writeToken:secrets.write_token,pageId:row.config.page_id,instagramId:row.config.instagram_id,pixelId:profile?.config.pixel_id||row.config.pixel_id,revision:profile?`${row.updated_at}:${profile.updated_at}`:row.updated_at};
+}
+export async function workspaceConnection(client:SupabaseClient,workspace:string,provider:IntegrationProvider,legacyProject?:string){
+ const shared=await client.from('integration_connections').select('*').eq('workspace_id',workspace).eq('provider',provider).eq('workspace_default',true).maybeSingle();
+ if(shared.error)throw new ApiError('No se pudo cargar la cuenta de este espacio de trabajo.',503);
+ if(shared.data)return shared.data as Connection;
+ const global=await storedConnection(client,workspace,provider,null);if(global)return global;
+ // Compatibility with old installations before account consolidation. A disabled
+ // shared account above never falls back to a different project credential.
+ return legacyProject?storedConnection(client,workspace,provider,legacyProject):null;
+}
+export async function projectConnectionProfile(client:SupabaseClient,row:Connection,project:Item){
+ const result=await client.from('integration_project_profiles').select('*').eq('workspace_id',project.workspace_id).eq('project_id',project.id).eq('provider',row.provider).eq('connection_id',row.id).maybeSingle();
+ if(result.error)throw new ApiError('No se pudo cargar el perfil del proyecto.',503);
+ return result.data as IntegrationProfile|null;
 }
 export async function resolvedOpenAIKey(client:SupabaseClient,workspace:string){
- const row=await storedConnection(client,workspace,'openai',null);
+ const row=await workspaceConnection(client,workspace,'openai');
  if(!row)throw new ApiError('Configura OpenAI para este equipo en Integraciones.',503);
  const secrets=await connectionSecrets(client,row);if(!secrets.api_key)throw new ApiError('Falta la clave de OpenAI en Integraciones.',503);return secrets.api_key;
 }
 export async function resolvedPosthog(client:SupabaseClient,project:Item){
- const row=await storedConnection(client,project.workspace_id,'posthog',project.id);
- if(!row)throw new ApiError('Configura PostHog para este proyecto en Integraciones.',403);
+ const row=await workspaceConnection(client,project.workspace_id,'posthog',project.id);
+ if(!row)throw new ApiError('Conecta PostHog para este espacio de trabajo en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);if(!secrets.api_key)throw new ApiError('Falta la clave de PostHog en Integraciones.',503);
- return {host:row.config.host,projectId:row.config.project_id,key:secrets.api_key};
+ const profile=await projectConnectionProfile(client,row,project);
+ // Product analytics must keep using each project's real external identifier.
+ const projectId=profile?.config.project_id||String(project.fields.posthog_project_id||row.config.project_id),host=profile?.config.host||String(project.fields.posthog_host||row.config.host);
+ return {host,projectId,key:secrets.api_key};
 }
 
 export async function resolvedGoogleAds(client:SupabaseClient,project:Item){
- const row=await storedConnection(client,project.workspace_id,'google_ads',project.id);
- if(!row)throw new ApiError('Configura Google Ads para este proyecto en Integraciones.',403);
+ const row=await workspaceConnection(client,project.workspace_id,'google_ads',project.id);
+ if(!row)throw new ApiError('Conecta Google Ads una vez para este espacio de trabajo en Integraciones. La misma cuenta se utilizará en todos sus proyectos.',403);
  const secrets=await connectionSecrets(client,row,project);
  return {customerId:row.config.customer_id,loginCustomerId:row.config.login_customer_id,clientId:row.config.client_id,clientSecret:secrets.client_secret,refreshToken:secrets.refresh_token,developerToken:secrets.developer_token,revision:row.updated_at};
 }
 
 export async function resolvedSmartlead(client:SupabaseClient,project:Item){
- const row=await storedConnection(client,project.workspace_id,'smartlead',project.id);
- if(!row)throw new ApiError('Configura Smartlead para este proyecto en Integraciones.',403);
+ const row=await workspaceConnection(client,project.workspace_id,'smartlead',project.id);
+ if(!row)throw new ApiError('Conecta Smartlead una vez para este espacio de trabajo en Integraciones.',403);
  const secrets=await connectionSecrets(client,row,project);
  return {key:secrets.api_key,revision:row.updated_at};
+}
+export async function resolvedMetricool(client:SupabaseClient,project:Item){
+ const row=await workspaceConnection(client,project.workspace_id,'metricool',project.id);
+ if(!row)throw new ApiError('Conecta Metricool una vez para este espacio de trabajo en Integraciones.',403);
+ const secrets=await connectionSecrets(client,row,project),profile=await projectConnectionProfile(client,row,project);
+ return {userId:row.config.user_id,blogId:profile?.config.blog_id||row.config.blog_id,token:secrets.api_key};
 }

@@ -50,7 +50,7 @@ for(const type of ['SEARCH','DISPLAY'] as const)test(`another team owner configu
   if(path==='/auth/v1/user')return json({id:u,role:'authenticated',aud:'authenticated',email:'owner@customer.example'});
   if(path.endsWith('/members'))return json({role});
   if(path.endsWith('/records'))return json(url.searchParams.get('kind')==='eq.project'?project:experiment);
-  if(path.endsWith('/integration_connections')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);return json(row);}
+  if(path.endsWith('/integration_connections')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);if(url.searchParams.has('workspace_default')||url.searchParams.get('project_id')==='is.null')return json(null);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);return json(row);}
   if(path.endsWith('/rpc/save_integration')){const b=body();assert.equal(b.p_workspace,w);assert.equal(b.p_project,p);envelope=b.p_envelope;assert.ok(!envelope.includes(secrets.client_secret));row={id:'google-connection',workspace_id:w,project_id:p,provider:'google_ads',config,source:'encrypted',secret_fields:b.p_fields,enabled:true,verified_at:null,verification_note:'',updated_at:'revision'};return json(row);}
   if(path.endsWith('/rpc/read_integration_envelope'))return json(envelope);
   if(path.endsWith('/rpc/set_integration_state'))return json(null);

@@ -58,7 +58,8 @@ test('a different team owner saves private Meta credentials, reads campaigns and
   if(path==='/auth/v1/user')return json({id:u,role:'authenticated',aud:'authenticated',email:'owner@customer.example'});
   if(path.endsWith('/members'))return json({role});
   if(path.endsWith('/records'))return json(url.searchParams.get('id')===`eq.${p}`?project:experiment);
-  if(path.endsWith('/integration_connections')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);return json(row);}
+  if(path.endsWith('/integration_connections')){assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);if(url.searchParams.has('workspace_default')||url.searchParams.get('project_id')==='is.null')return json(null);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);return json(row);}
+  if(path.endsWith('/integration_project_profiles'))return json(null);
   if(path.endsWith('/rpc/save_integration')){
    const saved=body();assert.equal(saved.p_workspace,w);assert.equal(saved.p_project,p);assert.deepEqual(saved.p_config,config);
    envelope=saved.p_envelope;assert.ok(!envelope.includes('customer-read'));
