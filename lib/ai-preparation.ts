@@ -22,7 +22,7 @@ export function preparationSchemaForRequest(channel:Channel|null,prompt:string){
   const variants=executionSchema.properties.variants;
   const requestedGoogle=[['DISPLAY',/\bdisplay\b/i],['SEARCH',/\bsearch\b|\bbúsqueda\b/i],['VIDEO',/\bvídeo\b|\bvideo\b|\byoutube\b/i],['DEMAND_GEN',/\bdemand\s*gen\b/i],['PERFORMANCE_MAX',/\bperformance\s*max\b/i],['SHOPPING',/\bshopping\b/i]].filter(([,pattern])=>(pattern as RegExp).test(prompt)).map(([type])=>type as string);
   const googleSchema=channel==='google_ads'&&requestedGoogle.length===1?{...googleAdsOptionsSchema,properties:{...googleAdsOptionsSchema.properties,type:{type:'string',enum:requestedGoogle}}}:googleAdsOptionsSchema;
-  const execution={...executionSchema,properties:{...executionSchema.properties,google:{anyOf:[googleSchema,{type:'null'}]},variants:{...variants,minItems:2,maxItems:2,...(channel==='smartlead'?{items:{...variants.items,properties:{...variants.items.properties,headline:{...variants.items.properties.headline,maxLength:200}}}}:{})}}};
+  const execution={...executionSchema,properties:{...executionSchema.properties,...(posthogChannels.includes(channel||'')?{goal:{type:'string',enum:['product']}}:{}),google:{anyOf:[googleSchema,{type:'null'}]},variants:{...variants,minItems:2,maxItems:2,...(channel==='smartlead'?{items:{...variants.items,properties:{...variants.items.properties,headline:{...variants.items.properties.headline,maxLength:200}}}}:{})}}};
   return {...preparationRequestSchema,properties:{...preparationRequestSchema.properties,execution:{anyOf:[execution,{type:'null'}]}}};
 }
 export function parsePreparation(value: unknown): Preparation {
@@ -74,16 +74,17 @@ export function humanSuccessCriterion(proposal: Preparation, current: unknown): 
 export function requiredPreparation(proposal:Preparation,mediaCount:number):Preparation{
   const isGoogle=proposal.channel==='google_ads';
   const isMeta=proposal.channel==='meta_ads';
+  const isPosthog=posthogChannels.includes(proposal.channel||'');
   // These drafts use one campaign budget and provider-controlled ad delivery.
   // Do not carry a model's percentages into the reviewed or persisted plan.
-  const plan=isGoogle&&proposal.execution?{...proposal.execution,variants:proposal.execution.variants.map(variant=>({...variant,allocation:null}))}:proposal.execution;
-  const missing=proposal.missing.filter(value=>!(isGoogle&&!proposal.fields.start&&/^(?:start|fecha de inicio)[.\s]*$/i.test(value.trim())));
+  const plan=isGoogle&&proposal.execution?{...proposal.execution,variants:proposal.execution.variants.map(variant=>({...variant,allocation:null}))}:isPosthog&&proposal.execution?{...proposal.execution,goal:proposal.execution.goal??'product' as const}:proposal.execution;
+  const missing=proposal.missing.filter(value=>!((isGoogle||isPosthog)&&!proposal.fields.start&&/^(?:start|fecha de inicio)[.\s]*$/i.test(value.trim())));
   const deliveryNotice='Google decide la entrega entre los dos anuncios; no se garantiza reparto 50/50 ni presupuesto igual por variante.';
   const assumptions=isGoogle?proposal.assumptions.map(value=>/repart|distribu|asigna/i.test(value)&&/equita|igual|50\s*(?:\/|%)/i.test(value)&&/presup|tr[aá]fico/i.test(value)?deliveryNotice:value):proposal.assumptions;
   if(!proposal.channel)missing.push('Selecciona el canal principal.');
   if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
   if(![...posthogChannels,'meta_ads','google_ads','smartlead'].includes(proposal.channel||'')&&!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
-  if(!isMeta&&!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
+  if(!isMeta&&!isPosthog&&!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
   if(!isMeta&&proposal.channel!=='google_play' && plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
   if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){
     if(!isMeta&&(plan?.daily_budget===null||!plan))missing.push('Confirma el presupuesto diario total.');

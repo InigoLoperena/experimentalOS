@@ -4,7 +4,7 @@ import {posthogRecipe,posthogWrite,posthogFlagKey,verifiedPosthogDraft} from '..
 import {parsePosthogOptions} from '../lib/posthog-options';
 import {posthogResultVariants} from '../lib/posthog-results';
 import {emptyExecution,parseChannel} from '../lib/execution-plan';
-import {preparationSchemaForRequest} from '../lib/ai-preparation';
+import {preparationSchemaForRequest,requiredPreparation,preparationKeys,type Preparation} from '../lib/ai-preparation';
 import {POST} from '../app/api/posthog/prepare/route';
 import {sealSecrets} from '../lib/integration-secrets';
 import type {Connection} from '../lib/integrations';
@@ -22,6 +22,10 @@ test('PostHog prepares two inactive variants, real conversion metrics and determ
  const zero=await posthogRecipe({...experiment,fields:{...experiment.fields,execution_config:JSON.stringify({...plan,posthog:{...plan.posthog,rollout_percentage:0}})}},c,(async()=>Response.json({results:[]})) as typeof fetch);
  assert.equal(zero.payload.feature_flag.filters.groups[0].rollout_percentage,0);
  const schema=preparationSchemaForRequest('posthog','Compara el mensaje de bienvenida'),execution=schema.properties.execution.anyOf[0];assert.ok('properties' in execution);assert.ok('minItems' in execution.properties.variants);assert.equal(execution.properties.variants.minItems,2);
+ assert.deepEqual(execution.properties.goal.enum,['product']);
+ const fields=Object.fromEntries(preparationKeys.map(key=>[key,key==='hypothesis'?'Mejora la bienvenida':null])) as Preparation['fields'];
+ const proposal:Preparation={title:'Bienvenida',channel:'posthog',fields,execution:{...plan,goal:null},missing:['Fecha de inicio','Evento real pendiente'],assumptions:[]};
+ const prepared=requiredPreparation(proposal,0);assert.equal(prepared.execution?.goal,'product');assert.deepEqual(prepared.missing,['Evento real pendiente']);
  for(const options of [{metric_event:null,metric_type:null,rollout_percentage:120,window_days:7},{metric_event:null,metric_type:'fabricated',rollout_percentage:null,window_days:null}])assert.throws(()=>parsePosthogOptions(options));
 });
 test('unconfirmed events or read permissions do not block a draft or invent instrumentation',async()=>{

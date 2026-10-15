@@ -47,6 +47,16 @@ Next.js. Las pruebas de servidor cubren credenciales del equipo, perfiles, revis
 obsoletas, estados inciertos y recuperación; PostgreSQL local verifica RLS, permisos,
 duplicados y vinculación atómica sin perder campos del experimento.
 
+Prueba real del 15 de octubre de 2026: desde la aplicación desplegada, un prompt
+creó la ficha «QA PostHog · Bienvenida A/B» y el borrador PostHog 485544 en el
+proyecto 649336. El POST y la lectura posterior confirmaron la flag desactivada,
+el reparto 60/40 y el alcance global del 20 %. La actualización de estado conservó
+el vínculo y la consulta de resultados informó correctamente que seguía en borrador.
+No se activó la prueba ni se generaron exposiciones. La métrica quedó pendiente
+porque no había un evento de bienvenida confirmado; no se validaron resultados de
+un experimento activo. La consola de PostHog exigía iniciar sesión, por lo que
+la verificación remota se hizo mediante las respuestas autenticadas de su API.
+
 Fuentes oficiales:
 
 - [API de experimentos](https://posthog.com/docs/api/experiments)
