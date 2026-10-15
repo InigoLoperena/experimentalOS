@@ -4,10 +4,10 @@ Disponible por defecto en el chat del equipo y en la preparación de experimento
 
 ## Arquitectura y límites
 
-- `lib/methodology-library.ts`: catálogo público versionado, títulos, autores, descripciones originales, portadas locales y enlaces de compra. El banner desplegable lo consume directamente.
+- `lib/methodology-library.ts`: catálogo público versionado, títulos, autores, descripciones originales, portadas locales y enlaces de compra. El banner compacto muestra tres portadas y abre el catálogo completo con descripciones y enlaces de compra.
 - `lib/methodology-context.ts`: síntesis originales en español de principios metodológicos. El servidor envía las tres síntesis a Responses junto al contexto autorizado. Esta primera biblioteca es pequeña y no necesita embeddings, pgvector, nuevas tablas ni consultas de recuperación adicionales.
 - Se conserva separada de `workspaceMemory`: no altera permisos, RLS, cobertura de fragmentos privados ni historial personal. No se copian conocimientos privados a un catálogo global. Los libros aportan métodos; las fichas, métricas y fuentes autorizadas aportan evidencia del equipo.
-- El chat admite citas `book:<id>` solo si corresponden a una fuente realmente incluida. La interfaz las identifica como referencias metodológicas y abre la ficha de compra verificada. No pasan por el visor de fichas ni por la biblioteca privada.
+- El chat admite citas `book:<id>` solo si corresponden a una fuente realmente incluida. Las referencias se conservan en las respuestas guardadas, sin paneles de fuentes ni contadores en el chat. Los enlaces de compra se muestran en el catálogo desplegable. No se mezclan con la biblioteca privada.
 - No se entrenan ni ajustan pesos de OpenAI. Se incluye una síntesis, no el contenido completo de los libros. Los PDF y el texto OCR de revisión permanecen fuera del repositorio y de los archivos públicos. Las solicitudes mantienen `store: false` y los controles de consumo existentes; la biblioteca añade contexto a la misma petición, sin una llamada de IA adicional.
 - Las instrucciones distinguen método, hipótesis y evidencia, respetan los datos del proyecto y no añaden campos obligatorios ni impiden preparar borradores.
 
@@ -35,3 +35,5 @@ Las portadas mantienen su atribución a autores y editores. Los enlaces son fich
 Las pruebas verifican presencia real en el payload del chat y preparación Meta/Google, citas válidas, portadas y enlaces, contexto acotado e independencia de dos equipos (uno vacío). Son pruebas con OpenAI simulado: no certifican por sí solas la calidad de respuestas reales del modelo.
 
 Validación de esta versión: 194 pruebas aprobadas, comprobación de tipos correcta y revisión visual local en Chrome. Se abrió/cerró el banner con ratón y teclado, se verificó la carga de las tres portadas y sus enlaces y se comprobó que las tarjetas no desbordan su contenedor a 390 px. La demostración no envía consultas a OpenAI; la comprobación de payloads y aislamiento se realizó mediante las pruebas de los endpoints.
+
+Interfaz simplificada: encabezado «IA-ID · nombre del espacio», una sola frase de contexto y conversación sin rótulos repetidos. «Importar información» abre los archivos y el formulario de texto del espacio. Los adjuntos de una consulta no se importan automáticamente a la memoria. Se retiraron del chat los controles de sincronización e indexación masiva; los permisos, fuentes originales y métodos del servidor se mantienen.
