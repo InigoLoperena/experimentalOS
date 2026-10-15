@@ -36,6 +36,7 @@ test('PostHog write timeouts and unsafe responses never claim a confirmed draft 
  await assert.rejects(posthogWrite(c,{},(async()=>{throw new Error('private-team-key');}) as typeof fetch),err=>err instanceof Error&&!err.message.includes(c.key));
  await assert.rejects(posthogWrite(c,{},(async()=>Response.json({detail:c.key},{status:403})) as typeof fetch),/experiment:write/);
  for(const detail of [{id:12,feature_flag_key:'different'}, {id:12,feature_flag_key:posthogFlagKey(e),start_date:null,feature_flag:{id:9,key:posthogFlagKey(e),active:true}}])assert.throws(()=>verifiedPosthogDraft(detail,posthogFlagKey(e)),/borrador/);
+ assert.throws(()=>verifiedPosthogDraft({id:12,feature_flag_key:posthogFlagKey(e),start_date:null,feature_flag:{id:9,key:posthogFlagKey(e),active:false,filters:{groups:[{rollout_percentage:100}],multivariate:{variants:[{key:'control',rollout_percentage:50},{key:'test',rollout_percentage:50}]}}}},posthogFlagKey(e),{groups:[{rollout_percentage:20}],multivariate:{variants:[{key:'control',rollout_percentage:60},{key:'test',rollout_percentage:40}]}}),/reparto/);
 });
 test('cached PostHog metric results retain baseline and exposure counts without fabricating zeros',()=>{
  assert.deepEqual(posthogResultVariants({results:[{result:{baseline:{key:'control',mean:0.2,number_of_samples:120},variants:[{key:'test',conversion_rate:0.3,exposures:110}]}}]}),[{name:'control',value:0.2,exposures:120},{name:'test',value:0.3,exposures:110}]);

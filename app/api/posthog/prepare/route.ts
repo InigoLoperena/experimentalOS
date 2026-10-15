@@ -51,10 +51,10 @@ export async function POST(request:Request){
   if(reserved.error)throw new ApiError('El envío está guardado, cambió la ficha o hay otro pendiente. Actualiza su estado antes de repetir.',409);
   jobId=body.request_id;
   const created=await posthogWrite(connection,recipe.payload);
-  verifiedPosthogDraft(created,posthogFlagKey(experiment.id));
+  verifiedPosthogDraft(created,posthogFlagKey(experiment.id),recipe.payload.feature_flag.filters);
   externalId=String(created.id);
   const detail=await posthogJson(`${connection.host}/api/projects/${posthogIdentifier(connection.projectId)}/experiments/${posthogIdentifier(externalId!)}/`,connection.key);
-  verifiedPosthogDraft(detail,recipe.payload.feature_flag_key);
+  verifiedPosthogDraft(detail,recipe.payload.feature_flag_key,recipe.payload.feature_flag.filters);
   const saved=await client.rpc('finish_posthog',{p_id:jobId,p_status:'succeeded',p_external:externalId});
   if(saved.error)throw new ApiError(`Borrador creado en PostHog (ID ${externalId}), pero no se guardó el vínculo. Actualiza el estado; no repitas el envío.`,409);
   jobId=null;

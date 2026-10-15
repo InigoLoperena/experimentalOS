@@ -45,7 +45,11 @@ export async function posthogRecipe(experiment:Item,c:PosthogConnection,fetcher:
  const payload={name:`Experimento · ${experiment.title}`,description,type:'product',start_date:null,end_date:null,feature_flag_key:posthogFlagKey(experiment.id),feature_flag:{filters:{groups:[{properties:[],rollout_percentage:options?.rollout_percentage??100}],multivariate:{variants}}},...(metrics.length?{metrics}:{})};
  return {payload,notes};
 }
-export function verifiedPosthogDraft(detail:any,key:string){
+export function verifiedPosthogDraft(detail:any,key:string,expected?:{groups:{rollout_percentage:number}[];multivariate:{variants:{key:string;rollout_percentage:number}[]}}){
  if(!detail||!Number.isSafeInteger(detail.id)||detail.id<1||detail.feature_flag_key!==key||detail.start_date||detail.feature_flag?.active!==false||detail.feature_flag?.key!==key||detail.feature_flag?.id==null)throw new PosthogWriteError('El recurso no se confirmó como borrador con la feature flag desactivada. Comprueba PostHog; no repitas el envío.',true);
+ if(expected){
+  const filters=detail.feature_flag.filters,variants=filters?.multivariate?.variants;
+  if(!Array.isArray(variants)||variants.length!==expected.multivariate.variants.length||expected.multivariate.variants.some(v=>!variants.some((actual:any)=>actual.key===v.key&&actual.rollout_percentage===v.rollout_percentage))||filters?.groups?.[0]?.rollout_percentage!==expected.groups[0].rollout_percentage)throw new PosthogWriteError('PostHog creó el borrador, pero no confirmó el reparto solicitado. Actualiza el estado y revisa la configuración allí; no repitas el envío.',true);
+ }
  return detail;
 }
