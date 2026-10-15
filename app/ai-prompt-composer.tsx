@@ -5,13 +5,13 @@ import {VoiceInput} from './voice-input';
 import {chatFileAccept,experimentFileAccept,validatePromptFiles} from '@/lib/ai-prompt-files';
 
 type Props={
- id:string;projectId:string|null;purpose:'chat'|'experiment';
+ id:string;projectId:string|null;workspaceId?:string;purpose:'chat'|'experiment';
  value:string;onChange:(next:string)=>void;maxLength?:number;
  disabled:boolean;voiceBusy:boolean;onVoiceBusy:(active:boolean)=>void;
  files:File[];onFiles:(next:File[])=>void;
  onSubmit:()=>void;busy:boolean;placeholder:string;allowFiles?:boolean;
 };
-export function AIPromptComposer({id,projectId,purpose,value,onChange,maxLength,disabled,voiceBusy,onVoiceBusy,files,onFiles,onSubmit,busy,placeholder,allowFiles=true}:Props){
+export function AIPromptComposer({id,projectId,workspaceId,purpose,value,onChange,maxLength,disabled,voiceBusy,onVoiceBusy,files,onFiles,onSubmit,busy,placeholder,allowFiles=true}:Props){
  const textarea=useRef<HTMLTextAreaElement|null>(null);
  const picker=useRef<HTMLInputElement|null>(null);
  const [dragging,setDragging]=useState(false);
@@ -42,7 +42,7 @@ export function AIPromptComposer({id,projectId,purpose,value,onChange,maxLength,
    <label className="sr-only" htmlFor={id}>Escribe tu mensaje para la IA</label>
    <textarea ref={textarea} id={id} rows={1} maxLength={maxLength} value={value} onChange={e=>onChange(e.target.value)} onKeyDown={keyDown} disabled={!canUse} placeholder={placeholder} aria-label="Mensaje a la IA"/>
    <div className="ai-compose-actions">
-    <VoiceInput projectId={projectId} purpose={purpose} value={value} onChange={onChange} maxLength={maxLength} disabled={!canUse} onBusy={onVoiceBusy} label="Dictar mensaje"/>
+    <VoiceInput projectId={projectId} workspaceId={workspaceId} purpose={purpose} value={value} onChange={onChange} maxLength={maxLength} disabled={!canUse} onBusy={onVoiceBusy} label="Dictar mensaje"/>
     <button className="ai-send-button" type="button" aria-label="Enviar mensaje" title="Enviar mensaje" disabled={!canUse||(!value.trim()&&!files.length)} onClick={send}><Send size={17}/></button>
    </div>
   </div>

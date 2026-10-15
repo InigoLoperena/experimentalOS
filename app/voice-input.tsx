@@ -5,7 +5,7 @@ import {supabase} from '@/lib/supabase';
 import {appendDictation,encodeVoiceWav} from '@/lib/voice-audio';
 import {VoiceRecorder,browserRecorderDependencies,type VoicePhase} from '@/lib/voice-recorder';
 
-type Props={projectId:string|null;purpose:'chat'|'experiment';value:string;onChange:(value:string)=>void;maxLength?:number;disabled?:boolean;onBusy?:(busy:boolean)=>void;label?:string};
+type Props={projectId:string|null;workspaceId?:string;purpose:'chat'|'experiment';value:string;onChange:(value:string)=>void;maxLength?:number;disabled?:boolean;onBusy?:(busy:boolean)=>void;label?:string};
 export function VoiceInput(props:Props){
  const [phase,setPhase]=useState<VoicePhase>('idle'),[seconds,setSeconds]=useState(0),[available,setAvailable]=useState<boolean|null>(null);
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[pendingText,setPendingText]=useState(''),[retry,setRetry]=useState(false);
@@ -29,7 +29,7 @@ export function VoiceInput(props:Props){
    try{const decoded=await context.decodeAudioData(await audio.arrayBuffer());bytes=encodeVoiceWav(decoded);}finally{if(context.state!=='closed')await context.close().catch(()=>{});}
    if(!mounted.current||current!==generation.current)return;
    const {data}=await supabase!.auth.getSession();if(!data.session)throw new Error('Inicia sesión para dictar.');
-   const form=new FormData();form.set('project_id',settings.current.projectId||'');form.set('request_id',crypto.randomUUID());form.set('purpose',settings.current.purpose);form.set('audio',new Blob([new Uint8Array(bytes)],{type:'audio/wav'}),'dictado.wav');
+   const form=new FormData();form.set('project_id',settings.current.projectId||'');form.set('workspace_id',settings.current.workspaceId||'');form.set('request_id',crypto.randomUUID());form.set('purpose',settings.current.purpose);form.set('audio',new Blob([new Uint8Array(bytes)],{type:'audio/wav'}),'dictado.wav');
    const response=await fetch('/api/ai/transcribe',{method:'POST',signal:abort.signal,headers:{Authorization:`Bearer ${data.session.access_token}`},body:form});
    let result;try{result=await response.json();}catch{throw new Error('El servicio de transcripción no respondió correctamente. Puedes volver a intentarlo.');}
    if(!response.ok)throw new Error(result.error||'No se pudo transcribir el audio.');
@@ -41,7 +41,7 @@ export function VoiceInput(props:Props){
   finally{if(mounted.current&&current===generation.current){upload.current=null;changePhase('idle');}}
  }
  function addPending(){try{settings.current.onChange(appendDictation(settings.current.value,pendingText,settings.current.maxLength));setPendingText('');setError('');setNotice('Transcripción añadida. Revisa el texto antes de enviarlo.');}catch(err){setError(err instanceof Error?err.message:'Revisa la transcripción.');}}
- const locked=props.disabled||!props.projectId||!supabase||available!==true;
+ const locked=props.disabled||(!props.projectId&&!props.workspaceId)||!supabase||available!==true;
  return <div className="voice-input">
   <div className="voice-controls">
    {phase==='idle'?<button type="button" className="voice-action voice-mic" aria-label={props.label||'Dictar texto'} title="Dictar texto" disabled={locked||(props.maxLength!==undefined&&props.value.length>=props.maxLength)||!!pendingText} onClick={()=>{setError('');setNotice('');clip.current=null;setRetry(false);void recorder.current?.start();}}><Mic size={18}/></button>:phase==='recording'?<button type="button" className="voice-action voice-stop" onClick={()=>recorder.current?.stop()} title="Terminar y transcribir" aria-label="Terminar y transcribir"><Square size={16}/></button>:<span className="voice-progress" role="status" title={phase==='requesting'?'Solicitando micrófono':'Transcribiendo voz'}><LoaderCircle size={18} className="voice-spinner"/><span className="sr-only">{phase==='requesting'?'Esperando permiso del micrófono…':'Transcribiendo…'}</span></span>}

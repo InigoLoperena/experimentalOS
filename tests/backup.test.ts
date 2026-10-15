@@ -80,10 +80,11 @@ test("the full-data service scopes every query to the authenticated workspace an
   tables.smartlead_preparations=[{experiment_id:'e',request_id:'s',campaign_id:'456',status:'linked'}];
   tables.ai_chat_entries=[{id:'chat',project_id:'p',user_id:'u',question:'Pregunta',answer:'Respuesta'}];
   tables.ai_preparation_usage=[{request_id:'usage',user_id:'u',reserved_usd:0.03,model:'gpt-4o-mini-transcribe-2025-12-15'}];
+  tables.ai_documents=[];tables.provider_result_snapshots=[];tables.posthog_preparations=[];tables.integration_project_profiles=[];tables.ai_knowledge_revisions=[];
   const backup = await fetchBackup(client, "w");
-  assert.equal(queries.length, 18); assert.ok(queries.every(q => q.scope === "w"));
+  assert.equal(queries.length, 23); assert.ok(queries.every(q => q.scope === "w"));
   assert.equal(JSON.parse(backupJson(backup)).monitoring.ai_knowledge[0].content,'Información cualitativa');
-  assert.equal(backup.schema_version,7); assert.equal(backup.monitoring?.metric_observations[0].value,12);
+  assert.equal(backup.schema_version,8); assert.equal(backup.monitoring?.metric_observations[0].value,12);
   for(const table of ['google_ads_preparations','smartlead_preparations','ai_chat_entries','ai_preparation_usage']){
     assert.deepEqual(JSON.parse(backupJson(backup)).monitoring[table],tables[table]);
     assert.ok(backupCsv(backup).includes(table));

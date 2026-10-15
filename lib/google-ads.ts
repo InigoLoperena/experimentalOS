@@ -6,7 +6,7 @@ export type GoogleAdsConnection={customerId:string;loginCustomerId?:string;clien
 export function googleHeaders(c:GoogleAdsConnection,token:string){return {Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(c.loginCustomerId?{'login-customer-id':googleId(c.loginCustomerId)}:{}),...(c.developerToken?{'developer-token':c.developerToken}:{})};}
 export type GoogleAdsCampaign={id:string;name:string;status:string;type:string;url:string};
 export type GoogleAdsAccount={id:string;name:string;currency:string;timezone:string;test:boolean;manager:boolean};
-export type GoogleAdsReport={resource_id:string|null;name:string;status:string;metrics:CsvMetric[];fetched_at:string;account:GoogleAdsAccount};
+export type GoogleAdsReport={storage?:{saved:boolean;note:string};resource_id:string|null;name:string;status:string;metrics:CsvMetric[];fetched_at:string;account:GoogleAdsAccount};
 export function googleId(value:unknown):string{if(typeof value!=='string'||!/^\d{1,30}$/.test(value))throw new ApiError('Introduce un ID numérico de Google Ads.',400);return value;}
 export async function googleAccessToken(connection:GoogleAdsConnection,fetcher:typeof fetch=fetch){
  if(!/^\d{10}$/.test(connection.customerId)||(connection.loginCustomerId&&!/^\d{10}$/.test(connection.loginCustomerId)))throw new ApiError('Revisa el ID de cuenta de Google Ads (10 dígitos).',400);

@@ -20,6 +20,7 @@ type ResultPayload = {
   results_error?: string | null;
   updated_at?: string;
   error?: string;
+  storage?:{saved:boolean;note:string};
 };
 
 function valueAt(obj: any, paths: string[][]) {
@@ -143,6 +144,7 @@ export function PostHogResults({ experiment, project }: Props) {
           )}
 
           {payload.results_error && <p className="small">{payload.results_error}</p>}
+          {payload.storage&&<p className={payload.storage.saved?'small':'notice'}>{payload.storage.note}</p>}
           <div className="posthog-live-foot">
             <span className="small">
               Última consulta: {payload.updated_at ? new Date(payload.updated_at).toLocaleString("es") : "ahora"}

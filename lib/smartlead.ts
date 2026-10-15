@@ -3,7 +3,7 @@ import {metaPeriod} from './meta-ads';
 import type {CsvMetric} from './monitoring';
 export type SmartleadConnection={key:string;revision:string};
 export type SmartleadCampaign={id:string;name:string;status:string;url:string};
-export type SmartleadReport={resource_id:string|null;name:string;status:string;metrics:CsvMetric[];fetched_at:string};
+export type SmartleadReport={storage?:{saved:boolean;note:string};resource_id:string|null;name:string;status:string;metrics:CsvMetric[];fetched_at:string};
 export function smartleadId(value:unknown){const id=String(value);if(typeof value==='number'&&!Number.isSafeInteger(value)||!/^[1-9][0-9]{0,15}$/.test(id))throw new ApiError('Introduce un ID numérico de Smartlead.',400);return id;}
 // API keys are required in the query by Smartlead. Never log URLs or provider errors.
 export async function smartleadRequest(c:SmartleadConnection,path:string,params:Record<string,string>={},fetcher:typeof fetch=fetch){

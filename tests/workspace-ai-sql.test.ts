@@ -1,0 +1,48 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';
+import {readFile,readdir} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+test('workspace memory preserves project lineage, private originals, revisions and exact-period numbers across tenants',async()=>{
+ const db=new PGlite();try{
+  await db.exec(`create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb,email text,email_confirmed_at timestamptz);create role anon;create role authenticated;
+   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+   grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;
+   create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+   create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,unique(bucket_id,name));alter table storage.objects enable row level security;grant usage on schema storage to anon,authenticated;grant select on storage.objects to anon;grant select,insert,delete on storage.objects to authenticated;`);
+  const dir=new URL('../supabase/migrations/',import.meta.url);for(const f of(await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec((await readFile(new URL(f,dir),'utf8')).replace('create extension if not exists pgcrypto;',''));
+  assert.equal((await db.query<{public:boolean}>("select public from storage.buckets where id='ai-documents'")).rows[0].public,false);
+  const owner=randomUUID(),other=randomUUID(),viewer=randomUUID();for(const id of[owner,other,viewer])await db.query("insert into auth.users(id,raw_user_meta_data) values($1,'{}')",[id]);
+  const as=async(id:string|null)=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec(id?'set role authenticated':'set role anon');};
+  const scalar=async(sql:string,args:unknown[]=[])=>((await db.query<{value:any}>(sql,args)).rows[0].value);
+  await as(owner);const w=await scalar("select create_team('Shared AI') as value");
+  const p=await scalar("insert into records(workspace_id,kind,title) values($1,'project','Product One') returning id as value",[w]),p2=await scalar("insert into records(workspace_id,kind,title) values($1,'project','Product Two') returning id as value",[w]);
+  const e=await scalar("insert into records(workspace_id,project_id,kind,title,fields) values($1,$2,'experiment','Welcome','{\"hypothesis\":\"Hypothesis only\",\"conclusion\":\"Important conclusion\"}') returning id as value",[w,p]);
+  await scalar("insert into records(workspace_id,project_id,kind,title,fields,parent_id) values($1,$2,'learning','Conclusion','{\"conclusion\":\"Important conclusion\"}',$3) returning id as value",[w,p,e]);
+  const k=await scalar("insert into ai_knowledge(workspace_id,project_id,title,content,format,source,category,validation) values($1,null,'Team method','One variable per test','text','Approved team rule','team_style','reviewed') returning id as value",[w]);
+  const long=await scalar("insert into ai_knowledge(workspace_id,project_id,title,content,format) values($1,$2,'Interview',$3,'text') returning id as value",[w,p2,'unrelated '.repeat(450)+'reutilizar muebles sostenibles']);
+  let memory=await scalar("select search_workspace_memory($1,'reutilizar muebles sostenibles') as value",[w]);assert.equal(memory.sources[0].id,k);assert.ok(memory.sources.some((r:any)=>r.id===long&&r.excerpt.includes('reutilizar muebles')));assert.ok(memory.sources.some((r:any)=>r.record_id===e&&r.project_id===p));
+  assert.ok(memory.sources.some((r:any)=>r.excerpt.includes('Important conclusion')));
+  await db.query("update ai_knowledge set validation='contradicted',evidence='New evidence',archived_at=now() where id=$1",[k]);
+  memory=await scalar("select search_workspace_memory($1,'team method') as value",[w]);assert.ok(!memory.sources.some((r:any)=>r.id===k));assert.equal(await scalar('select count(*)::int as value from ai_knowledge_revisions where knowledge_id=$1',[k]),1);
+  assert.equal(await scalar('select reviewed_by as value from ai_knowledge where id=$1',[k]),owner);
+  await db.query('update ai_knowledge set archived_at=null where id=$1',[k]);assert.equal((await scalar("select search_workspace_memory($1,'team method') as value",[w])).sources.find((r:any)=>r.id===k).validation,'contradicted');
+  const doc=randomUUID();await db.query("insert into ai_documents(id,workspace_id,name,mime_type,size,storage_path) values($1,$2,'Research.pdf','application/pdf',100,$3)",[doc,w,`${w}/${doc}/original`]);
+  await db.query("insert into storage.objects(bucket_id,name) values('ai-documents',$1)",[`${w}/${doc}/original`]);
+  const resource=await scalar("insert into external_resources(workspace_id,project_id,experiment_id,provider,resource_type,external_id,label) values($1,$2,$3,'google_ads','campaign','123','Campaign') returning id as value",[w,p,e]);
+  const metrics=[['clicks','count',20,null],['impressions','count',100,null],['spend','currency',10,'USD']].map(([metric,unit,value,currency])=>({external_id:'123',metric,unit,value,currency,period_start:'2026-10-01',period_end:'2026-10-07',notes:'Verified API range'}));
+  for(let i=0;i<2;i++)await db.query("select save_provider_result($1,$2,$3,'2026-10-01','2026-10-07',$4)",[resource,JSON.stringify({metrics}),'a'.repeat(64),JSON.stringify(metrics)]);
+  assert.equal(await scalar('select count(*)::int as value from provider_result_snapshots where resource_id=$1',[resource]),1);assert.equal(await scalar('select count(*)::int as value from metric_observations where resource_id=$1',[resource]),3);
+  const facts=await scalar('select workspace_metric_facts($1) as value',[w]);assert.equal(facts[0].calculated.click_through_ratio,0.2);assert.equal(facts[0].calculated.cost_per_click,0.5);assert.equal(facts[0].calculated.currency,'USD');
+  await assert.rejects(db.query("select save_provider_result($1,'{}',$2,null,null,$3)",[resource,'b'.repeat(64),JSON.stringify([{...metrics[0],external_id:'999'}])]),/otro recurso/);
+  assert.equal(await scalar('select count(*)::int as value from provider_result_snapshots where resource_id=$1',[resource]),1);
+  await db.exec('reset role');await db.query("insert into members(workspace_id,user_id,role) values($1,$2,'viewer')",[w,viewer]);
+  await as(viewer);assert.ok((await scalar("select search_workspace_memory($1,'muebles') as value",[w])).sources.length);assert.equal(await scalar('select count(*)::int as value from storage.objects'),1);
+  await assert.rejects(db.query("insert into ai_knowledge(workspace_id,title,content,format) values($1,'Fake','Fake','text')",[w]),/row-level security/);
+  await assert.rejects(db.query("select save_provider_result($1,'{}',$2,null,null,'[]')",[resource,'b'.repeat(64)]),/permiso/);
+  await as(other);const ow=await scalar("select create_team('Other team') as value");assert.equal((await scalar("select search_workspace_memory($1,'muebles') as value",[w])).sources.length,0);assert.deepEqual(await scalar('select workspace_metric_facts($1) as value',[w]),[]);assert.equal(await scalar('select count(*)::int as value from ai_documents'),0);assert.equal(await scalar('select count(*)::int as value from storage.objects'),0);
+  await assert.rejects(db.query("insert into ai_knowledge(workspace_id,project_id,title,content,format) values($1,$2,'Cross','Bad','text')",[ow,p]),/proyecto autorizado/);
+  await assert.rejects(db.query("insert into ai_memory_chunks(source_table,source_id,part) values('fake',$1,0)",[randomUUID()]),/permission denied/);
+  await as(null);assert.equal(await scalar('select get_public_preview() as value'),null);await assert.rejects(db.query("select search_workspace_memory($1,'secret')",[w]),/permission denied/);
+ }finally{await db.close();}
+});

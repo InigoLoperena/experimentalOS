@@ -23,6 +23,10 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
   if(path.endsWith('/members'))return json({role:'owner'});
   if(path.endsWith('/rpc/can_record_action'))return json(true);
   if(path.endsWith('/integration_connections'))return json({id:'openai',provider:'openai',enabled:true,source:'environment',config:{}});
+  if(path.endsWith('/rpc/search_workspace_memory')){assert.equal(JSON.parse(String(options?.body)).w,w);return json({sources:[{id:'older-learning',kind:'learning',title:'Gamificación muebles mapa',project_id:p,date:'2020-01-01',excerpt:'Gamificación y muebles: hipótesis a contrastar.'}],coverage:{available:551}});}
+  if(path.endsWith('/rpc/workspace_metric_facts'))return json([]);
+  if(path.endsWith('/records')&&url.searchParams.get('kind')==='eq.project')return json([{id:p,kind:'project',title:'Greenhunt',fields:{description,north_star:'Objetos rescatados',api_key:'SECRET_PROJECT'},updated_at:'2026-10-14'}]);
+  if(path.endsWith('/records')&&url.searchParams.get('kind')==='eq.north_star')return json([],0);
   if(path.endsWith('/records')||path.endsWith('/ai_knowledge')){
    assert.equal(url.searchParams.get('workspace_id'),`eq.${w}`);assert.equal(url.searchParams.get('project_id'),`eq.${p}`);
    if(path.endsWith('/ai_knowledge'))return json([],0);
@@ -45,7 +49,7 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
  };
  try{
   const response=await POST(new Request('https://app.test/api/ai/prepare',{method:'POST',headers:{Authorization:'Bearer unit','Content-Type':'application/json'},body:JSON.stringify({project_id:p,experiment_id:'66666666-6666-4666-8666-666666666666',request_id:'55555555-5555-4555-8555-555555555555',prompt,fields:{channel,context:current},media:[],documents:[]})}));
-  const result=await response.json();assert.equal(response.status,200,JSON.stringify(result));assert.equal(result.proposal.channel,channel);assert.equal(calls,1);assert.equal(recordsPages,2);assert.ok(result.context_ids.includes('older-learning'));
+  const result=await response.json();assert.equal(response.status,200,JSON.stringify(result));assert.equal(result.proposal.channel,channel);assert.equal(calls,1);assert.equal(recordsPages,0);assert.ok(result.context_ids.includes('older-learning'));
  }finally{globalThis.fetch=original;process.env=env;}
 });
 test('experiment dictation appends to long prompts without truncation while explicitly bounded callers stay bounded',()=>{

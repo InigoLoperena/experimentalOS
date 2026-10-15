@@ -76,7 +76,7 @@ export function SmartleadMonitoring({experiment,resources,editable,locked,onChoo
       <label>Hasta<input required type="date" value={period.end} onChange={e=>{setPeriod({...period,end:e.target.value});setReport(null);}}/></label>
       <button type="submit" className="btn">Consultar resultados de Smartlead</button>
     </fieldset></form>}
-    {report && <div><p><strong>{report.name}</strong> · {report.status}</p><p className="small">Consultado {new Date(report.fetched_at).toLocaleString('es')}. Periodo UTC; atribución a los correos enviados.</p>
+    {report && <div>{report.storage&&<p className={report.storage.saved?'small':'notice'}>{report.storage.note}</p>}<p><strong>{report.name}</strong> · {report.status}</p><p className="small">Consultado {new Date(report.fetched_at).toLocaleString('es')}. Periodo UTC; atribución a los correos enviados.</p>
       <div className="monitoring-table"><table><thead><tr><th>Métrica</th><th>Valor</th><th>Periodo / fuente</th></tr></thead><tbody>{report.metrics.map(row=><tr key={row.metric}><td>{metricTitle(row.metric,row.notes)}</td><td>{row.value.toLocaleString('es')} {row.currency || ''}</td><td>{row.period_start} → {row.period_end}<br/><span className="small">{row.notes}</span></td></tr>)}</tbody></table></div>
       {!report.metrics.length && <p className="notice">Smartlead no devolvió métricas para este periodo. No se guardan ceros ni se borran resultados anteriores.</p>}
       {editable && report.resource_id && report.metrics.length>0 && <button type="button" className="btn primary" disabled={busy || locked || !linked.some(value=>value.id===report.resource_id)} onClick={()=>onReview(report.metrics)}>Revisar importación de resultados</button>}

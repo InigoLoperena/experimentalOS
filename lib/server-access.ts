@@ -27,3 +27,10 @@ export async function authorizedProject(client: SupabaseClient, id: string): Pro
   if (error || !data) throw new ApiError("No tienes acceso a ese proyecto.", 403);
   return data as Item;
 }
+
+export async function authorizedWorkspace(client:SupabaseClient,id:unknown){
+  if(typeof id!=='string'||!/^[0-9a-f-]{36}$/i.test(id))throw new ApiError('Selecciona un espacio de trabajo válido.',400);
+  const {data,error}=await client.from('workspaces').select('id,name').eq('id',id).single();
+  if(error||!data)throw new ApiError('No tienes acceso a este espacio de trabajo.',403);
+  return data as {id:string;name:string};
+}

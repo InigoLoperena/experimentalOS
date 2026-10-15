@@ -1190,7 +1190,11 @@ export default function Home() {
       const downloaded = await supabase!.storage.from(attachmentBucket).download(attachment.storage_path);
       if (downloaded.error || !downloaded.data) throw new Error("No se ha podido descargar «" + attachment.name + "». " + (downloaded.error?.message || ""));
       return new Uint8Array(await downloaded.data.arrayBuffer());
-    }, progress);
+    }, progress,async document=>{
+      const result=await supabase!.storage.from('ai-documents').download(String(document.storage_path));
+      if(result.error||!result.data)throw new Error('No se pudo descargar el original de memoria «'+document.name+'».');
+      return new Uint8Array(await result.data.arrayBuffer());
+    });
     tell("Copia completa descargada");
   }
   const experiments = items.filter((i) => i.kind === "experiment");
@@ -2505,7 +2509,7 @@ export default function Home() {
             </>
           )}
           {view === "method" && <Method />}
-          {view === 'ai' && <StrategicAI key={`${workspace.id}:${currentProject?.id||'none'}:${user?.id||'demo'}`} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record){if(record.kind==='project')setProjectId(record.id);else if(record.project_id)setProjectId(record.project_id);setSelected(record);}}}/>}
+          {view === 'ai' && <StrategicAI key={`${workspace.id}:${user?.id||'demo'}`} workspace={workspace} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canEdit={can('learning','edit')} canSync={can('experiment','edit')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal} onSource={id=>{const record=workspaceItems.find(row=>row.id===id);if(record){if(record.kind==='project')setProjectId(record.id);else if(record.project_id)setProjectId(record.project_id);setSelected(record);}}}/>}
           {view === 'integrations' && publicMode && (
             <div className="panel"><h2>Integraciones</h2><p>Las conexiones, credenciales y configuraciones de servicios externos son privadas. Inicia sesión para gestionar las conexiones de tu equipo.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
           )}

@@ -3,6 +3,7 @@ import {readJsonBody} from '@/lib/request-body';
 import {authenticatedClient,authorizedProject,ApiError} from '@/lib/server-access';
 import {resolvedGoogleAds} from '@/lib/integration-service';
 import {googleAccessToken,googleAccount,googleCampaigns,googleReport,googleId,googleSearch} from '@/lib/google-ads';
+import {persistProviderResult} from '@/lib/provider-result-memory';
 export const runtime='nodejs';
 export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
@@ -40,6 +41,8 @@ export async function POST(request:Request){
   if(typeof body.resource_id!=='string'||! /^[0-9a-f-]{36}$/i.test(body.resource_id))throw new ApiError('Selecciona un recurso vinculado.',400);
   const {data:resource,error}=await client.from('external_resources').select('*').eq('id',body.resource_id).eq('project_id',project.id).eq('workspace_id',project.workspace_id).eq('provider','google_ads').single();
   if(error||!resource)throw new ApiError('No tienes acceso a ese recurso de Google Ads.',403);
-  return NextResponse.json({resource_id:resource.id,...await googleReport(connection,token,googleId(resource.external_id),resource.resource_type,body.start,body.end)},{headers});
+  const report=await googleReport(connection,token,googleId(resource.external_id),resource.resource_type,body.start,body.end);
+  const storage=await persistProviderResult(client,resource,{name:report.name,status:report.status,metrics:report.metrics},report.metrics,body.start,body.end);
+  return NextResponse.json({resource_id:resource.id,...report,storage},{headers});
  }catch(error){return NextResponse.json({error:error instanceof ApiError?error.message:'No se pudo consultar Google Ads.'},{status:error instanceof ApiError?error.status:502,headers});}
 }

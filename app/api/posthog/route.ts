@@ -3,6 +3,7 @@ import {readJsonBody} from '@/lib/request-body';
 import { listPosthogExperiments, posthogIdentifier, posthogJson, PostHogError } from "@/lib/posthog-api";
 import { ApiError, authenticatedClient, authorizedProject } from "@/lib/server-access";
 import { resolvedPosthog } from "@/lib/integration-service";
+import {persistProviderResult} from '@/lib/provider-result-memory';
 export const runtime='nodejs';
 export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
@@ -41,6 +42,10 @@ export async function POST(request: NextRequest) {
       }else resultsError=error instanceof Error?error.message:'PostHog no devolvió resultados.';
     }
 
+    let storage;
+    const linked=await supabase.from('external_resources').select('*').eq('workspace_id',project.workspace_id).eq('project_id',project.id).eq('provider','posthog').eq('resource_type','experiment').eq('external_id',externalExperimentId);
+    if(linked.error)throw new ApiError('No se pudo comprobar el vínculo de PostHog.',503);
+    for(const resource of linked.data||[])storage=await persistProviderResult(supabase,resource,{name:detail.name,start_date:detail.start_date||null,end_date:detail.end_date||null,results,results_error:resultsError},[],detail.start_date?String(detail.start_date).slice(0,10):null,detail.end_date?String(detail.end_date).slice(0,10):null);
     return NextResponse.json({
       host,
       project_id: externalProjectId,
@@ -48,6 +53,7 @@ export async function POST(request: NextRequest) {
       results,
       results_error: resultsError,
       updated_at: new Date().toISOString(),
+      storage,
     },{headers});
   } catch (error) {
     return NextResponse.json(

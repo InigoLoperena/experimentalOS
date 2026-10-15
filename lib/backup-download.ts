@@ -2,7 +2,7 @@ import { backupCsv, backupJson, backupName, type Backup } from "./backup";
 import type { Attachment } from "./attachments";
 
 export async function downloadBackup(snapshot: Backup, format: "csv" | "pdf" | "json", originals: boolean,
-  downloadAttachment: (attachment: Attachment) => Promise<Uint8Array>, progress: (message: string) => void) {
+  downloadAttachment: (attachment: Attachment) => Promise<Uint8Array>, progress: (message: string) => void,downloadDocument?:(document:Record<string,unknown>)=>Promise<Uint8Array>) {
   progress(format === "pdf" ? "Preparando el documento PDF…" : "Preparando los datos…");
   let bytes: Uint8Array;
   if (format === "pdf") {
@@ -13,7 +13,7 @@ export async function downloadBackup(snapshot: Backup, format: "csv" | "pdf" | "
   let mime = format === "pdf" ? "application/pdf" : format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
   if (originals) {
     const { createBackupArchive } = await import("./backup-archive");
-    bytes = await createBackupArchive(snapshot, filename, bytes, downloadAttachment, progress);
+    bytes = await createBackupArchive(snapshot, filename, bytes, downloadAttachment, progress,downloadDocument);
     filename = backupName(snapshot) + ".zip"; mime = "application/zip";
   }
   const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: mime });

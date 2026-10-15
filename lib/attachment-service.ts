@@ -24,6 +24,11 @@ export async function addFileAttachment(recordId: string, workspaceId: string, f
     await supabase!.from("record_attachments").delete().eq("id", id);
     throw failure(uploaded.error);
   }
+  // Preserve the saved original even if this member cannot import team knowledge.
+  if(['pdf','docx'].includes(type.kind)){
+    const session=await supabase!.auth.getSession();
+    if(session.data.session)await fetch('/api/ai/documents',{method:'POST',headers:{Authorization:`Bearer ${session.data.session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({workspace_id:workspaceId,attachment_id:id})}).catch(()=>{});
+  }
   return inserted.data as Attachment;
 }
 export async function addLinkAttachment(recordId: string, workspaceId: string, label: string, value: string, client = supabase!) {

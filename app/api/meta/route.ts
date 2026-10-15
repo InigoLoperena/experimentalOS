@@ -3,6 +3,7 @@ import {readJsonBody} from '@/lib/request-body';
 import { authenticatedClient, authorizedProject, ApiError } from '@/lib/server-access';
 import { metaAccount, metaCampaigns, metaReport,metaJson,metaId,metaIdentity } from '@/lib/meta-ads';
 import {resolvedMetaConnection} from '@/lib/integration-service';
+import {persistProviderResult} from '@/lib/provider-result-memory';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
       .eq('project_id',project.id).eq('workspace_id',project.workspace_id).eq('provider','meta_ads').single();
     if (error || !resource) throw new ApiError('No tienes acceso a ese recurso de Meta.',403);
     const report = await metaReport(connection,resource.external_id,resource.resource_type,body.start,body.end);
-    return NextResponse.json({resource_id:resource.id,...report},{headers});
+    const storage=await persistProviderResult(client,resource,{name:report.name,status:report.status,metrics:report.metrics},report.metrics,body.start,body.end);
+    return NextResponse.json({resource_id:resource.id,...report,storage},{headers});
   } catch (error) {
     return NextResponse.json({error:error instanceof ApiError ? error.message : 'No se pudo consultar Meta. No se guardaron cambios.'},{status:error instanceof ApiError ? error.status : 502,headers});
   }
