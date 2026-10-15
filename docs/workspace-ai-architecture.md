@@ -107,3 +107,22 @@ Las pruebas SQL cubren aislamiento entre dos equipos, lectores, documentos priva
 procedencia por proyecto, archivado, revisión y cálculos deterministas. Las pruebas
 de archivos extraen PDF/DOCX reales y verifican los bytes en la copia ZIP. No afirman
 haber verificado campañas activas ni resultados causales de las plataformas externas.
+
+## Comprobación en producción del 15/10/2026
+
+Las tres migraciones se aplicaron y verificaron en Supabase; el despliegue Vercel
+del commit 128497e terminó correctamente. La vista pública devuelve null, el bucket
+de originales es privado y los avisos de seguridad no aumentaron respecto al estado
+anterior. Los 276 fragmentos iniciales se indexaron conservando los registros fuente.
+
+Desde la interfaz se guardó una fuente sintética general con Greenhunt seleccionado.
+Al cambiar a Greenroute se conservaron el historial y la fuente. La consulta real a
+OpenAI recuperó el código sintético solicitado, citó la fuente general y explicó que
+no probaba resultados de ninguno de los dos proyectos. La respuesta quedó guardada
+con scope workspace. Después se archivó la fuente: quedó fuera del índice y conservó
+una revisión recuperable. No se alteraron datos de investigación reales.
+
+La extracción PDF/DOCX, copia ZIP con originales y recuperación de una indexación
+interrumpida se verificaron en pruebas de servidor. La subida completa por Chrome
+quedó pendiente: la extensión exigió acceso a URLs de archivo y la sesión posterior
+no ofrecía pestañas controlables. No se presenta esa prueba de navegador como pasada.
