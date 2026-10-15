@@ -7,6 +7,7 @@ import {validateContextDocuments,openAIFileContent} from '@/lib/ai-prompt-files'
 import {chatInstructions,campaignStateInstructions,campaignStateContext,groundCampaignExecution,chatSchema,parseChat,recordMemory,type ChatEntry} from '@/lib/ai-memory';
 import {workspaceMemory} from '@/lib/workspace-memory';
 import {workspaceAIInstructions} from '@/lib/ai-memory';
+import {commonMethodology,methodologyInstructions} from '@/lib/methodology-context';
 
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -34,17 +35,18 @@ export async function POST(request:Request){
   const linked=experimentIds.length?await client.from('external_resources').select('experiment_id,provider,resource_type,observed_status,updated_at').eq('workspace_id',workspace).in('experiment_id',experimentIds).limit(200):{data:[],error:null};
   if(linked.error)throw new ApiError('No se pudo comprobar el estado guardado de las campañas.',503);
   const observations:Record<string,unknown>[]=memory.facts.flatMap((f:any)=>Object.values(f.values||{}).map((v:any)=>({...v,experiment_id:f.experiment_id})));
-  const context={workspace:space,project:project?recordMemory(project):null,projects:memory.projectCatalog,scope:'workspace',can_create:!!permission.data&&!!project,coverage:memory.coverage,sources:memory.sources,
+  const methodology=commonMethodology();
+  const context={workspace:space,project:project?recordMemory(project):null,projects:memory.projectCatalog,scope:'workspace',can_create:!!permission.data&&!!project,coverage:memory.coverage,sources:memory.sources,methodology,
    metric_facts:memory.facts.slice(0,20),metric_facts_coverage:{included:Math.min(memory.facts.length,20),warning:'Últimos grupos por recurso y periodo, hasta 20; no es un total del equipo.'},campaign_statuses:campaignStateContext(linked.data||[],memory.sources)};
   const reserved=await client.rpc('reserve_ai_chat',{p_workspace:workspace,p_request:body.request_id});
   if(reserved.error)throw new ApiError(reserved.error.message,429);
   const previous=(history.data||[]).reverse().map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,1200),proposal:row.proposal?{title:row.proposal.title,fields:row.proposal.fields}:null}));
-  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions+workspaceAIInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},...openAIFileContent(documents,media),{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
+  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions+workspaceAIInstructions+methodologyInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},...openAIFileContent(documents,media),{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
   if(!response.ok)throw new ApiError(response.status===429?'OpenAI ha alcanzado su saldo o límite de uso.':'OpenAI no pudo responder. Inténtalo de nuevo.',502);
   const result=await response.json();
   if(result.status!=='completed')throw new ApiError('La respuesta no se completó. Prueba con una pregunta más concreta.',502);
   const output=result.output?.flatMap((row:{content?:{type:string;text?:string}[]})=>row.content||[]).filter((row:{type:string})=>row.type==='output_text').map((row:{text:string})=>row.text).join('');
-   let parsed;try{parsed=parseChat(JSON.parse(output||'null'),[...memory.projectCatalog,...memory.sources],!!permission.data&&!!project);}catch(error){
+   let parsed;try{parsed=parseChat(JSON.parse(output||'null'),[...memory.projectCatalog,...memory.sources,...methodology.sources],!!permission.data&&!!project);}catch(error){
    const reason=error instanceof Error&&!(error instanceof SyntaxError)?error.message:'La respuesta no contiene el JSON esperado.';
    console.warn('Strategic AI response rejected',{reason});throw new ApiError(`La respuesta de la IA necesita revisión: ${reason}`,502);
   }

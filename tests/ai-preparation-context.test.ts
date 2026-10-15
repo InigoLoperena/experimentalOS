@@ -40,6 +40,10 @@ for(const channel of ['meta_ads','google_ads'])test(`${channel}: a long product 
    assert.equal(context.channel,channel);assert.equal(context.project.fields.description,description);assert.equal(context.project.fields.site_url,'https://greenhunt.net/');assert.equal(context.current.context,current);
    assert.deepEqual(context.saved_materials,[{name:'valorization.png',kind:'image'},{name:'tutorial-report.png',kind:'image'}]);
    assert.ok(Buffer.byteLength(JSON.stringify(context.knowledge))<=24000);
+   assert.equal(context.methodology.scope,'common');
+   assert.equal(context.methodology.sources.length,3);
+   assert.match(JSON.stringify(context.methodology),/The Mom Test|El Mom Test/);
+   assert.match(payload.instructions,/biblioteca methodology/);
    assert.ok(context.context_ids.includes('older-learning'));assert.ok(context.coverage.included<context.coverage.available);
    assert.doesNotMatch(JSON.stringify(context),/SECRET_NOT_CONTEXT|PRIVATE_PROVIDER_PAYLOAD|SECRET_PROJECT/);
    assert.equal(payload.store,false);

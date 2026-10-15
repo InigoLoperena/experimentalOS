@@ -2821,6 +2821,35 @@ nav button,
 .ai-flow-core { border-color:var(--lime); color:var(--lime); }.ai-flow-core small,.ai-flow-row small { color:var(--muted); }
 .ai-flow-arrow { padding:12px 0; color:var(--blue-text); }
 .ai-diagram figcaption { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:18px; color:var(--lime); font-size:13px; }
+.methodology-library { margin-bottom:20px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); overflow:hidden; }
+.methodology-library > summary { display:flex; align-items:center; gap:14px; padding:18px 20px; cursor:pointer; list-style:none; }
+.methodology-library > summary::-webkit-details-marker { display:none; }
+.methodology-library > summary:focus-visible { outline:2px solid var(--lime); outline-offset:-3px; border-radius:var(--radius); }
+.methodology-library > summary > svg:first-child { color:var(--lime); flex-shrink:0; }
+.methodology-library-copy { flex:1; min-width:0; }
+.methodology-library-copy strong { display:block; margin-bottom:4px; font-size:15px; }
+.methodology-library-copy > span { display:block; font-size:13px; color:var(--muted); line-height:1.5; }
+.methodology-library-count { color:var(--lime); white-space:nowrap; font-size:12px; }
+.methodology-library-chevron { flex-shrink:0; color:var(--muted); transition:transform .15s; }
+.methodology-library[open] .methodology-library-chevron { transform:rotate(180deg); }
+.methodology-library-body { padding:0 20px 18px; border-top:1px solid var(--border); }
+.methodology-library-note { margin:14px 0; color:var(--muted); font-size:12px; line-height:1.6; }
+.methodology-books { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:14px; }
+.methodology-book { display:flex; align-items:flex-start; gap:14px; padding:16px; border:1px solid var(--border); background:var(--field); border-radius:10px; }
+.methodology-book > img { width:80px; height:auto; flex-shrink:0; border-radius:4px; box-shadow:0 5px 14px #0004; }
+.methodology-book-copy { min-width:0; }
+.methodology-book h3 { margin:0 0 6px; color:var(--ink); font-size:15px; line-height:1.35; }
+.methodology-book p { margin:8px 0; font-size:13px; line-height:1.55; }
+.methodology-book .methodology-book-author { color:var(--muted); font-size:11px; }
+.methodology-book small { display:block; font-size:11px; color:var(--muted); }
+.methodology-book a { display:inline-flex; align-items:center; gap:5px; margin-top:10px; font-size:12px; text-underline-offset:3px; }
+@media(max-width:600px){
+ .methodology-library > summary { padding:14px; gap:10px; align-items:flex-start; }
+ .methodology-library-count { display:none; }
+ .methodology-library-body { padding:0 14px 12px; }
+ .methodology-book { padding:12px; }
+ .methodology-book > img { width:70px; }
+}
 .ai-columns { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:20px; align-items:start; }
 .ai-chat h2,.ai-memory h2 { display:flex; align-items:center; gap:9px; margin:0 0 18px; font-size:20px; }
 .ai-messages { max-height:640px; overflow-y:auto; overscroll-behavior:contain; padding-right:6px; }
