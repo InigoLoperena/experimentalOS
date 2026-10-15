@@ -30,8 +30,16 @@ export async function POST(request: NextRequest) {
     const externalExperimentId = posthogIdentifier(experimentId);
     const detail = await posthogJson(`${base}/${externalExperimentId}/`, posthogKey);
     let results = null, resultsError: string | null = null;
-    try { results = await posthogJson(`${base}/${externalExperimentId}/results/`, posthogKey); }
-    catch (error) { resultsError = error instanceof Error ? error.message : "PostHog no devolvió resultados."; }
+    if(!detail.start_date){resultsError='El experimento está en borrador. Los resultados aparecerán cuando se active y reciba exposiciones y eventos.';}
+    else try {
+      // Read cached calculations only: refreshing a card must not repeatedly trigger paid queries.
+      results=await posthogJson(`${base}/${externalExperimentId}/metrics_recalculation/latest/`,posthogKey);
+    }catch(error){
+      if(error instanceof PostHogError&&error.status===404){
+        try{results=await posthogJson(`${base}/${externalExperimentId}/results/`,posthogKey);}
+        catch{resultsError='Todavía no hay resultados calculados disponibles. Revisa el análisis en PostHog y vuelve a consultar.';}
+      }else resultsError=error instanceof Error?error.message:'PostHog no devolvió resultados.';
+    }
 
     return NextResponse.json({
       host,

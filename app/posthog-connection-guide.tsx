@@ -1,0 +1,12 @@
+export function PosthogConnectionGuide(){return <details className="monitoring-block"><summary>Guía rápida: preparar experimentos A/B con PostHog</summary>
+ <ol>
+  <li>Instala PostHog en la web o app que quieres probar y registra los eventos que utilizarás para medir el resultado.</li>
+  <li>En los ajustes personales de PostHog, crea una clave privada con <code>project:read</code>, <code>experiment:read</code>, <code>experiment:write</code> y <code>event_definition:read</code>. El usuario también debe tener permiso para crear feature flags en ese proyecto. Guarda la clave únicamente en este panel; no utilices la clave pública de captura del SDK.</li>
+  <li>Guarda la región US/EU y el ID de proyecto de PostHog. La cuenta se comparte en el equipo. Si cada app envía datos a un proyecto PostHog distinto, el administrador puede elegirlo en «Perfil del proyecto», reutilizando la misma clave con acceso a esos proyectos.</li>
+  <li>En el experimento selecciona «PostHog · Experimento A/B», Web app o App móvil. Escribe el prompt con la hipótesis, lo que cambia entre A y B y la métrica. La IA consultará los eventos disponibles; si no hay un evento confirmado, lo dejará pendiente sin bloquear el borrador.</li>
+  <li>Aplica la propuesta y pulsa «Enviar a PostHog». Se crean un borrador llamado «Experimento · título» y una feature flag desactivada con control/test. El ID y el enlace quedan asociados automáticamente a la ficha.</li>
+  <li>Abre el borrador en PostHog, implementa en tu web/app la feature flag indicada y sus dos variantes, revisa identidad, métrica y reparto, y activa manualmente. Crear el borrador no modifica ni despliega tu web/app. Los adjuntos permanecen privados en Experiments.</li>
+ </ol>
+ <p className="small">Si no indicas reparto, se propone 50/50 con entrada global del 100 %, todavía sin activar. La fecha de la ficha no programa un lanzamiento. «Actualizar estado» consulta el recurso y permite recuperar un envío con respuesta interrumpida. «Cargar datos» muestra los resultados disponibles; un borrador o un experimento sin exposiciones aún no tiene resultados.</p>
+ <p className="small">Documentación oficial: <a href="https://posthog.com/docs/api/experiments" target="_blank" rel="noopener noreferrer">API de experimentos</a> · <a href="https://posthog.com/docs/experiments/start-here" target="_blank" rel="noopener noreferrer">implementar variantes y medir</a> · <a href="https://posthog.com/docs/api/personal-api-keys" target="_blank" rel="noopener noreferrer">claves privadas y permisos</a>.</p>
+ </details>;}

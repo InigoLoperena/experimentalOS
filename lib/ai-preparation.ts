@@ -1,6 +1,7 @@
 import type { Fields } from './model';
 import {channels,executionSchema,parseChannel,parseExecution,executionFromFields,type Channel,type ExecutionPlan} from './execution-plan';
 import {googleAdsOptionsSchema} from './google-ads-options';
+import {posthogChannels} from './posthog-options';
 
 export const preparationKeys = ['context','hypothesis','metric','success_criteria','start','tags','secondary_metrics','audience','traffic_plan','risks'] as const;
 export type Preparation = { title: string; fields: Record<typeof preparationKeys[number], string | null>; missing: string[]; assumptions: string[]; questions?:string[]; recommendations?:string[]; channel?:Channel|null; execution?:ExecutionPlan|null };
@@ -16,7 +17,7 @@ export const preparationRequestSchema = {...preparationSchema,properties:{...pre
   properties:{...preparationSchema.properties.fields.properties,success_criteria:{type:'null'}}}}};
 export function preparationSchemaForRequest(channel:Channel|null,prompt:string){
   // Also recognize spoken Spanish transcriptions such as "testa B" and "test AB".
-  const ab=channel==='google_ads'||channel==='smartlead'||channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
+  const ab=posthogChannels.includes(channel||'')||channel==='google_ads'||channel==='smartlead'||channel==='meta_ads'&&(/\ba\s*[/\-]\s*b\b|\b(?:test|prueba|testa)\s*a?\s*b\b|\bdos\s+(?:variantes|anuncios)\b/i.test(prompt)||/\bun[oa]?\b[\s\S]*\botr[oa]\b/i.test(prompt));
   if(!ab)return preparationRequestSchema;
   const variants=executionSchema.properties.variants;
   const requestedGoogle=[['DISPLAY',/\bdisplay\b/i],['SEARCH',/\bsearch\b|\bbúsqueda\b/i],['VIDEO',/\bvídeo\b|\bvideo\b|\byoutube\b/i],['DEMAND_GEN',/\bdemand\s*gen\b/i],['PERFORMANCE_MAX',/\bperformance\s*max\b/i],['SHOPPING',/\bshopping\b/i]].filter(([,pattern])=>(pattern as RegExp).test(prompt)).map(([type])=>type as string);
@@ -81,7 +82,7 @@ export function requiredPreparation(proposal:Preparation,mediaCount:number):Prep
   const assumptions=isGoogle?proposal.assumptions.map(value=>/repart|distribu|asigna/i.test(value)&&/equita|igual|50\s*(?:\/|%)/i.test(value)&&/presup|tr[aá]fico/i.test(value)?deliveryNotice:value):proposal.assumptions;
   if(!proposal.channel)missing.push('Selecciona el canal principal.');
   if(!proposal.fields.hypothesis)missing.push('Revisa y define la hipótesis del experimento.');
-  if(!['meta_ads','google_ads','smartlead'].includes(proposal.channel||'')&&!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
+  if(![...posthogChannels,'meta_ads','google_ads','smartlead'].includes(proposal.channel||'')&&!proposal.fields.start)missing.push('Define la fecha de inicio antes de ejecutar.');
   if(!isMeta&&!plan?.goal)missing.push('Confirma el objetivo de ejecución.');
   if(!isMeta&&proposal.channel!=='google_play' && plan && ['traffic','installs','store'].includes(plan.goal||'')&&!plan.destination)missing.push('Añade la URL de destino o de la ficha de la app.');
   if(proposal.channel && ['meta_ads','google_ads','linkedin_ads','tiktok_ads'].includes(proposal.channel)){

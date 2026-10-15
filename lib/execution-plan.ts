@@ -1,10 +1,11 @@
 import type { Fields } from './model';
+import {posthogOptionsSchema,parsePosthogOptions,type PosthogOptions} from './posthog-options';
 import {googlePlaySchema,parseGooglePlay,type GooglePlayOptions} from './google-play-options';
 import {metaOptionsSchema,parseMetaOptions,type MetaOptions} from './meta-options';
 import {googleCampaignTypes,googleAdsOptionsSchema,parseGoogleAdsOptions,type GoogleAdsOptions} from './google-ads-options';
 
 export const channels = {
-  web_app:'Web app', mobile_ios:'App móvil · iOS', mobile_android:'App móvil · Android',
+  posthog:'PostHog · Experimento A/B', web_app:'Web app', mobile_ios:'App móvil · iOS', mobile_android:'App móvil · Android',
   app_store:'Ficha de App Store · iOS', google_play:'Ficha de Google Play · Android',
   meta_ads:'Meta Ads', google_ads:'Google Ads', metricool:'Metricool', smartlead:'Smartlead',
   linkedin_ads:'LinkedIn Ads', tiktok_ads:'TikTok Ads', other:'Otro canal',
@@ -12,6 +13,7 @@ export const channels = {
 export type Channel = keyof typeof channels;
 export const goals = {traffic:'Tráfico',installs:'Instalaciones',leads:'Contactos o registros',sales:'Ventas o conversiones',engagement:'Interacción',product:'Comportamiento de producto',store:'Conversión de la ficha de la app'} as const;
 export type ExecutionPlan = {
+  posthog?:PosthogOptions|null;
   play?:GooglePlayOptions|null;
   meta?:MetaOptions|null;
   google?:GoogleAdsOptions|null;
@@ -21,7 +23,8 @@ export type ExecutionPlan = {
 };
 export const executionTextLimits={destination:2000,currency:3,audience:4000,location:4000,label:40,description:4000,headline:300,body:4000,call_to_action:120} as const;
 const text=(maxLength:number)=>({type:['string','null'],maxLength});
-export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants','meta','google','play'],properties:{
+export const executionSchema={type:'object',additionalProperties:false,required:['goal','destination','audience','location','daily_budget','currency','duration_days','variants','meta','google','play','posthog'],properties:{
+  posthog:{anyOf:[posthogOptionsSchema,{type:'null'}]},
   play:{anyOf:[googlePlaySchema,{type:'null'}]},
   google:{anyOf:[googleAdsOptionsSchema,{type:'null'}]},
   meta:{anyOf:[metaOptionsSchema,{type:'null'}]},
@@ -64,7 +67,7 @@ export function parseExecution(value:unknown):ExecutionPlan {
   });
   if(variants.some(v=>!v.label.trim())||new Set(variants.map(v=>v.label.trim().toLowerCase())).size!==variants.length)throw new Error('Cada variante necesita un nombre distinto.');
   if(variants.every(v=>v.allocation!==null)&&variants.length && Math.abs(variants.reduce((sum,v)=>sum+v.allocation!,0)-100)>0.01)throw new Error('El reparto completo de las variantes debe sumar 100%.');
-  return {...(row.play!==undefined?{play:parseGooglePlay(row.play)}:{}),goal:row.goal,destination,audience:nullableText(row.audience,executionTextLimits.audience,'Audiencia'),location:nullableText(row.location,executionTextLimits.location,'Ubicación'),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants,...(row.meta!==undefined?{meta:parseMetaOptions(row.meta)}:{}),...(row.google!==undefined?{google:parseGoogleAdsOptions(row.google)}:{})};
+  return {...(row.posthog!==undefined?{posthog:parsePosthogOptions(row.posthog)}:{}),...(row.play!==undefined?{play:parseGooglePlay(row.play)}:{}),goal:row.goal,destination,audience:nullableText(row.audience,executionTextLimits.audience,'Audiencia'),location:nullableText(row.location,executionTextLimits.location,'Ubicación'),daily_budget:bounded(row.daily_budget,0,1000000),currency,duration_days:bounded(row.duration_days,1,365,true),variants,...(row.meta!==undefined?{meta:parseMetaOptions(row.meta)}:{}),...(row.google!==undefined?{google:parseGoogleAdsOptions(row.google)}:{})};
 }
 export function executionFromFields(fields:Fields):ExecutionPlan|null {
   if(!fields.execution_config)return null;

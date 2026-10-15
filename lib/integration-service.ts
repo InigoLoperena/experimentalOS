@@ -5,6 +5,7 @@ import {openSecrets} from './integration-secrets';
 import {ApiError} from './server-access';
 import {metaConnection} from './meta-ads';
 import {verifiedPosthogConnection} from './posthog-connection';
+import {posthogHost,posthogIdentifier} from './posthog-api';
 import type {IntegrationProfile} from './workspace-connection';
 export async function storedConnection(client:SupabaseClient,workspace:string,provider:IntegrationProvider,project:string|null){
  let query=client.from('integration_connections').select('*').eq('workspace_id',workspace).eq('provider',provider);
@@ -64,7 +65,8 @@ export async function resolvedPosthog(client:SupabaseClient,project:Item){
  const profile=await projectConnectionProfile(client,row,project);
  // Product analytics must keep using each project's real external identifier.
  const projectId=profile?.config.project_id||String(project.fields.posthog_project_id||row.config.project_id),host=profile?.config.host||String(project.fields.posthog_host||row.config.host);
- return {host,projectId,key:secrets.api_key};
+ posthogIdentifier(projectId);
+ return {host:posthogHost(host,process.env.POSTHOG_ALLOWED_HOSTS),projectId,key:secrets.api_key};
 }
 
 export async function resolvedGoogleAds(client:SupabaseClient,project:Item){

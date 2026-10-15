@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/lib/model";
+import {posthogResultVariants} from '@/lib/posthog-results';
+import {posthogStatus} from '@/lib/posthog-sync';
 
 type Props = {
   experiment: Item;
@@ -36,37 +38,7 @@ function numberText(value: any) {
 }
 
 function statusText(detail: any) {
-  return String(
-    valueAt(detail, [
-      ["status"],
-      ["state"],
-      ["experiment_status"],
-      ["start_date"],
-    ]) || "Disponible en PostHog",
-  );
-}
-
-function collectVariants(results: any) {
-  const candidates = [
-    results?.variants,
-    results?.variant_results,
-    results?.results,
-    results?.metrics?.[0]?.variants,
-    results?.primary_metrics?.[0]?.variants,
-  ];
-  const source = candidates.find((item) => Array.isArray(item));
-  if (!source) return [];
-  return source.slice(0, 8).map((item: any, index: number) => ({
-    name: String(item?.key || item?.name || item?.variant || item?.label || `Variante ${index + 1}`),
-    value: valueAt(item, [
-      ["conversion_rate"],
-      ["conversionRate"],
-      ["value"],
-      ["count"],
-      ["mean"],
-    ]),
-    exposures: valueAt(item, [["exposures"], ["sample_size"], ["sampleSize"], ["participants"], ["count"]]),
-  }));
+  return posthogStatus(detail);
 }
 
 export function PostHogResults({ experiment, project }: Props) {
@@ -75,8 +47,8 @@ export function PostHogResults({ experiment, project }: Props) {
   const [error, setError] = useState("");
   const experimentId = String(experiment.fields.posthog_experiment_id || "").trim();
   const posthogProjectId = String(project?.fields.posthog_project_id || "").trim();
-  const configured = !!experimentId && !!posthogProjectId;
-  const variants = useMemo(() => collectVariants(payload?.results), [payload]);
+  const configured = !!experimentId && !!project?.id;
+  const variants = useMemo(() => posthogResultVariants(payload?.results), [payload]);
   const requestVersion = useRef(0);
   const inFlight = useRef(false);
 
@@ -143,14 +115,9 @@ export function PostHogResults({ experiment, project }: Props) {
         )}
       </div>
 
-      {!posthogProjectId && (
+      {!experimentId && (
         <p className="small">
-          Configura el <strong>ID del proyecto de PostHog</strong> en la ficha de {project.title}.
-        </p>
-      )}
-      {posthogProjectId && !experimentId && (
-        <p className="small">
-          Edita este experimento y añade su <strong>ID del experimento en PostHog</strong>.
+          Envía el borrador a PostHog para asociarlo automáticamente y consultar sus resultados.
         </p>
       )}
       {error && <div className="error">{error}</div>}

@@ -6,6 +6,7 @@ import type {Item} from '@/lib/model';
 import {integrationCatalog,integrationFields,type IntegrationProvider,type Connection} from '@/lib/integrations';
 import {MetaConnectionGuide} from './meta-connection-guide';
 import {GoogleConnectionGuide} from './google-connection-guide';
+import {PosthogConnectionGuide} from './posthog-connection-guide';
 import {workspaceConnectionChoice,integrationProfileFields,type IntegrationProfile} from '@/lib/workspace-connection';
 type Payload={connections:Connection[];profiles:IntegrationProfile[];can_configure:boolean;storage_ready:boolean};
 export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{workspaceId:string;projects:Item[];demo:boolean;onSaved:()=>Promise<void>;onBusy:(busy:boolean)=>void}){
@@ -46,6 +47,7 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
    <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
    {provider==='meta_ads'&&<MetaConnectionGuide/>}
    {provider==='google_ads'&&<GoogleConnectionGuide/>}
+   {provider==='posthog'&&<PosthogConnectionGuide/>}
    <p className="notice">Una cuenta de {integrationCatalog[provider].name} para todos los proyectos de este espacio de trabajo. Las campañas y resultados siguen asociados a su proyecto y experimento.</p>
    {provider==='openai'&&<p className="small">Límite inicial de IA: 5 USD estimados al mes por equipo.</p>}
    {!!alternatives.length&&<details className="monitoring-block"><summary>Conexiones anteriores</summary><p>Conservamos las conexiones existentes. Elige cuál utilizar en todos los proyectos:</p>{alternatives.map(row=><button key={row.id} type="button" className="btn" disabled={busy||!data?.can_configure||row.source!=='encrypted'} onClick={()=>void run({action:'share',provider,connection_id:row.id,expected:row.updated_at}).catch(()=>{})}>{row.config.account_id||row.config.customer_id||projects.find(p=>p.id===row.project_id)?.title||'Cuenta guardada'}</button>)}</details>}

@@ -12,7 +12,7 @@ test('workspace account migration preserves legacy ciphertext and enforces owner
    grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;
    create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,unique(bucket_id,name));alter table storage.objects enable row level security;grant usage on schema storage to anon,authenticated;grant select on storage.objects to anon;grant select,insert,delete on storage.objects to authenticated;`);
-  const dir=new URL('../supabase/migrations/',import.meta.url),files=(await readdir(dir)).filter(f=>f.endsWith('.sql')).sort(),last=files.at(-1)!;
+  const dir=new URL('../supabase/migrations/',import.meta.url),targetMigration='20261014180627_workspace_integrations_and_profiles.sql',files=(await readdir(dir)).filter(f=>f.endsWith('.sql')&&f<=targetMigration).sort(),last=targetMigration;
   for(const f of files.slice(0,-1))await db.exec((await readFile(new URL(f,dir),'utf8')).replace('create extension if not exists pgcrypto;',''));
   const owner=randomUUID(),other=randomUUID(),editor=randomUUID();for(const id of [owner,other,editor])await db.query("insert into auth.users(id,raw_user_meta_data) values($1,'{}')",[id]);
   const as=async(id:string|null)=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec(id?'set role authenticated':'set role anon');};

@@ -11,7 +11,7 @@ export function posthogMetric(experiment: PostHogExperiment) {
 export function posthogStatus(experiment: PostHogExperiment) {
   if (experiment.archived) return "Archivado";
   if (experiment.end_date) return "Finalizado";
-  if (experiment.start_date) return "En curso";
+  if (experiment.start_date) return experiment.feature_flag?.active===false?"Pausado":"En curso";
   return String(experiment.status ?? experiment.state ?? "Borrador");
 }
 

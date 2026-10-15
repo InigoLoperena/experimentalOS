@@ -7,6 +7,7 @@ import { experimentFields } from '@/lib/experiments';
 import {channels,executionSummary} from '@/lib/execution-plan';
 import {AIPromptComposer} from './ai-prompt-composer';
 import {preparePromptFiles} from '@/lib/ai-prompt-files';
+import {posthogChannels} from '@/lib/posthog-options';
 
 export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,onBusy,allowAttachments=true}: {draft:Item;files:File[];onFiles:(files:File[])=>void;disabled:boolean;demo:boolean;onApply:(draft:Item)=>void;onBusy:(value:boolean)=>void;allowAttachments?:boolean}) {
   const [prompt,setPrompt]=useState('');
@@ -38,7 +39,7 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
   }
   function promptChanged(value:string){setPrompt(value);setProposal(null);conversation.current='';setAnswers('');}
   function voiceActivity(value:boolean){setVoiceBusy(value);onBusy(value);}
-  return <details key={String(draft.fields.channel)} open={['meta_ads','google_ads','smartlead'].includes(String(draft.fields.channel))?true:undefined} className="monitoring-block full"><summary>Preparar con IA</summary>
+  return <details key={String(draft.fields.channel)} open={[...posthogChannels,'meta_ads','google_ads','smartlead'].includes(String(draft.fields.channel))?true:undefined} className="monitoring-block full"><summary>Preparar con IA</summary>
     <p className="small">Utiliza el canal seleccionado y el contexto real del proyecto. Propone la ficha, configuración y variantes para revisión. Define tú el criterio de éxito.</p>
     {demo ? <p className="notice">El asistente está disponible al iniciar sesión en tu workspace.</p> : <>
       <AIPromptComposer id="experiment-ai-prompt" projectId={draft.project_id} purpose="experiment" value={prompt} onChange={promptChanged} files={files} onFiles={next=>{onFiles(next);setProposal(null);setError('');}} allowFiles={allowAttachments} disabled={disabled||busy} voiceBusy={voiceBusy} onVoiceBusy={voiceActivity} busy={busy} placeholder="Describe el experimento o adjunta archivos…" onSubmit={()=>void prepare()}/>
@@ -50,14 +51,14 @@ export function ExperimentAssistant({draft,files,onFiles,disabled,demo,onApply,o
     {error && <p className="error" role="alert">{error}</p>}
     {proposal && <div className="assistant-proposal"><h3>{proposal.title}</h3>
       {proposal.channel&&<p><strong>Canal principal</strong><br/>{channels[proposal.channel]}</p>}
-      {proposal.execution&&!['meta_ads','google_ads'].includes(String(draft.fields.channel))&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
+      {proposal.execution&&![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))&&<pre className="execution-summary">{executionSummary(proposal.channel||null,proposal.execution)}</pre>}
       {Object.entries(proposal.fields).filter(([,value]) => value!==null).map(([key,value]) => <p key={key}><strong>{experimentFields.find(field => field.key===key)?.label || key}</strong><br/>{value}</p>)}
       {!!proposal.missing.length && <><h4>Falta confirmar</h4><ul>{proposal.missing.map((value,index) => <li key={index}>{experimentFields.find(field => field.key===value)?.label || value}</li>)}</ul></>}
       {!!proposal.assumptions.length && <><h4>Supuestos de la IA</h4><ul>{proposal.assumptions.map((value,index) => <li key={index}>{value}</li>)}</ul></>}
       {!!proposal.recommendations?.length&&<><h4>Recomendaciones para revisar</h4><ul>{proposal.recommendations.map((value,index)=><li key={index}>{value}</li>)}</ul></>}
       {!!proposal.questions?.length&&<><h4>La IA necesita tus respuestas</h4><ol>{proposal.questions.map((value,index)=><li key={index}>{value}</li>)}</ol><AIPromptComposer id="experiment-ai-followup" projectId={draft.project_id} purpose="experiment" value={answers} onChange={setAnswers} files={files} onFiles={onFiles} allowFiles={allowAttachments} disabled={disabled||busy} voiceBusy={voiceBusy} onVoiceBusy={voiceActivity} busy={busy} placeholder="Responde a la IA…" onSubmit={()=>void prepare()}/></>}
       <button type="button" className="btn primary" disabled={disabled || busy || voiceBusy} onClick={() => { onApply({...draft,title:proposal.title,fields:applyPreparation(draft.fields,proposal)});setProposal(null); }}>Rellenar formulario para revisar</button>
-      <p className="small">Rellena el formulario para revisar y después guarda la ficha.{draft.fields.channel==='meta_ads'&&' Usa «Guardar y revisar envío a Meta» para pasar a la revisión de campaña y creatividades antes de enviarlas.'}{draft.fields.channel==='google_ads'&&' Pulsa «Enviar a Google Ads» para guardar la ficha y crear la campaña pausada. Su configuración se revisa en Google Ads.'} La IA no modifica el responsable, las relaciones ni los IDs.</p>
+      <p className="small">Rellena el formulario para revisar y después guarda la ficha.{draft.fields.channel==='meta_ads'&&' Usa «Guardar y revisar envío a Meta» para pasar a la revisión de campaña y creatividades antes de enviarlas.'}{draft.fields.channel==='google_ads'&&' Pulsa «Enviar a Google Ads» para guardar la ficha y crear la campaña pausada. Su configuración se revisa en Google Ads.'}{posthogChannels.includes(String(draft.fields.channel))&&' Pulsa «Enviar a PostHog» para guardar la ficha y crear el borrador A/B. La web/app deberá implementar las variantes antes de la activación manual.'} La IA no modifica el responsable, las relaciones ni los IDs.</p>
     </div>}
   </details>;
 }

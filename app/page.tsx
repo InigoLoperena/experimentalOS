@@ -36,6 +36,8 @@ import { BrandIdentity } from "./brand-identity";
 import { TeamAccess } from "./team-access";
 import { BackupDialog, type BackupFormat } from "./backup-dialog";
 import { PostHogResults } from "./posthog-results";
+import {PosthogPreparation} from './posthog-preparation';
+import {posthogChannels} from '@/lib/posthog-options';
 import { PostHogProjectPanel } from "./posthog-project-panel";
 import { ExperimentMonitoring } from "./experiment-monitoring";
 import { MetaExperimentDelivery } from './meta-experiment-delivery';
@@ -433,6 +435,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Item | null>(null);
   const [metaPreparationTarget,setMetaPreparationTarget]=useState<string|null>(null);
   const [googlePreparationTarget,setGooglePreparationTarget]=useState<string|null>(null);
+  const [posthogPreparationTarget,setPosthogPreparationTarget]=useState<string|null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
   useEffect(()=>setDraftFiles([]),[draft?.id]);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
@@ -1014,7 +1017,7 @@ export default function Home() {
     setDraft({id:crypto.randomUUID(),workspace_id:workspace.id,project_id:currentProject.id,kind:'experiment',parent_id:null,related_id:null,title:proposal.title,owner_id:user?.id||null,
       fields:{impact:5,confidence:5,ease:5,...applyPreparation({},proposal)},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:user?.id||null,updated_by:user?.id||null});
   }
-  async function save(prepareMeta=false,prepareGoogle=false) {
+  async function save(prepareMeta=false,prepareGoogle=false,preparePosthog=false) {
     if (!draft || saving || attachmentsBusy || assistantBusy) return;
     if(!can(draft.kind,allItems.some(i=>i.id===draft.id)?'edit':'create')){setError('No tienes permiso para guardar esta ficha.');return;}
     if (!demo && !schemaReady) {
@@ -1136,6 +1139,7 @@ export default function Home() {
       await load();
       setMetaPreparationTarget(prepareMeta&&record.kind==='experiment'&&record.fields.channel==='meta_ads'?record.id:null);
       setGooglePreparationTarget(prepareGoogle&&record.kind==='experiment'&&record.fields.channel==='google_ads'?record.id:null);
+      setPosthogPreparationTarget(preparePosthog&&record.kind==='experiment'&&posthogChannels.includes(String(record.fields.channel))?record.id:null);
       if (supportsAttachments(record.kind)) setSelected(normalizeExperiment(r.data[0] as Item));
     }
     } catch {
@@ -1460,7 +1464,7 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || (f.key !== "posthog_experiment_id" || ["web_app", "mobile_ios", "mobile_android"].includes(String(draft.fields.channel))) && (!['meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
+  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" && (![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 <label
@@ -2593,12 +2597,16 @@ export default function Home() {
               record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
               {({ links, files }) => selected.kind === "experiment" ? <>
-                <FieldDetails record={selected} fields={['meta_ads','google_ads'].includes(String(selected.fields.channel))?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
+                <FieldDetails record={selected} fields={[...posthogChannels,'meta_ads','google_ads'].includes(String(selected.fields.channel))?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
                 {links}
                 {['meta_ads','google_ads'].includes(String(selected.fields.channel))?<>
                   <p><strong>Canal:</strong> {selected.fields.channel==='meta_ads'?'Meta Ads':'Google Ads'}</p>
                   {!publicMode&&selected.fields.channel==='meta_ads'&&<MetaExperimentDelivery key={selected.id} experiment={selected} openOnArrival={metaPreparationTarget===selected.id} editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
                   {!publicMode&&!demo&&selected.fields.channel==='google_ads'&&<GoogleAdsPreparation key={selected.id} experiment={selected} openOnArrival={googlePreparationTarget===selected.id} editable={can('experiment','edit')} locked={false} onBusy={setMonitoringBusy} onSaved={load}/>}
+                </>:posthogChannels.includes(String(selected.fields.channel))?<>
+                  <p><strong>Canal:</strong> {selected.fields.channel==='posthog'?'PostHog · Experimento A/B':selected.fields.channel==='web_app'?'Web app · PostHog':'App móvil · PostHog'}</p>
+                  {!publicMode&&!demo&&<PosthogPreparation key={selected.id} experiment={selected} editable={can('experiment','edit')} openOnArrival={posthogPreparationTarget===selected.id} onBusy={setMonitoringBusy} onSaved={record=>{setSelected(normalizeExperiment(record));void load();}}/>}
+                  {!publicMode&&<PostHogResults experiment={selected} project={currentProject}/>}
                 </>:<>
                   <ExecutionDetails key={selected.id} experiment={selected}/>
                   {!publicMode&&['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
@@ -2713,7 +2721,7 @@ export default function Home() {
             onSubmit={(e) => {
               e.preventDefault();
               const submitter=(e.nativeEvent as SubmitEvent).submitter;
-              void save(submitter instanceof HTMLButtonElement&&submitter.dataset.prepareMeta==='true',submitter instanceof HTMLButtonElement&&submitter.dataset.prepareGoogle==='true');
+              void save(submitter instanceof HTMLButtonElement&&submitter.dataset.prepareMeta==='true',submitter instanceof HTMLButtonElement&&submitter.dataset.prepareGoogle==='true',submitter instanceof HTMLButtonElement&&submitter.dataset.preparePosthog==='true');
             }}
           >
             <div className="dialog-head">
@@ -2849,6 +2857,7 @@ export default function Home() {
               </button>
               {draft.kind==='experiment'&&draft.fields.channel==='meta_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-meta="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Guardar y revisar envío a Meta</button>}
               {draft.kind==='experiment'&&draft.fields.channel==='google_ads'&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-google="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Enviar a Google Ads</button>}
+              {draft.kind==='experiment'&&posthogChannels.includes(String(draft.fields.channel))&&!demo&&!publicMode&&can('experiment','edit')&&<button type="submit" data-prepare-posthog="true" className="btn primary" disabled={saving||attachmentsBusy||assistantBusy}>Enviar a PostHog</button>}
             </div>
           </form>
         )}
