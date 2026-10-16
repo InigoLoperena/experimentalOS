@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
     <main className="privacy-page">
       <a href="/">← Volver a Xperiments</a>
       <h1>Política de privacidad</h1>
-      <p>Última actualización: 13 de octubre de 2026.</p>
+      <p>Última actualización: 16 de octubre de 2026.</p>
       <p>Esta política describe el uso de datos en Xperiments (Experimental OS), una herramienta para preparar, monitorizar y documentar experimentos. El servicio es gestionado por Imagine Builder. Para consultas sobre privacidad, escribe a <a href="mailto:hello@greenhunt.net">hello@greenhunt.net</a>.</p>
 
       <h2>Datos que tratamos</h2>
@@ -24,6 +24,7 @@ export default function PrivacyPolicy() {
       <p>Solo accedemos a los activos que autorices. Puedes revocar el acceso desde las herramientas de Meta o desconectar la integración en Xperiments. La revocación impide futuras consultas con esas credenciales; no elimina por sí misma campañas de Meta ni resultados que ya se hayan importado.</p>
 
       <h2>Asistente de inteligencia artificial</h2>
+      <p>La IA combina una biblioteca general compartida, almacenada e indexada en OpenAI, con la memoria privada de cada espacio de trabajo en Supabase. La biblioteca general contiene únicamente documentos de referencia incorporados para uso común. Los proyectos, documentos, conversaciones, experimentos y aprendizajes de los equipos no se incorporan automáticamente a esa biblioteca. Para responder se recupera información autorizada y pertinente; los fragmentos utilizados y la respuesta pueden quedar guardados como parte de la conversación privada del usuario. Los archivos privados no se indexan en el almacén general de OpenAI.</p>
       <p>Al solicitar una propuesta, enviamos a OpenAI tu solicitud y el contexto necesario del proyecto, junto con las imágenes o fotogramas seleccionados para ese análisis. La aplicación solicita que la respuesta no se almacene como historial en la API (store: false); los registros y plazos propios del proveedor dependen de sus condiciones. Las propuestas requieren revisión humana. Evita incluir datos sensibles o de terceros que no tengas autorización para compartir.</p>
       <p>El dictado por voz es opcional y solicita permiso para usar el micrófono. Al terminar una grabación, se envía su audio a OpenAI para transcribirlo. Xperiments no guarda permanentemente ese audio. El texto se añade al campo para que lo revises; se envía al asistente o se guarda en una ficha solo cuando eliges hacerlo. La transcripción utiliza la API de audio y está sujeta a las condiciones y plazos de conservación del proveedor.</p>
 

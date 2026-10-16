@@ -22,16 +22,16 @@ const normalize=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/
 const stop=new Set('para como cuales todos sobre desde donde tiene hacer quiero puedo datos proyecto experimentos aprendizajes'.split(' '));
 // Rank the entire authorized project catalog, including older records and document chunks.
 // All evidence is labelled; the model sees only a bounded relevant selection, never secrets.
-export function selectMemory(sources:MemorySource[],question:string,limit=28000){
+export function selectMemory(sources:MemorySource[],question:string,limit=28000,selectedProject?:string){
   const terms=[...new Set(normalize(question).match(/[a-z0-9]{3,}/g)||[])].filter(t=>!stop.has(t));
-  const ranked=sources.map((source,index)=>{const title=normalize(source.title),excerpt=normalize(source.excerpt);return {source,index,score:(source.category==='team_style'&&source.validation==='reviewed'?10000:0)+terms.reduce((sum,term)=>sum+(title.includes(term)?8:0)+(excerpt.includes(term)?2:0),0)};})
+  const ranked=sources.map((source,index)=>{const title=normalize(source.title),excerpt=normalize(source.excerpt);return {source,index,score:(source.category==='team_style'&&source.validation==='reviewed'?10000:0)+(selectedProject&&(source.project_id===selectedProject||source.id===selectedProject)?12:0)+terms.reduce((sum,term)=>sum+(title.includes(term)?8:0)+(excerpt.includes(term)?2:0),0)};})
     .sort((a,b)=>b.score-a.score||b.source.date.localeCompare(a.source.date)||a.index-b.index);
   const selected:MemorySource[]=[];let size=0;
   for(const {source} of ranked){const length=JSON.stringify(source).length;if(size+length>limit)continue;selected.push(source);size+=length;}
   return {selected,coverage:{available:sources.length,included:selected.length}};
 }
 
-export function recordMemory(record:Item):MemorySource{
+export function recordMemory(record:Pick<Item,'id'|'kind'|'title'|'updated_at'|'project_id'|'parent_id'|'fields'>):MemorySource{
   // Integration secrets are stored separately. Exclude configuration IDs and unnecessary provider payloads.
   const keys=['description','north_star','definition','metric','baseline','current','target','unit','period','source','context','hypothesis','success_criteria','result','conclusion','evidence','learning','decision','next_steps','start','end','tags','channel','focus','experimental_focus','opportunity_type','validation'];
   return {id:record.id,title:record.title,kind:record.kind,date:record.updated_at,project_id:record.kind==='project'?record.id:record.project_id||undefined,excerpt:JSON.stringify({parent_id:record.parent_id,fields:Object.fromEntries(keys.filter(k=>record.fields[k]!==undefined).map(k=>[k,String(record.fields[k]).slice(0,1200)]))}).slice(0,4200)};

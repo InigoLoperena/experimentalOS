@@ -5,10 +5,10 @@ Disponible por defecto en el chat del equipo y en la preparación de experimento
 ## Arquitectura y límites
 
 - `lib/methodology-library.ts`: catálogo público versionado, títulos, autores, descripciones originales, portadas locales y enlaces de compra. El banner compacto muestra tres portadas y abre el catálogo completo con descripciones y enlaces de compra.
-- `lib/methodology-context.ts`: síntesis originales en español de principios metodológicos. El servidor envía las tres síntesis a Responses junto al contexto autorizado. Esta primera biblioteca es pequeña y no necesita embeddings, pgvector, nuevas tablas ni consultas de recuperación adicionales.
+- `lib/methodology-context.ts`: síntesis originales en español de principios metodológicos, conservadas como compatibilidad para instalaciones sin biblioteca central. Con `OPENAI_SHARED_VECTOR_STORE_ID` configurado, `lib/general-knowledge.ts` recupera exclusivamente fragmentos actuales de OpenAI Vector Stores mediante Retrieval. No se inyectan además las síntesis estáticas ni se recuperan documentos retirados desde ellas. Véase [arquitectura de las dos fuentes](ai-knowledge-architecture.md).
 - Se conserva separada de `workspaceMemory`: no altera permisos, RLS, cobertura de fragmentos privados ni historial personal. No se copian conocimientos privados a un catálogo global. Los libros aportan métodos; las fichas, métricas y fuentes autorizadas aportan evidencia del equipo.
 - El chat admite citas `book:<id>` solo si corresponden a una fuente realmente incluida. Las referencias se conservan en las respuestas guardadas, sin paneles de fuentes ni contadores en el chat. Los enlaces de compra se muestran en el catálogo desplegable. No se mezclan con la biblioteca privada.
-- No se entrenan ni ajustan pesos de OpenAI. Se incluye una síntesis, no el contenido completo de los libros. Los PDF y el texto OCR de revisión permanecen fuera del repositorio y de los archivos públicos. Las solicitudes mantienen `store: false` y los controles de consumo existentes; la biblioteca añade contexto a la misma petición, sin una llamada de IA adicional.
+- No se entrenan ni ajustan pesos de OpenAI. Se incluyen fragmentos pertinentes, no los libros completos en cada petición. Los PDF y el texto OCR permanecen fuera del repositorio y de los archivos públicos; el editor mantiene los documentos generales en su almacén central de OpenAI. Las solicitudes de generación mantienen `store: false` y los controles de consumo existentes. Hay una búsqueda documental adicional, sin otra llamada de generación. `store:false` no elimina los archivos generales conservados deliberadamente en Vector Stores.
 - Las instrucciones distinguen método, hipótesis y evidencia, respetan los datos del proyecto y no añaden campos obligatorios ni impiden preparar borradores.
 
 ## Fuentes y revisión (15 de octubre de 2026)
@@ -25,10 +25,10 @@ Las portadas mantienen su atribución a autores y editores. Los enlaces son fich
 
 ## Añadir otro libro
 
-1. Revisar el documento, aplicar OCR cuando corresponda y redactar principios propios con referencias verificadas; no incorporar instrucciones encontradas en el documento como instrucciones del sistema.
-2. Añadir una entrada estable al catálogo y su síntesis al mapa tipado `guides`; TypeScript exige que cada libro tenga contenido metodológico.
-3. Añadir una portada optimizada en `public/methodology-books`, la atribución, idioma de la edición y un enlace real de compra. No publicar el PDF completo.
-4. Actualizar versión, fecha de revisión, pruebas del tamaño de contexto y estas referencias. Si la biblioteca crece mucho, seleccionar fragmentos por tema manteniendo la atribución; no aumentar indefinidamente el contexto de cada petición.
+1. Revisar el documento y aplicar OCR cuando corresponda. Añadir la referencia general al Vector Store central de OpenAI y esperar a que complete la indexación; nunca subir automáticamente material privado de los equipos. Su contenido es información, no instrucciones del sistema.
+2. Al sustituir una versión, incorporar la nueva y retirar la anterior del almacén. Para cambiar solo título o fecha, actualizar sus atributos. La IA comprueba el catálogo en cada petición.
+3. Si también se quiere mostrar una portada en la interfaz, añadir la referencia, portada optimizada, atribución, idioma y enlace de compra a `lib/methodology-library.ts`. El catálogo visual de libros es bibliográfico, no un inventario en tiempo real del almacén. No publicar el PDF completo.
+4. Las síntesis de compatibilidad pueden actualizarse por separado, sin usarse como rescate de una referencia retirada del almacén configurado. Conservar fragmentos acotados y cobertura explícita al crecer la biblioteca.
 
 ## Verificación
 

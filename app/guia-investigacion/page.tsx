@@ -164,6 +164,7 @@ Proyecto ejemplo,2026-10-13,visitantes,landing,registros,8,80,personas,Analytics
         </ul>
         <p>Para conectar la investigación con la estrategia, prueba: «Para el proyecto indicado, relaciona las fuentes importadas con nuestro objetivo y GOI Tree. Separa hechos, hipótesis y desconocidos; cita las fuentes disponibles y propón un experimento para comprobar la suposición más arriesgada, con métrica y criterio de éxito».</p>
         <p><strong>Cómo se utiliza:</strong> tus archivos y conocimientos se guardan en Supabase, dentro de tu espacio. Al consultar la IA se recupera contexto autorizado y relevante y se envía a OpenAI para preparar la respuesta. No se entrena un modelo propio ni se envían todos los documentos en cada pregunta. Importar un CSV aporta contexto; no crea automáticamente métricas en los paneles de experimentos. Revisa las conclusiones y valida los aprendizajes antes de tratarlos como hechos.</p>
+        <p>Hay dos fuentes complementarias: una biblioteca general de metodología y referencias en OpenAI, compartida por todos los espacios, y la memoria privada de cada equipo en Supabase. Los documentos que importas aquí permanecen en tu espacio: no se añaden automáticamente a la biblioteca general ni se comparten con otros equipos. La IA combina los fragmentos pertinentes de ambas fuentes; conservar y recuperar información no equivale a reentrenar el modelo.</p>
       </section>
 
       <section id="plan"><h2>10. Plan práctico para los primeros 14 días</h2>
