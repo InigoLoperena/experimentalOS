@@ -28,7 +28,7 @@ export default function BusinessValidationPlugin() {
     <section className="business-plugin-section"><h2>Qué aporta y cuáles son sus límites</h2>
       <p>El complemento reúne instrucciones y referencias metodológicas. No sustituye las entrevistas, la investigación contrastada ni las pruebas con clientes. La IA puede equivocarse, omitir información o trabajar con datos desactualizados: comprueba las fuentes y revisa las propuestas antes de actuar.</p>
       <p>No garantiza ventas, financiación, rentabilidad ni éxito empresarial. No ejecuta campañas, compras o decisiones por ti. Sus referencias no implican que se distribuyan aquí libros completos ni materiales de terceros.</p>
-      <p>Es distinto de la IA integrada en la aplicación Xperiments: no consulta ni guarda automáticamente los datos de tus espacios de trabajo. No incorpora un servidor propio ni una integración que envíe tus conversaciones al editor.</p>
+      <p>La función «Revisar y guardar» prepara una ficha con el nombre, contexto, hipótesis, métrica y criterio de éxito que decidas enviar. Recibirás un enlace cifrado que caduca a los 30 minutos. En Xperiments inicias sesión, eliges un proyecto y confirmas el guardado. El complemento no recibe tu contraseña ni consulta tus proyectos; tampoco copia automáticamente tus conversaciones o archivos.</p>
     </section>
     <section className="business-plugin-section business-plugin-callout"><h2>Información del complemento</h2>
       <p>Editor: <strong>{pluginEditor}</strong>, persona física. El complemento es gratuito y no incluye pagos ni compras. El acceso a ChatGPT, sus funciones y límites depende de las condiciones y del plan de cada usuario.</p>
