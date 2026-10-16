@@ -2517,6 +2517,7 @@ export default function Home() {
           <footer className="footer">
             <span>Experimental Innovation OS · Imagine Builder</span>
             <a href="/privacy-policy">Política de privacidad</a>
+            <a href="/plugins/validacion-de-negocios">Plugin · Validación de negocios</a>
             <button onClick={() => publicMode ? requestAuth("signup") : setShowBackup(true)}>
               {publicMode ? "Crear mi espacio gratis" : "Exportar copia completa"}
             </button>
@@ -3107,6 +3108,7 @@ function Auth({
         <button className="demo-link" onClick={onDemo}>
           Explorar la demostración
         </button>
+        <a className="auth-plugin-link" href="/plugins/validacion-de-negocios">Plugin · Validación de negocios</a>
       </div>
     </div>
   );
