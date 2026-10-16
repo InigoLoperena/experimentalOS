@@ -1314,7 +1314,8 @@ export default function Home() {
     const parent = items.find((record) => record.id === item.parent_id);
     if (!parent) return null;
     const parentGoal = parent.kind === "goal";
-    const parentStyle = parentGoal ? goalVisualClass(parent) : "";
+    const parentOpportunity = parent.kind === "opportunity";
+    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : "";
     return (
       <span
         className={`record-parent-pill ${parentStyle}`.trim()}
@@ -1322,6 +1323,8 @@ export default function Home() {
       >
         {parentGoal ? (
           <GoalTypeIcon item={parent} size={17} />
+        ) : parentOpportunity ? (
+          <Search size={17} aria-hidden="true" />
         ) : (
           <ChevronRight size={17} aria-hidden="true" />
         )}

@@ -2779,6 +2779,15 @@ nav button,
 .record-parent-pill.input-metric > svg {
   color: inherit;
 }
+/* Show an idea's parent opportunity/problem as a red search-label in cards and details. */
+.record-parent-pill.opportunity {
+  color: var(--red-text);
+  border-color: rgba(255, 133, 133, 0.42);
+  background: var(--red-tint);
+}
+.record-parent-pill.opportunity > svg {
+  color: inherit;
+}
 .sidebar nav .nav-subsections .nav-goi-subsection {
   display: flex;
   align-items: center;
@@ -2791,15 +2800,12 @@ nav button,
 .sidebar nav .nav-subsections .nav-goi-subsection.input-metric {
   color: var(--input-metric-accent);
 }
-.sidebar nav .nav-subsections .nav-goi-subsection.objective.active,
-.sidebar nav .nav-subsections .nav-goi-subsection.objective:hover {
-  background: var(--objective-soft);
-  border-color: rgba(183, 255, 76, 0.30);
-}
-.sidebar nav .nav-subsections .nav-goi-subsection.input-metric.active,
-.sidebar nav .nav-subsections .nav-goi-subsection.input-metric:hover {
+/* Uniform blue selected/hover frame for every GOI Tree subsection.
+   Individual labels and icons keep their semantic accent colors. */
+.sidebar nav .nav-subsections .nav-goi-subsection.active,
+.sidebar nav .nav-subsections .nav-goi-subsection:hover {
   background: var(--input-metric-soft);
-  border-color: rgba(130, 198, 255, 0.30);
+  border-color: rgba(130, 198, 255, 0.38);
 }
 
 /* Strategic AI: private project memory and chat. */
