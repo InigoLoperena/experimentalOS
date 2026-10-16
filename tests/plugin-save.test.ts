@@ -62,7 +62,7 @@ test('MCP handshake, discovery and actual preparation return a pending encrypted
   process.env.MCP_DRAFT_ENCRYPTION_KEY = key;
   const init = await (await mcp(rpc('initialize', { protocolVersion: '2025-11-25' }))).json();
   assert.equal(init.result.protocolVersion, '2025-11-25');
-  const list = await (await mcp(rpc('tools/list'))).json(); assert.equal(list.result.tools.length, 1);
+  const list = await (await mcp(rpc('tools/list'))).json(); assert.equal(list.result.tools.length, 2);
   const result = await (await mcp(rpc('tools/call', { name: 'prepare_experiment_save', arguments: experiment }))).json();
   assert.equal(result.result.structuredContent.saved, false); assert.equal(result.result.structuredContent.status, 'pending_confirmation');
   const url = new URL(result.result.structuredContent.save_url);
