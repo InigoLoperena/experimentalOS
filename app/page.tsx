@@ -268,7 +268,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "map", label: "GOI Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
-  { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
+  { id: "method", label: "Cómo utilizar Experiments OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas" };
 function goalVisualClass(item: Item): "objective" | "input-metric" | "" {
@@ -3120,48 +3120,20 @@ function Method() {
   return (
     <div className="method-content">
       <section className="panel">
-        <h2>Empieza por un proyecto</h2>
+        <h2>1. Empieza por un proyecto</h2>
         <p>
-          Crea un proyecto para cada producto o iniciativa. Después,
-          selecciónalo en Experimentos, Aprendizajes o GOI Tree. Cada
-          proyecto conserva sus propias fichas y su propio árbol.
+          En <strong>Proyectos</strong>, crea un espacio para cada producto o
+          iniciativa. Selecciona un proyecto para consultar su GOI Tree,
+          experimentos, aprendizajes e IA.
         </p>
       </section>
       <section className="panel">
-        <h2>Experimentos: probar una hipótesis</h2>
-        <p>
-          Un experimento comprueba si un cambio produce el efecto que esperamos.
-          Antes de probarlo, escribe qué cambiarás, a quién afecta, qué métrica
-          observarás y qué resultado considerarás un éxito.
-        </p>
-        <p>
-          Asigna un responsable, documenta el reparto de tráfico, los riesgos y la
-          fecha de inicio. Usa impacto, confianza y facilidad para decidir qué
-          probar primero. La aplicación documenta el experimento; la prueba se
-          ejecuta en tu producto o herramienta habitual.
-        </p>
-      </section>
-      <section className="panel">
-        <h2>Aprendizajes: conservar lo que descubrimos</h2>
-        <p>
-          Después de la prueba, abre el experimento y pulsa «Documentar
-          aprendizaje». Escribe qué ocurrió, adjunta la evidencia, explica qué
-          aprendiste y decide qué harás después. Si el resultado no es
-          concluyente, deja constancia de ello.
-        </p>
-        <p>
-          Los aprendizajes se guardan por separado, dentro del mismo proyecto.
-          Usa etiquetas para encontrarlos y reutilizarlos.
-        </p>
-      </section>
-      <section className="panel">
-        <h2>GOI Tree: conectar las ideas con el crecimiento</h2>
-        <p>La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden.</p>
+        <h2>2. Organiza tus oportunidades en GOI Tree</h2>
         <div className="method-chain">
           {[
             "North Star",
-            "Goals",
-            "Oportunidades",
+            "Objetivos + Input Metrics",
+            "Oportunidades-problemas",
             "Ideas",
             "Experimentos",
           ].map((label, index) => (
@@ -3172,36 +3144,56 @@ function Method() {
           ))}
         </div>
         <p>
-          La North Star es la métrica que mide al mismo tiempo el valor que recibe
-          el usuario y nuestra capacidad para monetizar. Los Objetivos son
-          métricas o resultados que contribuyen a moverla. Las oportunidades
-          describen problemas reales o mejoras que todavía no se están aprovechando.
+          Define la <strong>North Star Metric</strong> de tu proyecto.
+          Objetivos e Input Metrics cuelgan de ella al mismo nivel.
+          De ellos nacen oportunidades-problemas; de cada oportunidad,
+          ideas que podrás validar mediante experimentos.
+        </p>
+        <a href="https://producthackers.com/es/blog/que-es-goi-tree/" target="_blank" rel="noopener noreferrer">
+          Aprende más sobre GOI Tree <ArrowUpRight size={14} />
+        </a>
+      </section>
+      <section className="panel">
+        <h2>3. Investiga y consulta la IA del proyecto</h2>
+        <p>
+          En <strong>IA</strong>, pregunta por problemas, hipótesis y próximos pasos.
+          Desde <strong>Memoria del proyecto → Importar información</strong>,
+          añade investigaciones, entrevistas, métricas y fuentes con sus fechas.
+          La IA utiliza el contexto disponible, pero debes verificar sus conclusiones.
         </p>
         <p>
-          Documenta las oportunidades y destaca un máximo de cinco por proyecto.
-          Añade ideas concretas relacionadas con una métrica y priorízalas con
-          ICE. Una idea puede dar lugar a varios experimentos, cada uno con su
-          propia hipótesis.
+          Puedes dictar preguntas o adjuntar documentos al chat.
+          Para utilizar la IA necesitas sesión y una conexión de OpenAI
+          configurada por el administrador en Integraciones.
+        </p>
+        <a href="/guia-investigacion" target="_blank" rel="noopener noreferrer">
+          Guía para investigar un mercado desde cero <ArrowUpRight size={14} />
+        </a>
+      </section>
+      <section className="panel">
+        <h2>4. Diseña un experimento medible</h2>
+        <p>
+          Define la <strong>hipótesis, métrica principal, criterio de éxito,
+          audiencia y reparto de tráfico</strong> antes de empezar.
+          Usa ICE (impacto, confianza y facilidad) para priorizar.
+          Documentar una ficha no ejecuta por sí solo el test: debes
+          implementarlo en tu producto o herramienta de experimentación.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>5. Guarda y reutiliza los aprendizajes</h2>
+        <p>
+          Tras cada prueba, pulsa <strong>Documentar aprendizaje</strong>:
+          registra resultados, evidencia, limitaciones y siguiente decisión,
+          incluso si la hipótesis no se confirma. Así mejorarás el contexto
+          que consultas con la IA en futuras investigaciones.
         </p>
         <p>
-          Usa nombres claros y descriptivos. Abre o pliega las ramas para
-          recorrer el árbol sin perder el contexto.
+          <strong>Compartir:</strong> sin iniciar sesión se puede navegar por
+          la información publicada en modo lectura. Para crear o editar,
+          necesitas una cuenta y permisos. Puedes exportar tus datos desde
+          tu espacio cuando tengas acceso.
         </p>
-        <p>Abre una ficha del árbol para adjuntar capturas, imágenes, PDF, DOCX o enlaces que aporten contexto y evidencia. También puedes hacerlo en Experimentos y Aprendizajes.</p>
-        <a
-          href="https://producthackers.com/es/blog/que-es-goi-tree/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Cómo funciona GOI Tree · Product Hackers <ArrowUpRight size={14} />
-        </a>
-        <a
-          href="https://producthackers.com/es/blog/guia-north-star-metric/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Guía North Star Metric · Product Hackers <ArrowUpRight size={14} />
-        </a>
       </section>
     </div>
   );
