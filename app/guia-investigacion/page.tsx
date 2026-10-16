@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Guía de investigación de mercado · Xperiments",
-  description: "Cómo investigar usuarios, competencia y métricas desde cero, reunir evidencia y convertirla en hipótesis y experimentos para Xperiments.",
+  title: "Investigar e importar información útil para tu IA · Xperiments",
+  description: "Investiga mercados, problemas y soluciones. Prepara información cualitativa y cuantitativa en CSV, PDF, DOCX y TXT para dar contexto a la IA de tu espacio y diseñar hipótesis y experimentos.",
 };
 
 export default function ResearchGuide() {
   return (
     <main className="research-guide">
-      <nav className="research-top"><a href="/">← Xperiments</a><span>GUÍA PRÁCTICA · INVESTIGACIÓN DE PRODUCTO</span></nav>
+      <nav className="research-top"><a href="/ia">← Volver a IA</a><span>GUÍA PRÁCTICA · INVESTIGACIÓN Y CONTEXTO</span></nav>
       <header className="research-hero">
-        <p className="eyebrow">ANTES DE TENER CLIENTES O DATOS HISTÓRICOS</p>
-        <h1>Cómo investigar tu mercado y alimentar la IA de tu proyecto</h1>
-        <p>Un método aplicable a una idea, una app nueva o un producto en marcha. Aprende a encontrar evidencias cualitativas y cuantitativas, detectar problemas reales y proponer experimentos medibles, sin inventar datos.</p>
+        <p className="eyebrow">DE LA INVESTIGACIÓN A MEJORES EXPERIMENTOS</p>
+        <h1>Investiga mercados, problemas y soluciones e importa información útil para tu IA</h1>
+        <p>La IA de tu espacio de trabajo combina el contexto de sus proyectos con los experimentos, hipótesis y aprendizajes guardados. Esta guía te ayuda a reunir evidencias, organizarlas e importarlas para contrastar tu propuesta de valor y modelo de negocio.</p>
+        <p>Para empezar, prepara un documento breve del proyecto, una tabla de alternativas, notas de conversaciones y los datos que ya tengas. No necesitas completarlo todo antes de hacer una primera consulta.</p>
         <div className="research-principle"><strong>Regla principal:</strong> distingue siempre <em>hechos observados</em>, <em>estimaciones</em> e <em>hipótesis por comprobar</em>. Las opiniones de una IA o de una entrevista no son estadísticas del mercado.</div>
       </header>
       <nav className="research-index" aria-label="Contenido de la guía"><strong>Índice rápido</strong>
@@ -129,7 +130,15 @@ export default function ResearchGuide() {
       </section>
 
       <section id="memoria"><h2>9. Cómo cargar la investigación en la memoria de Xperiments</h2>
-        <p>En <strong>IA → Memoria del proyecto → Importar información</strong> puedes pegar texto o subir TXT, CSV o JSON de hasta 200 KB. Reúne información por tema, con título, procedencia, fecha y validación. Evita archivos enormes, datos personales y mezclas de proyectos.</p>
+        <p>Abre <strong>IA → Importar información</strong> y selecciona un archivo. También puedes abrir <strong>Añadir texto</strong>, escribir un título y pegar tus notas. La información queda en el espacio de trabajo y puede dar contexto a sus distintos proyectos. Indica el proyecto en el título y dentro del documento para que la IA pueda relacionarlo correctamente.</p>
+        <p>Añade siempre la fuente, la fecha, el segmento y si se trata de una observación, una estimación o una hipótesis. Anonimiza las entrevistas y evita incluir contraseñas o información personal innecesaria.</p>
+        <div className="research-table-wrap"><table><thead><tr><th>Formato</th><th>Qué aporta</th><th>Cómo prepararlo</th></tr></thead><tbody>
+          <tr><td>CSV</td><td>Métricas, entrevistas clasificadas o comparativas.</td><td>Una fila por observación; nombres claros de columnas, periodo, unidades, conteos y denominadores. Guarda en UTF-8.</td></tr>
+          <tr><td>PDF</td><td>Informes, investigaciones y documentación.</td><td>Usa texto seleccionable. Si está escaneado, aplica reconocimiento de texto antes de importarlo.</td></tr>
+          <tr><td>DOCX</td><td>Entrevistas, estrategia y síntesis.</td><td>Usa títulos y texto en el documento; explica las conclusiones de gráficos e imágenes con palabras.</td></tr>
+          <tr><td>TXT</td><td>Contexto, notas y hallazgos breves.</td><td>Separa por proyecto y tema, con fecha y referencias.</td></tr>
+        </tbody></table></div>
+        <p>Se admiten archivos de hasta 10 MB. Para poder consultar su contenido, el PDF debe tener como máximo 200 páginas y el texto extraído no superar 100.000 caracteres. Divide una copia por temas si excede esos límites. Un original puede quedar guardado aunque su texto no se haya podido procesar; comprueba el estado que muestra la importación.</p>
         <h3>Qué importar primero si empiezas desde cero</h3>
         <ol>
           <li><strong>01 · Contexto del proyecto:</strong> usuarios objetivo, propuesta de valor, territorio, alternativa actual, modelo de negocio, NSM y supuestos.</li>
@@ -140,9 +149,10 @@ export default function ResearchGuide() {
           <li><strong>06 · Síntesis:</strong> hipótesis, confianza, oportunidades priorizadas y lo que todavía desconoces.</li>
         </ol>
         <h3>Plantilla de CSV utilizable</h3>
-        <pre>{`fecha,segmento,tipo,observacion,valor,unidad,fuente,metodo,confianza,limitaciones
-2026-10-13,usuarios nuevos,entrevista,"Dificultad para localizar la opción",,,Entrevista 03,conducta observada,media,muestra no representativa
-2026-10-13,visitantes,landing,registros,8,personas,Analytics,conteo,alta,80 visitas sin validación de email`}</pre>
+        <p>Ejemplo ficticio: sustituye estos datos por observaciones reales. Un resultado observado no demuestra por sí solo una hipótesis.</p>
+        <pre>{`proyecto,fecha,segmento,tipo,observacion,numerador,denominador,unidad,fuente,estado,limitaciones
+Proyecto ejemplo,2026-10-13,usuarios nuevos,entrevista,"Dice que no encontró la opción",,,,Entrevista 03,relato del participante,muestra no representativa
+Proyecto ejemplo,2026-10-13,visitantes,landing,registros,8,80,personas,Analytics,resultado observado,periodo de siete días sin validación de email`}</pre>
         <p>Revisa la codificación UTF-8, conserva las comillas alrededor de textos con comas y añade al nombre del archivo su fecha y tema. Nunca fabriques entrevistas, cifras, referencias o competidores. Cuando una cifra es estimada, etiquétala claramente.</p>
         <h3>Preguntas útiles para la IA una vez importado</h3>
         <ul>
@@ -152,10 +162,12 @@ export default function ResearchGuide() {
           <li>«Diseña tres experimentos baratos para nuestra fase actual, con métrica, guardrails y criterio de éxito definido previamente».</li>
           <li>«¿Qué investigación necesitamos hacer antes de poder defender estas hipótesis?».</li>
         </ul>
-        <p><strong>Importante:</strong> la IA consulta fichas y material importado de acuerdo con tus permisos; no se entrena ni se vuelve más inteligente por sí sola. Mejorará la pertinencia del contexto disponible si documentas resultados y aprendizajes de forma continuada.</p>
+        <p>Para conectar la investigación con la estrategia, prueba: «Para el proyecto indicado, relaciona las fuentes importadas con nuestro objetivo y GOI Tree. Separa hechos, hipótesis y desconocidos; cita las fuentes disponibles y propón un experimento para comprobar la suposición más arriesgada, con métrica y criterio de éxito».</p>
+        <p><strong>Cómo se utiliza:</strong> tus archivos y conocimientos se guardan en Supabase, dentro de tu espacio. Al consultar la IA se recupera contexto autorizado y relevante y se envía a OpenAI para preparar la respuesta. No se entrena un modelo propio ni se envían todos los documentos en cada pregunta. Importar un CSV aporta contexto; no crea automáticamente métricas en los paneles de experimentos. Revisa las conclusiones y valida los aprendizajes antes de tratarlos como hechos.</p>
       </section>
 
       <section id="plan"><h2>10. Plan práctico para los primeros 14 días</h2>
+        <p>Es una propuesta adaptable a tu disponibilidad y al acceso a participantes; no es un requisito para empezar a usar la IA.</p>
         <div className="research-table-wrap"><table><thead><tr><th>Día</th><th>Acción</th><th>Entregable</th></tr></thead><tbody>
           <tr><td>1–2</td><td>Delimitar segmento, problema y 5 supuestos críticos.</td><td>Ficha inicial de proyecto + preguntas de investigación.</td></tr>
           <tr><td>3–4</td><td>Investigar fuentes oficiales, búsquedas, reseñas y 5 competidores.</td><td>Registro de fuentes con fechas, comparativa y primeras señales.</td></tr>
@@ -177,7 +189,7 @@ export default function ResearchGuide() {
           <li><a href="https://www.indec.gob.ar/" target="_blank" rel="noopener noreferrer">INDEC</a>, <a href="https://ec.europa.eu/eurostat" target="_blank" rel="noopener noreferrer">Eurostat</a> y <a href="https://data.census.gov/" target="_blank" rel="noopener noreferrer">US Census</a> — bases para cifras demográficas y económicas.</li>
         </ul>
         <p className="research-end-note">Esta guía es un procedimiento de investigación, no datos sobre tu mercado concreto. Su calidad depende de documentar evidencias comprobables, respetar la privacidad y aprender de pruebas reales.</p>
-        <a href="/" className="research-back">← Volver a Xperiments</a>
+        <a href="/ia" className="research-back">← Volver a IA</a>
       </section>
     </main>
   );

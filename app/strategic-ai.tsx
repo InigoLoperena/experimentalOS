@@ -32,12 +32,11 @@ export function StrategicAI({workspace,project,disabled,canImport,canEdit,canDel
   if(disabled||!supabase){setLoading(false);return;}
   void(async()=>{try{
    const {data}=await supabase!.auth.getSession();if(!data.session)throw new Error('Inicia sesión para consultar la memoria del equipo.');
-   const [history]=await Promise.all([supabase!.from('ai_chat_entries').select('*').eq('workspace_id',workspace.id).eq('user_id',data.session.user.id).order('created_at',{ascending:false}).order('id').limit(30),loadLibrary()]);
-   if(history.error)throw new Error('No se pudo cargar tu conversación.');if(current===version.current)setEntries((history.data||[]).reverse() as ChatEntry[]);
+   await loadLibrary();
   }catch(err){if(current===version.current)setError(message(err));}finally{if(current===version.current)setLoading(false);}})();
   return()=>{version.current++;controller.current?.abort();};
  },[workspace.id,disabled]);
- useEffect(()=>{end.current?.scrollIntoView({block:'nearest',behavior:'instant'});},[entries,busy]);
+ useEffect(()=>{if(entries.length||busy)end.current?.scrollIntoView({block:'nearest',behavior:'instant'});},[entries,busy]);
  async function preserve(selected:File[]){
   for(const file of selected){let id=fileIds.current.get(file);if(!id){id=crypto.randomUUID();fileIds.current.set(file,id);}await saveWorkspaceFile(workspace.id,null,file,id);}await loadLibrary();
  }
@@ -75,8 +74,9 @@ export function StrategicAI({workspace,project,disabled,canImport,canEdit,canDel
   <div className="panel ai-chat">
    <div className="ai-intro-header">
     <div className="ai-intro-copy">
-     <h2><AIBrainIcon size={28}/> IA-ID · {workspace.name||'Mi espacio de trabajo'}</h2>
-     <p className="ai-chat-intro">Una memoria compartida para todos los proyectos del espacio de trabajo.</p>
+     <h2><AIBrainIcon size={28}/> IA / {workspace.name||'Mi espacio de trabajo'}</h2>
+     <p className="ai-chat-intro">Una IA que aprende de todos tus experimentos, hipótesis y aprendizajes y utiliza la metodología GOI Tree para enfocar el crecimiento en la estrategia. Importa información y contexto relevante de tus proyectos, cualitativo o cuantitativo, en archivos CSV, PDF, DOCX o TXT para hacerla más inteligente.</p>
+     <a className="ai-research-guide-link" href="/guia-investigacion" target="_blank" rel="noopener noreferrer">Consejos para investigar mercados, problemas, soluciones e importar información útil</a>
     </div>
     <img className="ai-project-mascot" src="/einstein-project-ia.webp" width={160} height={151} alt="Einstein con una bombilla y una probeta"/>
    </div>
