@@ -3156,3 +3156,15 @@ nav button,
 .goi-hierarchy-node>.record-card{width:100%;}
 .goi-hierarchy-children:empty{display:none;}
 @media(max-width:600px){.goi-hierarchy-group{padding:10px}.goi-hierarchy-children{margin-left:7px;padding-left:10px;gap:9px}}
+
+/* GOI hierarchy: collapsed children by default with a recognizable disclosure arrow. */
+.goi-hierarchy-toggle{margin-top:7px;}
+.goi-hierarchy-toggle>summary{display:flex;align-items:center;gap:7px;width:fit-content;cursor:pointer;list-style:none;color:var(--blue-text);font-size:13px;font-weight:650;padding:6px 8px;border-radius:7px;}
+.goi-hierarchy-toggle>summary::-webkit-details-marker{display:none;}
+.goi-hierarchy-toggle>summary:hover{background:var(--surface-raised);}
+.goi-hierarchy-toggle>summary:focus-visible{outline:2px solid var(--blue-text);outline-offset:2px;}
+.goi-hierarchy-toggle>summary svg{transition:transform .15s ease;}
+.goi-hierarchy-toggle[open]>summary svg{transform:rotate(90deg);}
+.record-relation{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+.record-relation>span:first-child{font-size:12px;font-weight:700;color:var(--muted);}
+.record-relation .record-parent-pill{margin:0;}

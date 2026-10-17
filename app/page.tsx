@@ -2172,8 +2172,8 @@ export default function Home() {
                 const children = (parentId: string) => items
                   .filter(item => included.has(item.id) && item.parent_id === parentId)
                   .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-                const roots = items.filter(item => included.has(item.id) &&
-                  (!item.parent_id || !included.has(item.parent_id)))
+                const roots = items.filter(item => included.has(item.id) && item.kind !== "north_star" &&
+                  (!item.parent_id || !included.has(item.parent_id) || byId.get(item.parent_id)?.kind === "north_star"))
                   .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
                   if (visited.has(item.id)) return null;
@@ -2184,9 +2184,12 @@ export default function Home() {
                     <div className="goi-hierarchy-node" key={item.id}>
                       {itemCard(item, true)}
                       {descendants.length > 0 && (
-                        <div className="goi-hierarchy-children">
-                          {descendants.map(child => renderNode(child, nextVisited))}
-                        </div>
+                        <details className="goi-hierarchy-toggle">
+                          <summary><ChevronRight size={16} aria-hidden="true"/><span>Mostrar hijos ({descendants.length})</span></summary>
+                          <div className="goi-hierarchy-children">
+                            {descendants.map(child => renderNode(child, nextVisited))}
+                          </div>
+                        </details>
                       )}
                     </div>
                   );
@@ -2642,7 +2645,7 @@ export default function Home() {
                 .join(" / ")}
             </div>
             {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
-            {parentTag(selected)}
+            {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
               {selected.owner_id && (
                 <span>Responsable: {author(selected.owner_id)}</span>
@@ -2821,6 +2824,9 @@ export default function Home() {
                   {draft.kind === "goal" && draft.fields.goi_section === "input_metrics" ? "INPUT METRIC" : kinds[draft.kind].toUpperCase()}
                 </span>
                 <h2>{draft.title || "Nueva ficha"}</h2>
+                {draft.parent_id && ["opportunity","idea","experiment"].includes(draft.kind) && items.some(i => i.id === draft.parent_id) && (
+                  <div className="record-relation"><span>Hijo de</span>{parentTag(draft)}</div>
+                )}
               </div>
               <button
                 type="button"
