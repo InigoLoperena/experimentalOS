@@ -1315,7 +1315,7 @@ export default function Home() {
     if (!parent) return null;
     const parentGoal = parent.kind === "goal";
     const parentOpportunity = parent.kind === "opportunity";
-    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : "";
+    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : parent.kind === "idea" ? "idea" : "";
     return (
       <span
         className={`record-parent-pill ${parentStyle}`.trim()}
@@ -1325,6 +1325,8 @@ export default function Home() {
           <GoalTypeIcon item={parent} size={17} />
         ) : parentOpportunity ? (
           <Search size={17} aria-hidden="true" />
+        ) : parent.kind === "idea" ? (
+          <Lightbulb size={17} aria-hidden="true" />
         ) : (
           <ChevronRight size={17} aria-hidden="true" />
         )}
@@ -2154,6 +2156,12 @@ export default function Home() {
                           >
                             {e.title}
                             {parentTag(e)}
+                            <span className="experiment-list-summary">
+                              <strong>Contexto</strong> {e.fields.context || "Sin contexto documentado"}
+                            </span>
+                            <span className="experiment-list-summary">
+                              <strong>Hipótesis</strong> {e.fields.hypothesis || "Sin hipótesis documentada"}
+                            </span>
                             <span>
                               {e.fields.metric || "Métrica pendiente"}
                             </span>
