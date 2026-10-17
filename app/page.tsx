@@ -15,6 +15,7 @@ import {
   Layers,
   Lightbulb,
   LogOut,
+  LogIn,
   Plus,
   RefreshCw,
   Search,
@@ -1678,7 +1679,26 @@ export default function Home() {
     return (
       <Auth
         initialMode={authMode}
-        onDemo={() => { setAuthRequested(false); setDemo(true); }}
+        onDemo={() => {
+          // Browse this workspace's real public records; never swap in demo fixtures.
+          setAuthRequested(false);
+          if (publicMode) navigateView("projects");
+          else {
+            void getPublicPreview(supabase!).then(preview => {
+              if (!preview?.workspace) {
+                setError("La vista pública no está disponible en este momento.");
+                return;
+              }
+              setPublicMode(true);
+              setWorkspace(preview.workspace);
+              setItems((preview.records || []).map(normalizeExperiment));
+              setMembers(preview.members || []);
+              setActivity(preview.activity || []);
+              setPublicAttachments(preview.attachments || []);
+              navigateView("projects");
+            }).catch(err => setError(err instanceof Error ? err.message : "No se pudo abrir la vista pública."));
+          }
+        }}
         onMessage={tell}
         onAuthenticated={(nextUser) => { setAuthRequested(false); setUser(nextUser); }}
       />
@@ -1760,9 +1780,12 @@ export default function Home() {
               </span>
             </div>
             <button aria-label="Editar mi perfil" title="Editar mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
-            <button
-              aria-label="Salir"
-              onClick={async () => {
+            {publicMode ? (
+              <button aria-label="Iniciar sesión" title="Iniciar sesión" onClick={() => requestAuth("login")}>
+                <LogIn size={17} />
+              </button>
+            ) : (
+              <button aria-label="Salir" onClick={async () => {
                 if (demo) {
                   setDemo(false);
                   if (!supabase) setDemo(true);
@@ -1770,10 +1793,10 @@ export default function Home() {
                 } else {
                   await supabase!.auth.signOut();
                 }
-              }}
-            >
-              <LogOut size={17} />
-            </button>
+              }}>
+                <LogOut size={17} />
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -1801,7 +1824,10 @@ export default function Home() {
           </div>
           <div>
             {publicMode
-              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio gratis</span></button>
+              ? <>
+                  <button className="btn" onClick={() => requestAuth("login")}><LogIn size={16}/><span>Iniciar sesión</span></button>
+                  <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio gratis</span></button>
+                </>
               : <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>}
             <span className={"top-status" + (publicMode ? " public-status" : "")}>
               {publicMode ? "Vista pública · solo lectura" : demo ? "Datos de ejemplo" : "Espacio privado"}
@@ -3193,9 +3219,9 @@ function Auth({
             </button>
           )}
         </div>
-        <button className="demo-link" onClick={onDemo}>
-          Explorar la demostración
-        </button>
+        {!invitation && <button className="demo-link" onClick={onDemo}>
+          Explorar proyectos reales · solo lectura
+        </button>}
         <a className="auth-plugin-link" href="/plugins/validacion-de-negocios">Plugin · Validación de negocios</a>
       </div>
     </div>
