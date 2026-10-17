@@ -2102,7 +2102,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="cards-grid">
-                    {items.filter(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id).map(itemCard)}
+                    {items.filter(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id).map(item => itemCard(item))}
                   </div>
                 </section>
               )}
