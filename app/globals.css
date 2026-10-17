@@ -3108,3 +3108,26 @@ nav button,
   font-weight: 700;
   margin-right: 4px;
 }
+
+/* Experiments use a distinct lavender accent, separate from GOI Tree node colors. */
+:root { --experiment-accent:#c6a1ff; --experiment-soft:rgba(198,161,255,.12); }
+.sidebar nav button:has(> svg.lucide-flask-conical) > svg { color:var(--experiment-accent); }
+.sidebar nav button:has(> svg.lucide-flask-conical).active { background:var(--experiment-soft);color:var(--experiment-accent);box-shadow:inset 0 0 0 1px rgba(198,161,255,.38); }
+.sidebar nav button:has(> svg.lucide-flask-conical).active:hover { background:rgba(198,161,255,.19); }
+.kind.experiment { color:var(--experiment-accent); }
+.legend-dot.experiment { background:var(--experiment-accent); }
+.experiment-identity,
+.idea-experiment-chip {
+ display:inline-flex;align-items:center;gap:8px;width:fit-content;max-width:100%;
+ color:var(--experiment-accent);background:var(--experiment-soft);
+ border:1px solid rgba(198,161,255,.4);border-radius:8px;
+ padding:5px 9px;font-size:13px;font-weight:700;line-height:1.4;text-align:left;
+}
+.experiment-identity > svg,.idea-experiment-chip > svg {flex:0 0 auto;color:inherit;}
+.experiment-identity > span,.idea-experiment-chip > span {overflow-wrap:anywhere;min-width:0;}
+.record-card > .experiment-identity {margin:3px 0 6px;}
+.table-title > .experiment-identity {display:inline-flex;margin-bottom:5px;}
+.idea-experiment-tags {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.idea-experiment-chip {font-size:12px;padding:4px 8px;}
+.experiment-detail-title {display:flex;align-items:center;gap:10px;color:var(--experiment-accent);overflow-wrap:anywhere;}
+.experiment-detail-title > svg {flex:0 0 auto;}

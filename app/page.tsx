@@ -1335,6 +1335,10 @@ export default function Home() {
     );
   }
 
+  function experimentTag(experiment: Item) {
+    return <span className="experiment-identity" title={experiment.title}><FlaskConical size={15} aria-hidden="true"/><span>{experiment.title}</span></span>;
+  }
+
   function itemCard(i: Item) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
@@ -1347,7 +1351,7 @@ export default function Home() {
             <span className="focus">Prioritaria</span>
           )}
         </div>
-        <strong className={i.kind === "goal" ? `record-goal-title ${goalVisualClass(i)}` : undefined}>{i.title}</strong>
+        {i.kind === "experiment" ? experimentTag(i) : <strong className={i.kind === "goal" ? `record-goal-title ${goalVisualClass(i)}` : undefined}>{i.title}</strong>}
         {parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
@@ -1366,10 +1370,17 @@ export default function Home() {
           </>
         )}
         {i.kind === "idea" && (
-          <span className="small">
-            ICE {score(i.fields)} ·{" "}
-            {items.filter((x) => x.parent_id === i.id).length} experimentos
-          </span>
+          <>
+            <span className="small">
+              ICE {score(i.fields)} ·{" "}
+              {items.filter((x) => x.parent_id === i.id && x.kind === "experiment").length} experimentos
+            </span>
+            {items.some(x => x.parent_id === i.id && x.kind === "experiment") && (
+              <span className="idea-experiment-tags">
+                {items.filter(x => x.parent_id === i.id && x.kind === "experiment").map(x=><span className="idea-experiment-chip" key={x.id}><FlaskConical size={15} aria-hidden="true"/><span>{x.title}</span></span>)}
+              </span>
+            )}
+          </>
         )}
         {i.kind === "experiment" && (
           <div className="row">
@@ -2154,7 +2165,7 @@ export default function Home() {
                             className="table-title"
                             onClick={() => setSelected(e)}
                           >
-                            {e.title}
+                            {experimentTag(e)}
                             {parentTag(e)}
                             <span className="experiment-list-summary">
                               <strong>Contexto</strong> {e.fields.context || "Sin contexto documentado"}
@@ -2567,7 +2578,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>}
             {parentTag(selected)}
             <div className="row detail-meta">
               {selected.owner_id && (
