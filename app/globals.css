@@ -3146,3 +3146,13 @@ nav button,
 .goi-title-tag.objective {color:var(--objective-accent);background:var(--objective-soft);border-color:rgba(183,255,76,.35);}
 .goi-title-tag.input-metric {color:var(--input-metric-accent);background:var(--input-metric-soft);border-color:rgba(130,198,255,.38);}
 .detail-content > .row .goi-title-tag {font-size:17px;padding:9px 12px;}
+
+/* Reader-friendly parent > child hierarchy for GOI Tree subsections. */
+.goi-hierarchy-list{display:grid;gap:20px;}
+.goi-hierarchy-group{min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.goi-hierarchy-group>.record-card{margin-bottom:8px;}
+.goi-hierarchy-children{display:grid;gap:12px;margin:8px 0 0 17px;padding-left:17px;border-left:2px solid var(--border);min-width:0;}
+.goi-hierarchy-node{min-width:0;}
+.goi-hierarchy-node>.record-card{width:100%;}
+.goi-hierarchy-children:empty{display:none;}
+@media(max-width:600px){.goi-hierarchy-group{padding:10px}.goi-hierarchy-children{margin-left:7px;padding-left:10px;gap:9px}}

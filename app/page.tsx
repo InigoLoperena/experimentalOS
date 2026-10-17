@@ -2136,11 +2136,51 @@ export default function Home() {
             </>
           )}
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
-            <div className="cards-grid">
-              {items.filter(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")).map(itemCard)}
-              {!items.some(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")) && (
-                <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />
-              )}
+            <div className="goi-hierarchy-list">
+              {(() => {
+                const target = items.filter(i =>
+                  view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" :
+                  view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" :
+                  view === "opportunities" ? i.kind === "opportunity" : i.kind === "idea"
+                );
+                if (!target.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
+                // Each subsection starts at the immediate parent of its primary records.
+                // Descendants stay nested, so no idea or experiment loses its parent context.
+                const roots = view === "ideas"
+                  ? items.filter(i => i.kind === "opportunity" && target.some(t => t.parent_id === i.id))
+                  : view === "opportunities"
+                    ? items.filter(i => i.kind === "goal" && target.some(t => t.parent_id === i.id))
+                    : target;
+                return roots.map(root => (
+                  <section className="goi-hierarchy-group" key={root.id}>
+                    {itemCard(root)}
+                    <div className="goi-hierarchy-children">
+                      {items.filter(child => child.parent_id === root.id &&
+                        (view === "ideas" ? child.kind === "idea" :
+                         view === "opportunities" ? child.kind === "opportunity" : child.kind === "opportunity"))
+                        .map(child => (
+                          <div className="goi-hierarchy-node" key={child.id}>
+                            {itemCard(child)}
+                            <div className="goi-hierarchy-children">
+                              {items.filter(grandchild => grandchild.parent_id === child.id &&
+                                (view === "ideas" ? grandchild.kind === "experiment" : grandchild.kind === "idea"))
+                                .map(grandchild => (
+                                  <div className="goi-hierarchy-node" key={grandchild.id}>
+                                    {view === "ideas" ? itemCard(grandchild) : itemCard(grandchild)}
+                                    {view !== "ideas" && (
+                                      <div className="goi-hierarchy-children">
+                                        {items.filter(e => e.parent_id === grandchild.id && e.kind === "experiment").map(itemCard)}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </section>
+                ));
+              })()}
             </div>
           )}
           {view === "experiments" && currentProject && (
