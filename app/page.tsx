@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
+import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -2138,43 +2139,10 @@ export default function Home() {
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
             <div className="goi-hierarchy-list">
               {(() => {
-                const target = items.filter(i =>
-                  view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" :
-                  view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" :
-                  view === "opportunities" ? i.kind === "opportunity" : i.kind === "idea"
-                );
+                const { target, expanded, roots, children } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
                 if (!target.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
-
-                // Trace every visible target upwards to its root, then render the
-                // whole connected branch once, in parent-to-child order.
-                const byId = new Map(items.map(item => [item.id, item]));
-                const included = new Set<string>();
-                const walkAncestors = (item: Item) => {
-                  const seen = new Set<string>();
-                  let current: Item | undefined = item;
-                  while (current && !seen.has(current.id)) {
-                    seen.add(current.id);
-                    included.add(current.id);
-                    current = current.parent_id ? byId.get(current.parent_id) : undefined;
-                  }
-                };
-                target.forEach(walkAncestors);
-                // Include the descendants belonging to each target (idea -> experiments,
-                // opportunity -> ideas -> experiments, goal -> whole branch).
-                const addDescendants = (parentId: string, seen = new Set<string>()) => {
-                  if (seen.has(parentId)) return;
-                  seen.add(parentId);
-                  items.filter(child => child.parent_id === parentId &&
-                    ["goal", "opportunity", "idea", "experiment"].includes(child.kind))
-                    .forEach(child => { included.add(child.id); addDescendants(child.id, seen); });
-                };
-                target.forEach(item => addDescendants(item.id));
-                const children = (parentId: string) => items
-                  .filter(item => included.has(item.id) && item.parent_id === parentId)
-                  .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-                const roots = items.filter(item => included.has(item.id) && item.kind !== "north_star" &&
-                  (!item.parent_id || !included.has(item.parent_id) || byId.get(item.parent_id)?.kind === "north_star"))
-                  .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+                // Keep each selected subsection visible with all its ancestors.
+                // Only levels below the selected subsection start collapsed.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
                   if (visited.has(item.id)) return null;
                   const nextVisited = new Set(visited);
@@ -2184,8 +2152,12 @@ export default function Home() {
                     <div className="goi-hierarchy-node" key={item.id}>
                       {itemCard(item, true)}
                       {descendants.length > 0 && (
-                        <details className="goi-hierarchy-toggle">
-                          <summary><ChevronRight size={16} aria-hidden="true"/><span>Mostrar hijos ({descendants.length})</span></summary>
+                        <details key={view + ":" + item.id} className="goi-hierarchy-toggle" open={expanded.has(item.id)}>
+                          <summary>
+                            <ChevronRight size={16} aria-hidden="true"/>
+                            <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
+                            <span className="goi-toggle-hide">Ocultar hijos ({descendants.length})</span>
+                          </summary>
                           <div className="goi-hierarchy-children">
                             {descendants.map(child => renderNode(child, nextVisited))}
                           </div>

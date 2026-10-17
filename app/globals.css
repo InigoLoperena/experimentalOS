@@ -3168,3 +3168,8 @@ nav button,
 .record-relation{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
 .record-relation>span:first-child{font-size:12px;font-weight:700;color:var(--muted);}
 .record-relation .record-parent-pill{margin:0;}
+
+/* Summary labels follow the native disclosure state, including default-open ancestors. */
+.goi-hierarchy-toggle > summary .goi-toggle-hide {display:none;}
+.goi-hierarchy-toggle[open] > summary .goi-toggle-show {display:none;}
+.goi-hierarchy-toggle[open] > summary .goi-toggle-hide {display:inline;}
