@@ -1152,7 +1152,12 @@ export default function Home() {
   async function deleteRecord(record: Item) {
     if (!can(record.kind,'delete') || demo || publicMode) return;
     const label = kinds[record.kind].toLocaleLowerCase("es");
-    const extra = record.kind === "project" ? " También se eliminarán todos sus registros asociados." : "";
+    const childrenToPreserve = workspaceItems.filter(item => item.parent_id === record.id).length;
+    const extra = record.kind === "project"
+      ? " También se eliminarán todos sus registros asociados."
+      : childrenToPreserve
+        ? ` Se conservarán ${childrenToPreserve} hijos sin padre en sus proyectos. Podrás reasignarlos después.`
+        : "";
     if (!window.confirm(`¿Eliminar el ${label} «${record.title}»?${extra} Esta acción no se puede deshacer.`)) return;
     setError("");
     try {
@@ -2088,6 +2093,19 @@ export default function Home() {
                   </section>
                 ))}
               </div>
+              {items.some(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id) && (
+                <section className="goi-orphaned-panel panel">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Elementos sin padre</h2>
+                      <p>Conservados aunque se haya eliminado su elemento padre. Abre cada ficha para reasignarla cuando quieras.</p>
+                    </div>
+                  </div>
+                  <div className="cards-grid">
+                    {items.filter(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id).map(itemCard)}
+                  </div>
+                </section>
+              )}
               <div className="section-heading">
                 <div>
                   <h2>Orden de ejecución</h2>
@@ -2863,13 +2881,12 @@ export default function Home() {
                 <label>
                   {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
-                    required={draft.kind !== "learning"}
                     value={draft.parent_id || ""}
                     onChange={(e) =>
                       setDraft({ ...draft, parent_id: e.target.value || null })
                     }
                   >
-                    <option value="">Seleccionar…</option>
+                    <option value="">Sin padre (puedes asignarlo más adelante)</option>
                     {items
                       .filter(
                         (i) =>
