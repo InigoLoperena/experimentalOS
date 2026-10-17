@@ -2155,7 +2155,7 @@ export default function Home() {
                         <details key={view + ":" + item.id} className="goi-hierarchy-toggle" open={expanded.has(item.id)}>
                           <summary onClick={(event) => {
                             // Expand or collapse the entire nested branch, not just its first level.
-                            const branch = event.currentTarget.parentElement;
+                            const branch = event.currentTarget.parentElement as HTMLDetailsElement | null;
                             if (!branch) return;
                             const opening = !branch.open;
                             branch.querySelectorAll("details.goi-hierarchy-toggle").forEach(child => {
