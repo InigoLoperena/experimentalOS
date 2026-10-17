@@ -11,19 +11,17 @@ function allowed(request: Request) {
   const origin = request.headers.get('origin');
   return !origin || origins.has(origin) || (process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(origin));
 }
+// Keep legacy campaign review links readable, but expose only the record-saving
+// contract to ChatGPT. Removing the tool alone would still allow campaign input
+// through prepare_experiment_save, so narrow and enforce its schema as well.
+const { campaign: _campaign, ...saveProperties } = pluginExperimentSchema.properties;
 const tool = {
   name: 'prepare_experiment_save', title: 'Preparar experimento para guardar en Experiments',
   description: 'Prepara una ficha y un enlace cifrado, válido 30 minutos, para revisarla y guardarla en Xperiments. No guarda todavía: el usuario abre el enlace, inicia sesión si hace falta, elige un proyecto y confirma. No lee proyectos ni recibe credenciales. No afirmes que se guardó al devolver el enlace. Usa solo cuando el usuario pida guardar/exportar una prueba; no envíes conversaciones enteras.',
-  inputSchema: pluginExperimentSchema,
+  inputSchema: { ...pluginExperimentSchema, properties: saveProperties },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   securitySchemes: [{ type: 'noauth' }],
   _meta: { 'openai/toolInvocation/invoking': 'Preparando la ficha…', 'openai/toolInvocation/invoked': 'Ficha lista para revisar y guardar' },
-};
-const campaignTool = {
-  ...tool,
-  name: 'prepare_campaign_experiment', title: 'Preparar ficha y borrador de campaña',
-  description: 'Prepara en un mismo enlace la ficha de experimento y dos variantes para Google Ads (Búsqueda/Display), Meta Ads (Facebook/Instagram) o Smartlead (correo). El usuario guarda la ficha y confirma la creación del borrador en Xperiments usando sus conexiones privadas. Nada se envía al proveedor desde esta herramienta pública. Los anuncios quedan pausados y Smartlead sin enviar. No solicites claves ni IDs de cuenta. Si otro conector ya creó la campaña, no uses esta herramienta para volver a crearla. Un borrador con variantes no equivale a un A/B nativo ni modifica código.',
-  inputSchema: { ...pluginExperimentSchema, required: [...pluginExperimentSchema.required, 'campaign'] },
 };
 export async function POST(request: Request) {
   if (!allowed(request)) return new Response('Origin not allowed', { status: 403, headers });
@@ -39,17 +37,16 @@ export async function POST(request: Request) {
     id = body.id ?? null;
     if (body.id === undefined) return new Response(null, { status: 202, headers });
     let result: unknown;
-    if (body.method === 'initialize') result = { protocolVersion: versions.includes(body.params?.protocolVersion) ? body.params.protocolVersion : versions[0], capabilities: { tools: {} }, serverInfo: { name: 'xperiments-save', version: '1.2.0' }, instructions: 'Prepara fichas y borradores para revisión en Xperiments. El enlace NO confirma un guardado ni una campaña: el usuario debe abrirlo y confirmar en su cuenta. No dupliques campañas creadas por otro conector.' };
+    if (body.method === 'initialize') result = { protocolVersion: versions.includes(body.params?.protocolVersion) ? body.params.protocolVersion : versions[0], capabilities: { tools: {} }, serverInfo: { name: 'xperiments-save', version: '1.3.0' }, instructions: 'Diseña experimentos y prepara su ficha para guardar en Xperiments. La única herramienta es prepare_experiment_save. El enlace NO confirma el guardado: el usuario debe abrirlo, elegir su proyecto y confirmar. Esta conexión no crea campañas ni experimentos en proveedores externos, no modifica código y no consulta proyectos.' };
     else if (body.method === 'ping') result = {};
-    else if (body.method === 'tools/list') result = { tools: [tool, campaignTool] };
+    else if (body.method === 'tools/list') result = { tools: [tool] };
     else if (body.method === 'tools/call') {
-      if (![tool.name, campaignTool.name].includes(body.params?.name)) return rpcError(-32602, 'Unknown tool');
+      if (body.params?.name !== tool.name) return rpcError(-32602, 'Unknown tool');
       try {
-        if (body.params.name === campaignTool.name && !body.params.arguments?.campaign) throw new Error('Falta la campaña que quieres preparar.');
+        if (body.params.arguments && Object.hasOwn(body.params.arguments, 'campaign')) throw new Error('Esta conexión solo prepara fichas de experimentos. Las campañas se gestionan desde la web de Xperiments.');
         const draft = sealPluginDraft(body.params.arguments);
         const output = { status: 'pending_confirmation', saved: false, save_url: `https://www.xperiments.site/plugins/validacion-de-negocios/guardar#draft=${draft.token}`, expires_at: draft.expires_at,
-          ...(body.params.arguments?.campaign ? { campaign_saved: false, provider: body.params.arguments.campaign.provider } : {}),
-          message: 'Abre «Revisar y guardar», elige tu proyecto y confirma en Experiments. La ficha todavía no está guardada. Si incluye campaña, revísala y confirma su envío por separado: quedará pausada o en borrador. No compartas el enlace: contiene tu borrador cifrado.' };
+          message: 'Abre «Revisar y guardar», elige tu proyecto y confirma en Xperiments. La ficha todavía no está guardada. No compartas el enlace: contiene tu borrador cifrado.' };
         result = { content: [{ type: 'text', text: JSON.stringify(output) }], structuredContent: output };
       } catch (error) {
         result = { isError: true, content: [{ type: 'text', text: error instanceof ApiError && error.status === 503 ? error.message : error instanceof Error ? error.message : 'Revisa los datos del experimento.' }] };

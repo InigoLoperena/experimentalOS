@@ -70,14 +70,24 @@ test('create-only members cannot create campaign preparations or invoke an RPC',
   await assert.rejects(savePluginExperiment(fixture.client, randomUUID(), token, project.id), /editar/);
   assert.equal(fixture.calls.filter(c => c.action === 'insert').length, 0);
 });
-test('public MCP campaign tool only prepares a link and never calls an ad provider', async () => {
+test('public MCP rejects the removed campaign tool without calling a provider', async () => {
   process.env.MCP_DRAFT_ENCRYPTION_KEY = master;
   const request = new Request('https://www.xperiments.site/api/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'prepare_campaign_experiment', arguments: { ...book, campaign: { provider: 'smartlead', plan: campaignPlan() } } } }) });
   const original = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error('Public preparation must not call a provider'); };
   try {
     const result = await (await POST(request)).json();
-    assert.equal(result.result.structuredContent.saved, false); assert.equal(result.result.structuredContent.campaign_saved, false);
-    assert.equal(result.result.structuredContent.provider, 'smartlead');
+    assert.equal(result.error.code, -32602);
+    assert.equal(result.result, undefined);
   } finally { globalThis.fetch = original; }
+});
+
+test('campaigns cannot be smuggled through the plain save tool', async () => {
+  for (const campaign of [{ provider: 'smartlead', plan: campaignPlan() }, null]) {
+    const response = await POST(new Request('https://www.xperiments.site/api/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'prepare_experiment_save', arguments: { ...book, campaign } } }) }));
+    const body = await response.json();
+    assert.equal(body.result.isError, true);
+    assert.match(body.result.content[0].text, /solo prepara fichas/);
+    assert.equal(body.result.structuredContent, undefined);
+  }
 });
