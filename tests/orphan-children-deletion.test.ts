@@ -8,7 +8,7 @@ test("Orphaned opportunities and ideas remain valid, editable and reassignable",
  for(const kind of ["opportunity","idea","experiment","learning","kr"] as const){
   assert.equal(validate(item(kind,kind)),null,kind+" should remain editable without a parent");
  }
- assert.match(validate(item("objective","objective"))||"",/Selecciona el elemento padre/);
+ assert.match(validate({...item("empty","idea"),title:"  "})||"",/Escribe un nombre/);
 });
 
 test("Database migration detaches parents without deleting children or weakening RLS",async()=>{
