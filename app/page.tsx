@@ -1348,7 +1348,7 @@ export default function Home() {
     </span>;
   }
 
-  function itemCard(i: Item) {
+  function itemCard(i: Item, inHierarchy = false) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
         {["goal","opportunity","idea"].includes(i.kind) ? (
@@ -1362,7 +1362,7 @@ export default function Home() {
             {i.kind === "experiment" ? experimentTag(i) : <strong>{i.title}</strong>}
           </>
         )}
-        {parentTag(i)}
+        {!inHierarchy && parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
           <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
@@ -1385,7 +1385,7 @@ export default function Home() {
               ICE {score(i.fields)} ·{" "}
               {items.filter((x) => x.parent_id === i.id && x.kind === "experiment").length} experimentos
             </span>
-            {items.some(x => x.parent_id === i.id && x.kind === "experiment") && (
+            {!inHierarchy && items.some(x => x.parent_id === i.id && x.kind === "experiment") && (
               <span className="idea-experiment-tags">
                 {items.filter(x => x.parent_id === i.id && x.kind === "experiment").map(x=><span className="idea-experiment-chip" key={x.id}><FlaskConical size={15} aria-hidden="true"/><span>{x.title}</span></span>)}
               </span>
@@ -2144,40 +2144,56 @@ export default function Home() {
                   view === "opportunities" ? i.kind === "opportunity" : i.kind === "idea"
                 );
                 if (!target.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
-                // Each subsection starts at the immediate parent of its primary records.
-                // Descendants stay nested, so no idea or experiment loses its parent context.
-                const roots = view === "ideas"
-                  ? items.filter(i => i.kind === "opportunity" && target.some(t => t.parent_id === i.id))
-                  : view === "opportunities"
-                    ? items.filter(i => i.kind === "goal" && target.some(t => t.parent_id === i.id))
-                    : target;
+
+                // Trace every visible target upwards to its root, then render the
+                // whole connected branch once, in parent-to-child order.
+                const byId = new Map(items.map(item => [item.id, item]));
+                const included = new Set<string>();
+                const walkAncestors = (item: Item) => {
+                  const seen = new Set<string>();
+                  let current: Item | undefined = item;
+                  while (current && !seen.has(current.id)) {
+                    seen.add(current.id);
+                    included.add(current.id);
+                    current = current.parent_id ? byId.get(current.parent_id) : undefined;
+                  }
+                };
+                target.forEach(walkAncestors);
+                // Include the descendants belonging to each target (idea -> experiments,
+                // opportunity -> ideas -> experiments, goal -> whole branch).
+                const addDescendants = (parentId: string, seen = new Set<string>()) => {
+                  if (seen.has(parentId)) return;
+                  seen.add(parentId);
+                  items.filter(child => child.parent_id === parentId &&
+                    ["goal", "opportunity", "idea", "experiment"].includes(child.kind))
+                    .forEach(child => { included.add(child.id); addDescendants(child.id, seen); });
+                };
+                target.forEach(item => addDescendants(item.id));
+                const children = (parentId: string) => items
+                  .filter(item => included.has(item.id) && item.parent_id === parentId)
+                  .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+                const roots = items.filter(item => included.has(item.id) &&
+                  (!item.parent_id || !included.has(item.parent_id)))
+                  .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+                const renderNode = (item: Item, visited: Set<string>): ReactNode => {
+                  if (visited.has(item.id)) return null;
+                  const nextVisited = new Set(visited);
+                  nextVisited.add(item.id);
+                  const descendants = children(item.id);
+                  return (
+                    <div className="goi-hierarchy-node" key={item.id}>
+                      {itemCard(item, true)}
+                      {descendants.length > 0 && (
+                        <div className="goi-hierarchy-children">
+                          {descendants.map(child => renderNode(child, nextVisited))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                };
                 return roots.map(root => (
                   <section className="goi-hierarchy-group" key={root.id}>
-                    {itemCard(root)}
-                    <div className="goi-hierarchy-children">
-                      {items.filter(child => child.parent_id === root.id &&
-                        (view === "ideas" ? child.kind === "idea" :
-                         view === "opportunities" ? child.kind === "opportunity" : child.kind === "opportunity"))
-                        .map(child => (
-                          <div className="goi-hierarchy-node" key={child.id}>
-                            {itemCard(child)}
-                            <div className="goi-hierarchy-children">
-                              {items.filter(grandchild => grandchild.parent_id === child.id &&
-                                (view === "ideas" ? grandchild.kind === "experiment" : grandchild.kind === "idea"))
-                                .map(grandchild => (
-                                  <div className="goi-hierarchy-node" key={grandchild.id}>
-                                    {view === "ideas" ? itemCard(grandchild) : itemCard(grandchild)}
-                                    {view !== "ideas" && (
-                                      <div className="goi-hierarchy-children">
-                                        {items.filter(e => e.parent_id === grandchild.id && e.kind === "experiment").map(itemCard)}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                    {renderNode(root, new Set<string>())}
                   </section>
                 ));
               })()}
