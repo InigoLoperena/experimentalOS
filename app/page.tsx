@@ -1339,19 +1339,29 @@ export default function Home() {
     return <span className="experiment-identity" title={experiment.title}><FlaskConical size={15} aria-hidden="true"/><span>{experiment.title}</span></span>;
   }
 
+  function goiTitleTag(i: Item) {
+    const visual = i.kind === "goal" ? goalVisualClass(i) : i.kind;
+    const I = i.kind === "goal" ? null : i.kind === "opportunity" ? Search : Lightbulb;
+    return <span className={`goi-title-tag ${visual}`} title={i.title}>
+      {i.kind === "goal" ? <GoalTypeIcon item={i} size={17}/> : I ? <I size={17} aria-hidden="true"/> : null}
+      <span>{i.title}</span>
+    </span>;
+  }
+
   function itemCard(i: Item) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
-        <div className="row">
-          <span className={i.kind === "goal" ? `kind ${goalVisualClass(i)}` : "kind " + i.kind}>
-            {i.kind === "goal" ? <GoalTypeIcon item={i} /> : <IconFor kind={i.kind} />}
-            {i.kind === "goal" && i.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[i.kind]}
-          </span>
-          {i.kind === "opportunity" && i.fields.focus && (
-            <span className="focus">Prioritaria</span>
-          )}
-        </div>
-        {i.kind === "experiment" ? experimentTag(i) : <strong className={i.kind === "goal" ? `record-goal-title ${goalVisualClass(i)}` : undefined}>{i.title}</strong>}
+        {["goal","opportunity","idea"].includes(i.kind) ? (
+          <div className="row goi-title-row">
+            {goiTitleTag(i)}
+            {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
+          </div>
+        ) : (
+          <>
+            {i.kind !== "experiment" && <span className={"kind " + i.kind}><IconFor kind={i.kind}/>{kinds[i.kind]}</span>}
+            {i.kind === "experiment" ? experimentTag(i) : <strong>{i.title}</strong>}
+          </>
+        )}
         {parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
@@ -2559,10 +2569,7 @@ export default function Home() {
         {selected && (
           <div className="detail-content">
             <div className="row">
-              <span className={selected.kind === "goal" ? `kind ${goalVisualClass(selected)}` : "kind " + selected.kind}>
-                {selected.kind === "goal" ? <GoalTypeIcon item={selected} /> : <IconFor kind={selected.kind} />}
-                {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
-              </span>
+              {["goal","opportunity","idea"].includes(selected.kind) ? goiTitleTag(selected) : <span className={"kind " + selected.kind}><IconFor kind={selected.kind}/>{kinds[selected.kind]}</span>}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
@@ -2578,7 +2585,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>}
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : {["goal","opportunity","idea"].includes(selected.kind) ? null : <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>}}
             {parentTag(selected)}
             <div className="row detail-meta">
               {selected.owner_id && (

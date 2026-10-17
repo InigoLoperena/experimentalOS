@@ -3131,3 +3131,18 @@ nav button,
 .idea-experiment-chip {font-size:12px;padding:4px 8px;}
 .experiment-detail-title {display:flex;align-items:center;gap:10px;color:var(--experiment-accent);overflow-wrap:anywhere;}
 .experiment-detail-title > svg {flex:0 0 auto;}
+
+/* GOI Tree: type conveyed by color and icon; show the actual title, never a redundant type heading. */
+.goi-title-row {align-items:center;flex-wrap:wrap;gap:8px;}
+.goi-title-tag {
+ display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;width:fit-content;
+ padding:7px 10px;border:1px solid;border-radius:8px;font-size:14px;font-weight:750;
+ line-height:1.4;text-align:left;overflow-wrap:anywhere;
+}
+.goi-title-tag > svg {flex-shrink:0;color:inherit;}
+.goi-title-tag > span {min-width:0;overflow-wrap:anywhere;}
+.goi-title-tag.idea {color:#ffd84d;background:rgba(255,216,77,.10);border-color:rgba(255,216,77,.42);}
+.goi-title-tag.opportunity {color:var(--red-text);background:var(--red-tint);border-color:rgba(255,133,133,.42);}
+.goi-title-tag.objective {color:var(--objective-accent);background:var(--objective-soft);border-color:rgba(183,255,76,.35);}
+.goi-title-tag.input-metric {color:var(--input-metric-accent);background:var(--input-metric-soft);border-color:rgba(130,198,255,.38);}
+.detail-content > .row .goi-title-tag {font-size:17px;padding:9px 12px;}
