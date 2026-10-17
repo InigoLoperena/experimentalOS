@@ -2585,7 +2585,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : {["goal","opportunity","idea"].includes(selected.kind) ? null : <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>}}
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
             {parentTag(selected)}
             <div className="row detail-meta">
               {selected.owner_id && (
