@@ -2153,7 +2153,15 @@ export default function Home() {
                       {itemCard(item, true)}
                       {descendants.length > 0 && (
                         <details key={view + ":" + item.id} className="goi-hierarchy-toggle" open={expanded.has(item.id)}>
-                          <summary>
+                          <summary onClick={(event) => {
+                            // Expand or collapse the entire nested branch, not just its first level.
+                            const branch = event.currentTarget.parentElement;
+                            if (!branch) return;
+                            const opening = !branch.open;
+                            branch.querySelectorAll("details.goi-hierarchy-toggle").forEach(child => {
+                              (child as HTMLDetailsElement).open = opening;
+                            });
+                          }}>
                             <ChevronRight size={16} aria-hidden="true"/>
                             <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
                             <span className="goi-toggle-hide">Ocultar hijos ({descendants.length})</span>
