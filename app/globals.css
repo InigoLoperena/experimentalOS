@@ -3084,3 +3084,92 @@ nav button,
 .business-plugin-footer p{flex-basis:100%}
 .auth-plugin-link{display:block;margin-top:18px;font-size:12px;text-align:center;color:var(--muted)}
 @media(max-width:760px){.business-plugin-site{padding:20px 18px 28px}.business-plugin-cards{grid-template-columns:1fr}.business-plugin-hero{padding-top:30px}.business-plugin-hero>p:last-child{font-size:16px}.business-plugin-header{align-items:flex-start}.business-plugin-brand img{width:150px}.business-plugin-name{max-width:145px;font-size:13px}.business-plugin-nav a{padding:9px 12px}.business-plugin-callout{padding:20px}.business-plugin-section h2{font-size:21px}}
+
+/* Idea parent of experiments: yellow lamp badge in lists and expanded records. */
+.record-parent-pill.idea {
+  color: #ffd84d;
+  border-color: rgba(255, 216, 77, .42);
+  background: rgba(255, 216, 77, .10);
+}
+.record-parent-pill.idea > svg { color: inherit; }
+.table-title .experiment-list-summary {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+  line-height: 1.45;
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.table-title .experiment-list-summary strong {
+  display: inline;
+  color: var(--ink);
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+/* Experiments use a distinct lavender accent, separate from GOI Tree node colors. */
+:root { --experiment-accent:#c6a1ff; --experiment-soft:rgba(198,161,255,.12); }
+.sidebar nav button:has(> svg.lucide-flask-conical) > svg { color:var(--experiment-accent); }
+.sidebar nav button:has(> svg.lucide-flask-conical).active { background:var(--experiment-soft);color:var(--experiment-accent);box-shadow:inset 0 0 0 1px rgba(198,161,255,.38); }
+.sidebar nav button:has(> svg.lucide-flask-conical).active:hover { background:rgba(198,161,255,.19); }
+.kind.experiment { color:var(--experiment-accent); }
+.legend-dot.experiment { background:var(--experiment-accent); }
+.experiment-identity,
+.idea-experiment-chip {
+ display:inline-flex;align-items:center;gap:8px;width:fit-content;max-width:100%;
+ color:var(--experiment-accent);background:var(--experiment-soft);
+ border:1px solid rgba(198,161,255,.4);border-radius:8px;
+ padding:5px 9px;font-size:13px;font-weight:700;line-height:1.4;text-align:left;
+}
+.experiment-identity > svg,.idea-experiment-chip > svg {flex:0 0 auto;color:inherit;}
+.experiment-identity > span,.idea-experiment-chip > span {overflow-wrap:anywhere;min-width:0;}
+.record-card > .experiment-identity {margin:3px 0 6px;}
+.table-title > .experiment-identity {display:inline-flex;margin-bottom:5px;}
+.idea-experiment-tags {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.idea-experiment-chip {font-size:12px;padding:4px 8px;}
+.experiment-detail-title {display:flex;align-items:center;gap:10px;color:var(--experiment-accent);overflow-wrap:anywhere;}
+.experiment-detail-title > svg {flex:0 0 auto;}
+
+/* GOI Tree: type conveyed by color and icon; show the actual title, never a redundant type heading. */
+.goi-title-row {align-items:center;flex-wrap:wrap;gap:8px;}
+.goi-title-tag {
+ display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;width:fit-content;
+ padding:7px 10px;border:1px solid;border-radius:8px;font-size:14px;font-weight:750;
+ line-height:1.4;text-align:left;overflow-wrap:anywhere;
+}
+.goi-title-tag > svg {flex-shrink:0;color:inherit;}
+.goi-title-tag > span {min-width:0;overflow-wrap:anywhere;}
+.goi-title-tag.idea {color:#ffd84d;background:rgba(255,216,77,.10);border-color:rgba(255,216,77,.42);}
+.goi-title-tag.opportunity {color:var(--red-text);background:var(--red-tint);border-color:rgba(255,133,133,.42);}
+.goi-title-tag.objective {color:var(--objective-accent);background:var(--objective-soft);border-color:rgba(183,255,76,.35);}
+.goi-title-tag.input-metric {color:var(--input-metric-accent);background:var(--input-metric-soft);border-color:rgba(130,198,255,.38);}
+.detail-content > .row .goi-title-tag {font-size:17px;padding:9px 12px;}
+
+/* Reader-friendly parent > child hierarchy for GOI Tree subsections. */
+.goi-hierarchy-list{display:grid;gap:20px;}
+.goi-hierarchy-group{min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.goi-hierarchy-group>.record-card{margin-bottom:8px;}
+.goi-hierarchy-children{display:grid;gap:12px;margin:8px 0 0 17px;padding-left:17px;border-left:2px solid var(--border);min-width:0;}
+.goi-hierarchy-node{min-width:0;}
+.goi-hierarchy-node>.record-card{width:100%;}
+.goi-hierarchy-children:empty{display:none;}
+@media(max-width:600px){.goi-hierarchy-group{padding:10px}.goi-hierarchy-children{margin-left:7px;padding-left:10px;gap:9px}}
+
+/* GOI hierarchy: collapsed children by default with a recognizable disclosure arrow. */
+.goi-hierarchy-toggle{margin-top:7px;}
+.goi-hierarchy-toggle>summary{display:flex;align-items:center;gap:7px;width:fit-content;cursor:pointer;list-style:none;color:var(--blue-text);font-size:13px;font-weight:650;padding:6px 8px;border-radius:7px;}
+.goi-hierarchy-toggle>summary::-webkit-details-marker{display:none;}
+.goi-hierarchy-toggle>summary:hover{background:var(--surface-raised);}
+.goi-hierarchy-toggle>summary:focus-visible{outline:2px solid var(--blue-text);outline-offset:2px;}
+.goi-hierarchy-toggle>summary svg{transition:transform .15s ease;}
+.goi-hierarchy-toggle[open]>summary svg{transform:rotate(90deg);}
+.record-relation{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+.record-relation>span:first-child{font-size:12px;font-weight:700;color:var(--muted);}
+.record-relation .record-parent-pill{margin:0;}
+
+/* Summary labels follow the native disclosure state, including default-open ancestors. */
+.goi-hierarchy-toggle > summary .goi-toggle-hide {display:none;}
+.goi-hierarchy-toggle[open] > summary .goi-toggle-show {display:none;}
+.goi-hierarchy-toggle[open] > summary .goi-toggle-hide {display:inline;}

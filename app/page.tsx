@@ -15,6 +15,7 @@ import {
   Layers,
   Lightbulb,
   LogOut,
+  LogIn,
   Plus,
   RefreshCw,
   Search,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
+import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -1151,7 +1153,12 @@ export default function Home() {
   async function deleteRecord(record: Item) {
     if (!can(record.kind,'delete') || demo || publicMode) return;
     const label = kinds[record.kind].toLocaleLowerCase("es");
-    const extra = record.kind === "project" ? " También se eliminarán todos sus registros asociados." : "";
+    const childrenToPreserve = workspaceItems.filter(item => item.parent_id === record.id).length;
+    const extra = record.kind === "project"
+      ? " También se eliminarán todos sus registros asociados."
+      : childrenToPreserve
+        ? ` Se conservarán ${childrenToPreserve} hijos sin padre en sus proyectos. Podrás reasignarlos después.`
+        : "";
     if (!window.confirm(`¿Eliminar el ${label} «${record.title}»?${extra} Esta acción no se puede deshacer.`)) return;
     setError("");
     try {
@@ -1315,7 +1322,7 @@ export default function Home() {
     if (!parent) return null;
     const parentGoal = parent.kind === "goal";
     const parentOpportunity = parent.kind === "opportunity";
-    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : "";
+    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : parent.kind === "idea" ? "idea" : "";
     return (
       <span
         className={`record-parent-pill ${parentStyle}`.trim()}
@@ -1325,6 +1332,8 @@ export default function Home() {
           <GoalTypeIcon item={parent} size={17} />
         ) : parentOpportunity ? (
           <Search size={17} aria-hidden="true" />
+        ) : parent.kind === "idea" ? (
+          <Lightbulb size={17} aria-hidden="true" />
         ) : (
           <ChevronRight size={17} aria-hidden="true" />
         )}
@@ -1333,20 +1342,34 @@ export default function Home() {
     );
   }
 
-  function itemCard(i: Item) {
+  function experimentTag(experiment: Item) {
+    return <span className="experiment-identity" title={experiment.title}><FlaskConical size={15} aria-hidden="true"/><span>{experiment.title}</span></span>;
+  }
+
+  function goiTitleTag(i: Item) {
+    const visual = i.kind === "goal" ? goalVisualClass(i) : i.kind;
+    const I = i.kind === "goal" ? null : i.kind === "opportunity" ? Search : Lightbulb;
+    return <span className={`goi-title-tag ${visual}`} title={i.title}>
+      {i.kind === "goal" ? <GoalTypeIcon item={i} size={17}/> : I ? <I size={17} aria-hidden="true"/> : null}
+      <span>{i.title}</span>
+    </span>;
+  }
+
+  function itemCard(i: Item, inHierarchy = false) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
-        <div className="row">
-          <span className={i.kind === "goal" ? `kind ${goalVisualClass(i)}` : "kind " + i.kind}>
-            {i.kind === "goal" ? <GoalTypeIcon item={i} /> : <IconFor kind={i.kind} />}
-            {i.kind === "goal" && i.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[i.kind]}
-          </span>
-          {i.kind === "opportunity" && i.fields.focus && (
-            <span className="focus">Prioritaria</span>
-          )}
-        </div>
-        <strong className={i.kind === "goal" ? `record-goal-title ${goalVisualClass(i)}` : undefined}>{i.title}</strong>
-        {parentTag(i)}
+        {["goal","opportunity","idea"].includes(i.kind) ? (
+          <div className="row goi-title-row">
+            {goiTitleTag(i)}
+            {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
+          </div>
+        ) : (
+          <>
+            {i.kind !== "experiment" && <span className={"kind " + i.kind}><IconFor kind={i.kind}/>{kinds[i.kind]}</span>}
+            {i.kind === "experiment" ? experimentTag(i) : <strong>{i.title}</strong>}
+          </>
+        )}
+        {!inHierarchy && parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
           <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
@@ -1364,10 +1387,17 @@ export default function Home() {
           </>
         )}
         {i.kind === "idea" && (
-          <span className="small">
-            ICE {score(i.fields)} ·{" "}
-            {items.filter((x) => x.parent_id === i.id).length} experimentos
-          </span>
+          <>
+            <span className="small">
+              ICE {score(i.fields)} ·{" "}
+              {items.filter((x) => x.parent_id === i.id && x.kind === "experiment").length} experimentos
+            </span>
+            {!inHierarchy && items.some(x => x.parent_id === i.id && x.kind === "experiment") && (
+              <span className="idea-experiment-tags">
+                {items.filter(x => x.parent_id === i.id && x.kind === "experiment").map(x=><span className="idea-experiment-chip" key={x.id}><FlaskConical size={15} aria-hidden="true"/><span>{x.title}</span></span>)}
+              </span>
+            )}
+          </>
         )}
         {i.kind === "experiment" && (
           <div className="row">
@@ -1649,7 +1679,26 @@ export default function Home() {
     return (
       <Auth
         initialMode={authMode}
-        onDemo={() => { setAuthRequested(false); setDemo(true); }}
+        onDemo={() => {
+          // Browse this workspace's real public records; never swap in demo fixtures.
+          setAuthRequested(false);
+          if (publicMode) navigateView("projects");
+          else {
+            void getPublicPreview(supabase!).then(preview => {
+              if (!preview?.workspace) {
+                setError("La vista pública no está disponible en este momento.");
+                return;
+              }
+              setPublicMode(true);
+              setWorkspace(preview.workspace);
+              setItems((preview.records || []).map(normalizeExperiment));
+              setMembers(preview.members || []);
+              setActivity(preview.activity || []);
+              setPublicAttachments(preview.attachments || []);
+              navigateView("projects");
+            }).catch(err => setError(err instanceof Error ? err.message : "No se pudo abrir la vista pública."));
+          }
+        }}
         onMessage={tell}
         onAuthenticated={(nextUser) => { setAuthRequested(false); setUser(nextUser); }}
       />
@@ -1731,9 +1780,12 @@ export default function Home() {
               </span>
             </div>
             <button aria-label="Editar mi perfil" title="Editar mi perfil" onClick={() => publicMode ? requestAuth("signup") : setShowProfile(true)}><UserRound size={17} /></button>
-            <button
-              aria-label="Salir"
-              onClick={async () => {
+            {publicMode ? (
+              <button aria-label="Iniciar sesión" title="Iniciar sesión" onClick={() => requestAuth("login")}>
+                <LogIn size={17} />
+              </button>
+            ) : (
+              <button aria-label="Salir" onClick={async () => {
                 if (demo) {
                   setDemo(false);
                   if (!supabase) setDemo(true);
@@ -1741,10 +1793,10 @@ export default function Home() {
                 } else {
                   await supabase!.auth.signOut();
                 }
-              }}
-            >
-              <LogOut size={17} />
-            </button>
+              }}>
+                <LogOut size={17} />
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -1772,7 +1824,10 @@ export default function Home() {
           </div>
           <div>
             {publicMode
-              ? <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio gratis</span></button>
+              ? <>
+                  <button className="btn" onClick={() => requestAuth("login")}><LogIn size={16}/><span>Iniciar sesión</span></button>
+                  <button className="btn primary export-trigger" onClick={() => requestAuth("signup")}><UserRound size={16} /><span>Crear mi espacio gratis</span></button>
+                </>
               : <button className="btn primary export-trigger" onClick={() => setShowBackup(true)}><Download size={16} /><span>Exportar</span></button>}
             <span className={"top-status" + (publicMode ? " public-status" : "")}>
               {publicMode ? "Vista pública · solo lectura" : demo ? "Datos de ejemplo" : "Espacio privado"}
@@ -2064,6 +2119,19 @@ export default function Home() {
                   </section>
                 ))}
               </div>
+              {items.some(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id) && (
+                <section className="goi-orphaned-panel panel">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Elementos sin padre</h2>
+                      <p>Conservados aunque se haya eliminado su elemento padre. Abre cada ficha para reasignarla cuando quieras.</p>
+                    </div>
+                  </div>
+                  <div className="cards-grid">
+                    {items.filter(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id).map(item => itemCard(item))}
+                  </div>
+                </section>
+              )}
               <div className="section-heading">
                 <div>
                   <h2>Orden de ejecución</h2>
@@ -2113,11 +2181,49 @@ export default function Home() {
             </>
           )}
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
-            <div className="cards-grid">
-              {items.filter(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")).map(itemCard)}
-              {!items.some(i => view === "input_metrics" ? i.kind === "goal" && i.fields.goi_section === "input_metrics" : view === "goals" ? i.kind === "goal" && i.fields.goi_section !== "input_metrics" : i.kind === (view === "opportunities" ? "opportunity" : "idea")) && (
-                <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />
-              )}
+            <div className="goi-hierarchy-list">
+              {(() => {
+                const { target, expanded, roots, children } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
+                if (!target.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
+                // Keep each selected subsection visible with all its ancestors.
+                // Only levels below the selected subsection start collapsed.
+                const renderNode = (item: Item, visited: Set<string>): ReactNode => {
+                  if (visited.has(item.id)) return null;
+                  const nextVisited = new Set(visited);
+                  nextVisited.add(item.id);
+                  const descendants = children(item.id);
+                  return (
+                    <div className="goi-hierarchy-node" key={item.id}>
+                      {itemCard(item, true)}
+                      {descendants.length > 0 && (
+                        <details key={view + ":" + item.id} className="goi-hierarchy-toggle" open={expanded.has(item.id)}>
+                          <summary onClick={(event) => {
+                            // Expand or collapse the entire nested branch, not just its first level.
+                            const branch = event.currentTarget.parentElement as HTMLDetailsElement | null;
+                            if (!branch) return;
+                            const opening = !branch.open;
+                            branch.querySelectorAll("details.goi-hierarchy-toggle").forEach(child => {
+                              (child as HTMLDetailsElement).open = opening;
+                            });
+                          }}>
+                            <ChevronRight size={16} aria-hidden="true"/>
+                            <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
+                            <span className="goi-toggle-hide">Ocultar hijos ({descendants.length})</span>
+                          </summary>
+                          <div className="goi-hierarchy-children">
+                            {descendants.map(child => renderNode(child, nextVisited))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                };
+                return roots.map(root => (
+                  <section className="goi-hierarchy-group" key={root.id}>
+                    {renderNode(root, new Set<string>())}
+                  </section>
+                ));
+              })()}
             </div>
           )}
           {view === "experiments" && currentProject && (
@@ -2152,8 +2258,14 @@ export default function Home() {
                             className="table-title"
                             onClick={() => setSelected(e)}
                           >
-                            {e.title}
+                            {experimentTag(e)}
                             {parentTag(e)}
+                            <span className="experiment-list-summary">
+                              <strong>Contexto</strong> {e.fields.context || "Sin contexto documentado"}
+                            </span>
+                            <span className="experiment-list-summary">
+                              <strong>Hipótesis</strong> {e.fields.hypothesis || "Sin hipótesis documentada"}
+                            </span>
                             <span>
                               {e.fields.metric || "Métrica pendiente"}
                             </span>
@@ -2540,10 +2652,7 @@ export default function Home() {
         {selected && (
           <div className="detail-content">
             <div className="row">
-              <span className={selected.kind === "goal" ? `kind ${goalVisualClass(selected)}` : "kind " + selected.kind}>
-                {selected.kind === "goal" ? <GoalTypeIcon item={selected} /> : <IconFor kind={selected.kind} />}
-                {selected.kind === "goal" && selected.fields.goi_section === "input_metrics" ? "Input Metric" : kinds[selected.kind]}
-              </span>
+              {["goal","opportunity","idea"].includes(selected.kind) ? goiTitleTag(selected) : <span className={"kind " + selected.kind}><IconFor kind={selected.kind}/>{kinds[selected.kind]}</span>}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
@@ -2559,8 +2668,8 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            <h2 className={selected.kind === "goal" ? `record-goal-title ${goalVisualClass(selected)}` : undefined}>{selected.title}</h2>
-            {parentTag(selected)}
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
+            {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
               {selected.owner_id && (
                 <span>Responsable: {author(selected.owner_id)}</span>
@@ -2739,6 +2848,9 @@ export default function Home() {
                   {draft.kind === "goal" && draft.fields.goi_section === "input_metrics" ? "INPUT METRIC" : kinds[draft.kind].toUpperCase()}
                 </span>
                 <h2>{draft.title || "Nueva ficha"}</h2>
+                {draft.parent_id && ["opportunity","idea","experiment"].includes(draft.kind) && items.some(i => i.id === draft.parent_id) && (
+                  <div className="record-relation"><span>Hijo de</span>{parentTag(draft)}</div>
+                )}
               </div>
               <button
                 type="button"
@@ -2795,13 +2907,12 @@ export default function Home() {
                 <label>
                   {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
-                    required={draft.kind !== "learning"}
                     value={draft.parent_id || ""}
                     onChange={(e) =>
                       setDraft({ ...draft, parent_id: e.target.value || null })
                     }
                   >
-                    <option value="">Seleccionar…</option>
+                    <option value="">Sin padre (puedes asignarlo más adelante)</option>
                     {items
                       .filter(
                         (i) =>
@@ -3108,9 +3219,9 @@ function Auth({
             </button>
           )}
         </div>
-        <button className="demo-link" onClick={onDemo}>
-          Explorar la demostración
-        </button>
+        {!invitation && <button className="demo-link" onClick={onDemo}>
+          Explorar proyectos reales · solo lectura
+        </button>}
         <a className="auth-plugin-link" href="/plugins/validacion-de-negocios">Plugin · Validación de negocios</a>
       </div>
     </div>

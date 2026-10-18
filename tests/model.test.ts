@@ -43,10 +43,10 @@ test("standalone experiments save without removed launch or completion fields", 
       "",
     /nombre/,
   );
-  assert.match(
-    validate({ kind: "idea", title: "Idea", parent_id: null, fields: {} }) ||
-      "",
-    /padre/,
+  // A former child may be orphaned after its parent is deleted.
+  assert.equal(
+    validate({ kind: "idea", title: "Idea", parent_id: null, fields: {} }),
+    null,
   );
 });
 test("legacy experiments can be edited and exported without obsolete constraints or fields", () => {

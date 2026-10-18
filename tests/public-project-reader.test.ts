@@ -38,3 +38,13 @@ test('a visitor can refresh each recognized section URL',async()=>{
  const route=await readFile(new URL('../app/[...section]/page.tsx',import.meta.url),'utf8');
  assert.match(route,/import Home from/);
 });
+
+test('logged-out readers browse the real workspace, not the editable demo fixtures',async()=>{
+ const page=await readFile(new URL('../app/page.tsx',import.meta.url),'utf8');
+ assert.match(page,/Explorar proyectos reales · solo lectura/);
+ assert.doesNotMatch(page,/onDemo=\{\(\) => \{ setAuthRequested\(false\); setDemo\(true\); \}\}/);
+ assert.match(page,/onDemo=\{\(\) => \{[\s\S]*?getPublicPreview\(supabase!\)/);
+ assert.match(page,/onClick=\{\(\) => requestAuth\("login"\)\}/);
+ assert.match(page,/\{publicMode \? \(/);
+ assert.match(page,/setPublicMode\(true\)/);
+});
