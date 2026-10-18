@@ -12,13 +12,13 @@ export async function POST(request: Request) {
     const body = await readJsonBody(request, 16000);
     if (body.action === 'save') {
       if (body.confirmed !== true) throw new ApiError('Revisa la ficha y confirma el guardado.', 400);
-      return Response.json(await savePluginExperiment(client, user.id, body.token, body.project_id, body.google_non_political_confirmed === true), { headers });
+      return Response.json(await savePluginExperiment(client, user.id, body.token, body.project_id), { headers });
     }
     if (body.action !== 'review') throw new ApiError('Acción no admitida.', 400);
     const draft = openPluginDraft(body.token);
     const membership = await client.from('members').select('workspace_id,role,permissions').eq('user_id', user.id);
     if (membership.error) throw new ApiError('No se pudieron consultar tus permisos.', 503);
-    const workspaceIds = (membership.data || []).filter(m => canRecord(m, 'experiment', 'create') && (!draft.experiment.campaign || canRecord(m, 'experiment', 'edit'))).map(m => m.workspace_id);
+    const workspaceIds = (membership.data || []).filter(m => canRecord(m, 'experiment', 'create')).map(m => m.workspace_id);
     let projects: { id: string; title: string; workspace_id: string; workspace_name?: string }[] = [];
     if (workspaceIds.length) {
       const result = await client.from('records').select('id,title,workspace_id').eq('kind', 'project').in('workspace_id', workspaceIds).order('title').limit(201);

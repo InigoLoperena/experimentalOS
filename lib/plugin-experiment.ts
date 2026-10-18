@@ -1,16 +1,13 @@
-import { parsePluginCampaign, pluginCampaignSchema, type PluginCampaign } from './plugin-campaign';
 /** The public tool accepts only draft content, never account IDs or credentials. */
 export type PluginExperiment = {
   title: string; context: string; hypothesis: string; metric: string;
   success_criteria: string; start?: string; tags?: string;
   impact?: number; confidence?: number; ease?: number;
-  campaign?: PluginCampaign;
 };
 export const pluginExperimentSchema = {
   type: 'object', additionalProperties: false,
   required: ['title', 'context', 'hypothesis', 'metric', 'success_criteria'],
   properties: {
-    campaign: pluginCampaignSchema,
     title: { type: 'string', minLength: 1, maxLength: 160 },
     context: { type: 'string', minLength: 1, maxLength: 2000 },
     hypothesis: { type: 'string', minLength: 1, maxLength: 2000 },
@@ -33,9 +30,7 @@ export function parsePluginExperiment(input: unknown): PluginExperiment {
   for (const [key, schema] of Object.entries(props)) {
     const value = raw[key];
     if (value === undefined && !(pluginExperimentSchema.required as readonly string[]).includes(key)) continue;
-    if (key === 'campaign') {
-      if (value !== undefined) result.campaign = parsePluginCampaign(value);
-    } else if (schema.type === 'integer') {
+    if (schema.type === 'integer') {
       if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 10) throw new Error('Las puntuaciones deben ser enteros entre 1 y 10.');
       result[key] = value;
     } else {
