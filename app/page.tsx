@@ -2183,8 +2183,8 @@ export default function Home() {
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
             <div className="goi-hierarchy-list">
               {(() => {
-                const { target, expanded, roots, children } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
-                if (!target.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
+                const { target, expanded, roots, children, orphanOpportunities, orphanIdeas } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
+                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
                 // Keep each selected subsection visible with all its ancestors.
                 // Only levels below the selected subsection start collapsed.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
@@ -2218,11 +2218,34 @@ export default function Home() {
                     </div>
                   );
                 };
-                return roots.map(root => (
+                const renderGroup = (root: Item) => (
                   <section className="goi-hierarchy-group" key={root.id}>
                     {renderNode(root, new Set<string>())}
                   </section>
-                ));
+                );
+                return (
+                  <>
+                    {orphanOpportunities.length > 0 && (
+                      <section className="goi-orphans-section" aria-label="Oportunidades-problemas huérfanos">
+                        <div className="goi-orphans-heading">
+                          <h2><Search size={19} aria-hidden="true" /> Oportunidades-problemas huérfanos <span>({orphanOpportunities.length})</span></h2>
+                          <p>Sin objetivo o Input Metric padre. Abre la ficha para asignarle uno.</p>
+                        </div>
+                        {orphanOpportunities.map(renderGroup)}
+                      </section>
+                    )}
+                    {orphanIdeas.length > 0 && (
+                      <section className="goi-orphans-section" aria-label="Ideas huérfanas">
+                        <div className="goi-orphans-heading">
+                          <h2><Lightbulb size={19} aria-hidden="true" /> Ideas huérfanas <span>({orphanIdeas.length})</span></h2>
+                          <p>Sin oportunidad-problema padre. Abre la ficha para asignarle una.</p>
+                        </div>
+                        {orphanIdeas.map(renderGroup)}
+                      </section>
+                    )}
+                    {roots.map(renderGroup)}
+                  </>
+                );
               })()}
             </div>
           )}

@@ -67,3 +67,44 @@ test("native details use the selected hierarchy ancestor expansion by default",a
  assert.match(page,/getGoiHierarchy\(items, view/);
  assert.match(page,/<details key=\{view \+ ":" \+ item\.id\} className="goi-hierarchy-toggle" open=\{expanded\.has\(item\.id\)\}/);
 });
+
+test("Unassigned opportunities appear in their own first-position group on Problems and Ideas",()=>{
+ const fixture=[
+  ...records,
+  sample("orphanProblem","opportunity"),
+  sample("orphanProblemWithMissingParent","opportunity","deletedGoal"),
+  sample("ideaUnderOrphanProblem","idea","orphanProblem"),
+  sample("orphanIdea","idea"),
+  sample("experimentUnderOrphanIdea","experiment","orphanIdea"),
+ ];
+ for (const view of ["opportunities","ideas"] as const) {
+  const h=getGoiHierarchy(fixture,view);
+  assert.deepEqual(h.orphanOpportunities.map(x=>x.id),["orphanProblem","orphanProblemWithMissingParent"]);
+  assert.ok(h.roots.every(x=>!h.orphanOpportunities.some(y=>y.id===x.id)));
+  assert.deepEqual(h.children("orphanProblem").map(x=>x.id),["ideaUnderOrphanProblem"]);
+ }
+ const ideas=getGoiHierarchy(fixture,"ideas");
+ assert.deepEqual(ideas.orphanIdeas.map(x=>x.id),["orphanIdea"]);
+ assert.ok(!ideas.roots.some(x=>x.id==="orphanIdea"));
+ assert.deepEqual(ideas.children("orphanIdea").map(x=>x.id),["experimentUnderOrphanIdea"]);
+ const problems=getGoiHierarchy(fixture,"opportunities");
+ assert.equal(problems.orphanIdeas.length,0);
+ assert.ok(problems.roots.some(x=>x.id==="goal"));
+});
+
+test("Orphaned opportunity cards appear in Ideas even if no ideas exist yet",()=>{
+ const h=getGoiHierarchy([sample("orphan","opportunity")],"ideas");
+ assert.equal(h.target.length,0);
+ assert.deepEqual(h.orphanOpportunities.map(x=>x.id),["orphan"]);
+ assert.deepEqual(h.roots,[]);
+});
+
+test("Orphan groups precede regular GOI branches in both subsection views",async()=>{
+ const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const start=page.indexOf('aria-label="Oportunidades-problemas huérfanos"');
+ const ideas=page.indexOf('aria-label="Ideas huérfanas"');
+ const regular=page.indexOf("{roots.map(renderGroup)}");
+ assert.ok(start > 0 && ideas > start && regular > ideas);
+ assert.match(page,/orphanOpportunities\.map\(renderGroup\)/);
+ assert.match(page,/orphanIdeas\.map\(renderGroup\)/);
+});

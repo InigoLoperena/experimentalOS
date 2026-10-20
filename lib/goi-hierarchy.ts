@@ -18,31 +18,44 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
     view === "opportunities" ? item.kind === "opportunity" : item.kind === "idea"
   );
   const byId = new Map(items.map(item => [item.id, item]));
+  const validParent = (item: Item, parent: Item | undefined) =>
+    !!parent && parent.project_id === item.project_id &&
+    (item.kind === "goal" ? parent.kind === "north_star" :
+     item.kind === "opportunity" ? parent.kind === "goal" :
+     item.kind === "idea" ? parent.kind === "opportunity" :
+     item.kind === "experiment" ? parent.kind === "idea" : false);
+  // Orphans are independent records, never deleted or hidden with their old parents.
+  const orphanProblemRecords = items.filter(item =>
+    item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")));
+
   const childrenIndex = new Map<string, Item[]>();
   for (const item of items) {
-    if (!item.parent_id || !VISIBLE_KINDS.has(item.kind)) continue;
+    if (!item.parent_id || !VISIBLE_KINDS.has(item.kind) || !validParent(item, byId.get(item.parent_id))) continue;
     const group = childrenIndex.get(item.parent_id) || [];
     group.push(item);
     childrenIndex.set(item.parent_id, group);
   }
 
   const included = new Set(target.map(item => item.id));
+  // The Ideas subsection also surfaces parentless opportunities, even if
+  // they have not yet been linked to an idea.
+  if (view === "ideas") orphanProblemRecords.forEach(item => included.add(item.id));
   const expanded = new Set<string>();
 
   // Opening all ancestors makes the selected kind visible by default:
   // opportunities => goal + opportunities; ideas => goal + opportunities + ideas.
   for (const selected of target) {
     const seen = new Set<string>([selected.id]);
-    let parentId = selected.parent_id;
-    while (parentId && !seen.has(parentId)) {
-      seen.add(parentId);
-      const parent = byId.get(parentId);
-      if (!parent) break;
+    let child = selected;
+    while (child.parent_id && !seen.has(child.parent_id)) {
+      const parent = byId.get(child.parent_id);
+      if (!validParent(child, parent) || !parent) break;
+      seen.add(parent.id);
       if (VISIBLE_KINDS.has(parent.kind)) {
         included.add(parent.id);
         expanded.add(parent.id);
       }
-      parentId = parent.parent_id;
+      child = parent;
     }
   }
 
@@ -62,9 +75,19 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
       .filter(item => included.has(item.id))
       .sort(byDateThenId);
 
-  const roots = items.filter(item =>
+  const allRoots = items.filter(item =>
     included.has(item.id) && VISIBLE_KINDS.has(item.kind) &&
-    (!item.parent_id || !included.has(item.parent_id))
+    (!item.parent_id || !included.has(item.parent_id) || !validParent(item, byId.get(item.parent_id)))
   ).sort(byDateThenId);
-  return { target, roots, children, expanded };
+  // Remove the classified orphans from the main list: a record is rendered
+  // in its orphan section OR the standard hierarchy, never in both.
+  const orphanOpportunities = (view === "opportunities" || view === "ideas")
+    ? allRoots.filter(item => item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")))
+    : [];
+  const orphanIdeas = view === "ideas"
+    ? allRoots.filter(item => item.kind === "idea" && !validParent(item, byId.get(item.parent_id || "")))
+    : [];
+  const orphanIds = new Set([...orphanOpportunities, ...orphanIdeas].map(item => item.id));
+  const roots = allRoots.filter(item => !orphanIds.has(item.id));
+  return { target, roots, children, expanded, orphanOpportunities, orphanIdeas };
 }

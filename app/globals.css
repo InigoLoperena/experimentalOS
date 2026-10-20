@@ -3173,3 +3173,25 @@ nav button,
 .goi-hierarchy-toggle > summary .goi-toggle-hide {display:none;}
 .goi-hierarchy-toggle[open] > summary .goi-toggle-show {display:none;}
 .goi-hierarchy-toggle[open] > summary .goi-toggle-hide {display:inline;}
+
+/* Orphaned opportunities and ideas appear before the ordinary GOI hierarchy. */
+.goi-orphans-section {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.goi-orphans-heading h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 5px;
+  font-size: 17px;
+}
+.goi-orphans-heading h2 > svg { color: var(--red-text); }
+.goi-orphans-section[aria-label="Ideas huérfanas"] .goi-orphans-heading h2 > svg { color: #ffd84d; }
+.goi-orphans-heading h2 > span { font-weight: 500; color: var(--muted); }
+.goi-orphans-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+.goi-orphans-section .goi-hierarchy-group { margin: 0; }
