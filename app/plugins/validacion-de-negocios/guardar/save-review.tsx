@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { PluginExperiment } from '@/lib/plugin-experiment';
+import { saveReviewedPluginExperiment } from '@/lib/plugin-review-client';
 
 type Review = { experiment: PluginExperiment; expires_at: string; projects: { id: string; title: string; workspace_name: string }[] };
 type Saved = { saved: boolean; title: string; project_name: string; message: string;  };
@@ -41,12 +42,7 @@ export function SaveExperimentReview() {
     if (!session || !review || !project || busy || saved) return;
     setBusy(true); setError('');
     try {
-      const fresh = await supabase!.auth.getSession();
-      if (!fresh.data.session) throw new Error('Inicia sesión para guardar el experimento.');
-      const response = await fetch('/api/plugin/experiments', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${fresh.data.session.access_token}` },
-        body: JSON.stringify({ action: 'save', confirmed: true, token, project_id: project }), cache: 'no-store' });
-      const result = await response.json();
-      if (!response.ok || result.saved !== true) throw new Error(result.error || 'No se ha confirmado el guardado.');
+      const result = await saveReviewedPluginExperiment(supabase!, session.user.id, token, project);
       setSaved(result); window.history.replaceState(null, '', window.location.pathname);
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar. Puedes volver a intentarlo sin duplicar la ficha.'); }
     finally { setBusy(false); }
@@ -54,7 +50,7 @@ export function SaveExperimentReview() {
   if (!checked) return <p role="status">Comprobando tu sesión…</p>;
   if (!supabase) return <p role="alert">El acceso a Experiments todavía no está configurado.</p>;
   if (!token) return <p role="alert">Falta el enlace de la ficha. Pide al complemento «prepara este experimento para guardarlo en Experiments» y abre el enlace completo que te devuelva.</p>;
-  if (!session) return <section className="business-plugin-section"><h2>Accede a tu cuenta</h2><p>Inicia sesión en Experiments en otra pestaña y vuelve aquí. Este enlace caduca a los 30 minutos. No compartas el enlace: da acceso al borrador, aunque cada persona solo puede guardarlo en sus propios proyectos.</p><a className="btn primary" href="/" target="_blank" rel="noopener noreferrer">Abrir Experiments e iniciar sesión</a><p>Si todavía no tienes un proyecto con permiso para crear experimentos, un administrador de tu equipo tendrá que darte acceso.</p></section>;
+  if (!session) return <section className="business-plugin-section"><h2>Accede a tu cuenta</h2><p>Inicia sesión en Experiments en otra pestaña y vuelve aquí. Este enlace caduca a los 30 minutos. No compartas el enlace: da acceso al borrador, aunque cada persona solo puede guardarlo en sus propios proyectos.</p><a className="btn primary" href="/" target="_blank" rel="noopener noreferrer">Abrir Experiments e iniciar sesión</a><p>Si todavía no tienes cuenta, regístrate en Experiments y crea un proyecto en tu espacio. Si usas un equipo compartido, necesitas permiso para crear experimentos.</p></section>;
   return <>
     <p>Cuenta: <strong>{session.user.email}</strong></p>
     {error && <p role="alert">{error}</p>}
@@ -65,7 +61,7 @@ export function SaveExperimentReview() {
         <dl>{Object.entries(labels).map(([key, label]) => { const value = review.experiment[key as keyof typeof labels]; return value !== undefined && value !== '' ? <div key={key} style={{ marginBottom: 16 }}><dt><strong>{label}</strong></dt><dd style={{ margin: '4px 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{value}</dd></div> : null; })}</dl>
       </section>
       <section className="business-plugin-section business-plugin-callout"><h2>Guardar en mi proyecto</h2>
-        {review.projects.length ? <><label htmlFor="plugin-save-project">Proyecto de destino</label><select id="plugin-save-project" value={project} onChange={e => setProject(e.target.value)} disabled={busy} style={{ display: 'block', width: '100%', margin: '10px 0 20px', padding: 12, color: '#0b1220', background: '#fff' }}><option value="">Elige un proyecto</option>{review.projects.map(p => <option key={p.id} value={p.id}>{p.workspace_name} · {p.title}</option>)}</select><p>Se creará una ficha de experimento contigo como Responsable. Las fichas existentes permanecerán sin cambios.</p><button className="btn primary" onClick={() => void save()} disabled={!project || busy}>Confirmar y guardar experimento</button></> : <p>No tienes proyectos con permiso para crear experimentos. Solicita acceso al administrador de tu espacio.</p>}
+        {review.projects.length ? <><label htmlFor="plugin-save-project">Proyecto de destino</label><select id="plugin-save-project" value={project} onChange={e => setProject(e.target.value)} disabled={busy} style={{ display: 'block', width: '100%', margin: '10px 0 20px', padding: 12, color: '#0b1220', background: '#fff' }}><option value="">Elige un proyecto</option>{review.projects.map(p => <option key={p.id} value={p.id}>{p.workspace_name} · {p.title}</option>)}</select><p>Se creará una ficha de experimento contigo como Responsable. Las fichas existentes permanecerán sin cambios.</p><button className="btn primary" onClick={() => void save()} disabled={!project || busy}>Confirmar y guardar experimento</button></> : <><p>No tienes proyectos con permiso para crear experimentos. Crea un proyecto en tu espacio o solicita permiso en tu equipo. Después vuelve aquí y pulsa «Volver a comprobar».</p><a className="btn" href="/proyectos" target="_blank" rel="noopener noreferrer">Abrir mis proyectos</a><button className="btn" onClick={() => setRetry(n => n + 1)} disabled={busy}>Volver a comprobar</button></>}
       </section>
     </>}
   </>;
