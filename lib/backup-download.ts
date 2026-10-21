@@ -9,7 +9,7 @@ export async function downloadBackup(snapshot: Backup, format: "csv" | "pdf" | "
     const { createBackupPdf } = await import("./backup-pdf");
     bytes = await createBackupPdf(snapshot);
   } else bytes = new TextEncoder().encode(format === "csv" ? backupCsv(snapshot) : backupJson(snapshot));
-  let filename = backupName(snapshot) + "." + format;
+  let filename = format === "csv" ? "xperiments-listado-proyectos-" + snapshot.exported_at.replace(/[:.]/g, "-") + ".csv" : backupName(snapshot) + "." + format;
   let mime = format === "pdf" ? "application/pdf" : format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
   if (originals) {
     const { createBackupArchive } = await import("./backup-archive");

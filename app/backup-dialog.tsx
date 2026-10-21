@@ -47,7 +47,7 @@ export function BackupDialog({ onClose, onExport }: {
         {progress && <p className="backup-progress" role="status" aria-live="polite">{progress}</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </div>
-      <div className="dialog-foot"><button type="button" className="btn" disabled={busy} onClick={onClose}>Cerrar</button><button className="btn primary" disabled={busy}><Download size={16} />{busy ? "Preparando copia…" : "Descargar copia"}</button></div>
+      <div className="dialog-foot"><button type="button" className="btn" disabled={busy} onClick={onClose}>Cerrar</button><button className="btn primary" disabled={busy}><Download size={16} />{busy ? "Preparando exportación…" : format === "csv" ? "Descargar CSV" : "Descargar copia"}</button></div>
     </form>
   </dialog>;
 }
