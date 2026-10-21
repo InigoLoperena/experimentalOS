@@ -11,7 +11,8 @@ export async function downloadBackup(snapshot: Backup, format: "csv" | "pdf" | "
   } else bytes = new TextEncoder().encode(format === "csv" ? backupCsv(snapshot) : backupJson(snapshot));
   let filename = format === "csv" ? "xperiments-listado-proyectos-" + snapshot.exported_at.replace(/[:.]/g, "-") + ".csv" : backupName(snapshot) + "." + format;
   let mime = format === "pdf" ? "application/pdf" : format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
-  if (originals) {
+  // CSV is always one clean four-column file, never a ZIP with extra JSON or attachments.
+  if (originals && format !== "csv") {
     const { createBackupArchive } = await import("./backup-archive");
     bytes = await createBackupArchive(snapshot, filename, bytes, downloadAttachment, progress,downloadDocument);
     filename = backupName(snapshot) + ".zip"; mime = "application/zip";
