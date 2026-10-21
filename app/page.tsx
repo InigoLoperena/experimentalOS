@@ -317,8 +317,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
 
 const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
-  { id: "mvp", label: "Experimentación de MVPs", icon: Microscope },
-  { id: "experiments", label: "Experimentos", icon: FlaskConical },
+  { id: "mvp", label: "MVPs Tree", icon: Microscope },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
   { id: "ai", label: "IA", icon: AIBrainIcon },
   { id: "map", label: "GOI Tree", icon: GitBranch },
@@ -328,6 +327,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
 ];
 const viewLabels: Partial<Record<View, string>> = {
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas",
+ experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
  mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
 };
@@ -1836,12 +1836,12 @@ export default function Home() {
               >
                 <I size={18} />
                 {label}
-                {id === "experiments" && (
+                {id === "map" && (
                   <span className="nav-count">{experiments.length}</span>
                 )}
               </button>
               {id === "mvp" && (
-                <div className="nav-subsections nav-mvp-subsections" aria-label="Secciones de Experimentación de MVPs">
+                <div className="nav-subsections nav-mvp-subsections" aria-label="Secciones de MVPs Tree">
                   {mvpSubsections.map(({id: section, label: sectionLabel, icon: SubIcon, accent}) => (
                     <button key={section} type="button"
                       className={"nav-mvp-subsection " + accent + (view === section ? " active" : "")}
@@ -1861,6 +1861,7 @@ export default function Home() {
                   </button>
                   <button className={`nav-goi-subsection opportunity ${view === "opportunities" ? "active" : ""}`.trim()} onClick={() => navigateView("opportunities")}><Search size={16} aria-hidden="true" />{viewLabels.opportunities}</button>
                   <button className={`nav-goi-subsection idea ${view === "ideas" ? "active" : ""}`.trim()} onClick={() => navigateView("ideas")}><Lightbulb size={16} aria-hidden="true" />Ideas</button>
+                  <button className={`nav-goi-subsection experiment ${view === "experiments" ? "active" : ""}`.trim()} onClick={() => navigateView("experiments")}><FlaskConical size={16} aria-hidden="true" />Experimentos <span className="nav-count">{experiments.length}</span></button>
                 </div>
               )}
             </Fragment>
@@ -2271,7 +2272,7 @@ export default function Home() {
                   <div className="section-heading">
                     <div>
                       <h2>Experimentos sin idea</h2>
-                      <p>Experimentos compartidos con Experimentación de MVPs que aún no están vinculados a una idea de GOI Tree.</p>
+                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una idea de GOI Tree.</p>
                     </div>
                   </div>
                   <div className="cards-grid">
@@ -3112,7 +3113,7 @@ export default function Home() {
                     </select>
                   </label>
                   <label>
-                    Hipótesis para Experimentación de MVPs
+                    Hipótesis para MVPs Tree
                     <select value={String(draft.fields.mvp_hypothesis_id || "")}
                       onChange={e => setDraft({...draft,fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
                       <option value="">Experimento sin hipótesis</option>

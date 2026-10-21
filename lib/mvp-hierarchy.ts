@@ -1,7 +1,7 @@
 import type { Item } from "./model";
 import { linkedHypothesis, linkedResearchIds } from "./mvp-relationships";
 
-export type MvpHierarchyView = "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research";
+export type MvpHierarchyView = "mvp" | "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research";
 const displayKinds = new Set<Item["kind"]>(["opportunity", "hypothesis", "experiment", "research"]);
 const byDateAndTitle=(a:Item,b:Item)=>a.created_at.localeCompare(b.created_at)||a.title.localeCompare(b.title,"es")||a.id.localeCompare(b.id);
 
@@ -34,10 +34,11 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
    for(const id of linkedResearchIds(item))link(item,id,["opportunity","hypothesis"]);
   }
  }
- const desiredKind:Item["kind"]=
-  view==="mvp_problems"?"opportunity":view==="mvp_hypotheses"?"hypothesis":
+ const desiredKind:Item["kind"] | null=
+  view==="mvp"?null:view==="mvp_problems"?"opportunity":view==="mvp_hypotheses"?"hypothesis":
   view==="mvp_experiments"?"experiment":"research";
- const target=local.filter(item=>item.kind===desiredKind);
+ // Overview includes every linked and unlinked node, even experiments without an idea.
+ const target=local.filter(item=>desiredKind===null || item.kind===desiredKind);
  const included=new Set(target.map(item=>item.id));
  const expanded=new Set<string>();
  // Make each selected kind and all ancestors visible on arrival, while
@@ -62,6 +63,11 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
   .filter(item=>included.has(item.id)).sort(byDateAndTitle);
  const roots=local.filter(item=>included.has(item.id) &&
   !(parents.get(item.id)||[]).some(parent=>included.has(parent.id))).sort(byDateAndTitle);
+ // Unlike GOI Tree's subsection default, MVPs Tree always displays the
+ // complete problem -> hypothesis -> experiment/research chain on arrival.
+ for(const [parentId,descendants] of childrenIndex){
+  if(included.has(parentId) && descendants.some(child=>included.has(child.id))) expanded.add(parentId);
+ }
  const unlinked=roots.filter(item=>item.kind!=="opportunity");
  const unlinkedIds=new Set(unlinked.map(item=>item.id));
  return {target,roots:roots.filter(item=>!unlinkedIds.has(item.id)),unlinked,children,expanded,parents};

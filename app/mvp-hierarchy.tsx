@@ -9,6 +9,7 @@ type Props={
  onCreate:(kind:Kind,parent:string|null)=>void;onOpen:(item:Item)=>void;onEdit:(item:Item)=>void;onDelete:(item:Item)=>void;
 };
 const labels:Record<MvpHierarchyView,{title:string,description:string,action:string,kind:Kind}>={
+ mvp:{title:"Árbol de validación",description:"Problemas u oportunidades → hipótesis → experimentos o investigación. Todos los niveles aparecen desplegados para mostrar sus relaciones.",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_problems:{title:"Problemas u Oportunidades",description:"Son la raíz de esta jerarquía. Cada uno puede tener varias hipótesis, además de investigaciones vinculadas.",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_hypotheses:{title:"Hipótesis",description:"Cada hipótesis es hija de un problema u oportunidad y puede comprobarse con investigaciones o experimentos.",action:"Añadir hipótesis",kind:"hypothesis"},
  mvp_experiments:{title:"Experimentos",description:"Los experimentos pueden validar hipótesis; sus vínculos con las ideas de GOI Tree permanecen independientes.",action:"Añadir experimento",kind:"experiment"},
@@ -32,7 +33,6 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   if(item.kind==="hypothesis")return <>{add("Añadir experimento","experiment",item.id)}{add("Investigar esta hipótesis","research",item.id)}</>;
   return null;
  };
- const countChildren=(id:string)=>hierarchy.children(id).length;
  const node=(item:Item,visited:Set<string>):React.ReactNode=>{
   if(visited.has(item.id))return null;
   const next=new Set(visited);next.add(item.id);
@@ -79,16 +79,16 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
  const group=(item:Item)=><section className="goi-hierarchy-group mvp-hierarchy-group" key={item.id}>{node(item,new Set())}</section>;
  return <div className="mvp-hierarchy-screen">
   <section className="mvp-hierarchy-heading panel">
-   <div><span className="eyebrow">Experimentación de MVPs · {project.title}</span><h2>{meta.title}</h2><p>{meta.description}</p></div>
+   <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>{meta.title}</h2><p>{meta.description}</p></div>
    {add(meta.action,meta.kind)}
   </section>
   <div className="mvp-hierarchy-list">
+   {hierarchy.roots.map(group)}
    {hierarchy.unlinked.length>0&&<section className="goi-orphans-section mvp-hierarchy-unlinked">
      <div className="goi-orphans-heading"><h2>Sin vincular <span>({hierarchy.unlinked.length})</span></h2>
      <p>Estos registros se conservan aunque falte su padre. Puedes asignarlo abriendo la ficha.</p></div>
      {hierarchy.unlinked.map(group)}
    </section>}
-   {hierarchy.roots.map(group)}
    {!hierarchy.target.length&&<div className="mvp-hierarchy-empty panel">
      <p>Aún no hay {meta.title.toLocaleLowerCase("es")} en este proyecto.</p>
      {add(meta.action,meta.kind)}

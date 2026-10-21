@@ -24,5 +24,7 @@ test('MVP subsection deep links round-trip without replacing the existing GOI Tr
   ['/experimentacion-mvps/problemas-oportunidades','/experimentacion-mvps/hipotesis','/experimentacion-mvps/experimentos','/experimentacion-mvps/investigacion']
  );
  assert.equal(viewForPath('/goi-tree/oportunidades'),'opportunities');
+ assert.equal(sectionPaths.experiments,'/goi-tree/experimentos');
+ assert.equal(viewForPath('/experimentos'),'experiments');
  assert.equal(viewForPath('/experimentos'),'experiments');
 });
