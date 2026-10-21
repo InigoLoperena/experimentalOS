@@ -2232,6 +2232,22 @@ export default function Home() {
                   </div>
                 </section>
               )}
+              {items.some(item => item.kind === "experiment" &&
+                (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "idea"))) && (
+                <section className="goi-orphaned-panel panel" aria-label="Experimentos sin idea">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Experimentos sin idea</h2>
+                      <p>Experimentos compartidos con Experimentación de MVPs que aún no están vinculados a una idea de GOI Tree.</p>
+                    </div>
+                  </div>
+                  <div className="cards-grid">
+                    {items.filter(item => item.kind === "experiment" &&
+                      (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "idea")))
+                      .map(item => itemCard(item))}
+                  </div>
+                </section>
+              )}
               <div className="section-heading">
                 <div>
                   <h2>Orden de ejecución</h2>
