@@ -3435,3 +3435,12 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
   background:var(--surface-raised);
 }
 @media(max-width:760px){.method-chain-mvp{grid-template-columns:1fr}}
+
+/* Semantic yellow hypothesis title and icon in card, detail and edit views. */
+.kind.hypothesis{color:var(--hypothesis-accent)}
+.kind.hypothesis > svg{color:var(--hypothesis-accent)}
+.hypothesis-detail-title{
+ display:flex;align-items:center;gap:10px;
+ color:var(--hypothesis-accent);overflow-wrap:anywhere;
+}
+.hypothesis-detail-title svg{flex-shrink:0;color:var(--hypothesis-accent)}

@@ -353,7 +353,11 @@ function IconFor({ kind }: { kind: Kind }) {
       ? Compass
       : kind === "experiment"
         ? FlaskConical
-        : kind === "idea"
+        : kind === "hypothesis"
+          ? Lightbulb
+          : kind === "research"
+            ? Microscope
+            : kind === "idea"
           ? Lightbulb
           : kind === "opportunity"
             ? Search
@@ -2851,7 +2855,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : selected.kind === "hypothesis" ? <h2 className="hypothesis-detail-title"><Lightbulb size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
             {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
               {selected.owner_id && (
@@ -3030,7 +3034,7 @@ export default function Home() {
                   {allItems.some((i) => i.id === draft.id) ? "EDITAR" : "CREAR"}{" "}
                   {draft.kind === "goal" && draft.fields.goi_section === "input_metrics" ? "INPUT METRIC" : kinds[draft.kind].toUpperCase()}
                 </span>
-                <h2>{draft.title || "Nueva ficha"}</h2>
+                <h2 className={draft.kind === "hypothesis" ? "hypothesis-detail-title" : undefined}>{draft.kind === "hypothesis" && <Lightbulb size={22} aria-hidden="true" />}{draft.title || "Nueva ficha"}</h2>
                 {draft.parent_id && ["opportunity","idea","experiment"].includes(draft.kind) && items.some(i => i.id === draft.parent_id) && (
                   <div className="record-relation"><span>Hijo de</span>{parentTag(draft)}</div>
                 )}
