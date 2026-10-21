@@ -2070,6 +2070,20 @@ export default function Home() {
               action={can('project','create') ? () => create("project") : undefined}
             />
           )}
+          {view === "mvp" && currentProject && (
+            <MvpExperimentation
+              project={currentProject} items={items}
+              readOnly={publicMode || (!demo && !editable)}
+              canCreate={kind => can(kind, "create")}
+              canEdit={kind => can(kind, "edit")}
+              canDelete={kind => can(kind, "delete")}
+              onCreate={createMvp}
+              onOpen={openMvp}
+              onEdit={editMvp}
+              onDelete={item => void deleteRecord(item)}
+              onEditProject={() => editMvp(currentProject)}
+            />
+          )}
           {view === "map" && currentProject && (
             <>
               <div className="stats">
@@ -2799,7 +2813,7 @@ export default function Home() {
                 Editar ficha
               </Action>
             )}
-            {can(selected.kind,'delete') && !demo && !publicMode && ["project", "experiment", "learning", "goal"].includes(selected.kind) && (
+            {can(selected.kind,'delete') && !demo && !publicMode && ["project", "experiment", "learning", "goal", "opportunity", "idea", "hypothesis", "research"].includes(selected.kind) && (
               <Action
                 disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => void deleteRecord(selected)}
@@ -2821,7 +2835,7 @@ export default function Home() {
             {supportsAttachments(selected.kind) ? <RecordAttachments key={selected.id}
               record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
-              {({ links, files }) => selected.kind === "experiment" ? <>
+              {({ links, files }) => selected.kind === "experiment" && !mvpEditor ? <>
                 <FieldDetails record={selected} fields={[...posthogChannels,'meta_ads','google_ads'].includes(String(selected.fields.channel))?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
                 {links}
                 {['meta_ads','google_ads'].includes(String(selected.fields.channel))?<>
@@ -2841,9 +2855,9 @@ export default function Home() {
                 </>}
 
                 {files}
-              </> : <><FieldDetails record={selected} fields={schemas[selected.kind]} />{links}{files}</>}
-            </RecordAttachments> : <FieldDetails record={selected} fields={schemas[selected.kind]} />}
-            {["goal", "opportunity", "idea"].includes(selected.kind) && !publicMode && (
+              </> : <><FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />{links}{files}</>}
+            </RecordAttachments> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}
+            {["goal", "opportunity", "idea", "hypothesis", "research", "experiment"].includes(selected.kind) && !publicMode && (
               <section className="record-activity">
                 <div className="record-activity-head">
                   <div>
