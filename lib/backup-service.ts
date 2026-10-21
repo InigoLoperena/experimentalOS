@@ -22,8 +22,13 @@ export async function readAllPages<T>(page: (from: number, to: number) => Promis
 }
 export async function fetchBackup(client: SupabaseClient, workspaceId: string): Promise<Backup> {
   const notes: string[] = [];
-  const table = <T>(name: string, select: string, order = "id") => readAllPages<T>((from, to) =>
-    client.from(name).select(select, { count: "exact" }).eq("workspace_id", workspaceId).order(order).range(from, to) as unknown as PromiseLike<Response<T>>);
+  const table = <T>(name: string, select: string, order: string | string[] = "id") => readAllPages<T>((from, to) => {
+    // Some tables have composite primary keys and no "id" column.
+    // Sort every component to make offset pagination deterministic.
+    let query = client.from(name).select(select, { count: "exact" }).eq("workspace_id", workspaceId);
+    for (const column of Array.isArray(order) ? order : [order]) query = query.order(column);
+    return query.range(from, to) as unknown as PromiseLike<Response<T>>;
+  });
   const [records, rawMembers, audit, attachments, comments, specs, variants, resources, observations, preparations, runs, steps, connections, knowledge, googlePreparations, smartleadPreparations, chats, usage, documents, snapshots, posthogPreparations, profiles, revisions] = await Promise.all([
     table<Item>("records", "*"),
     table<Member & { profiles: { name: string; avatar_url?: string | null } | null }>("members", "*,profiles(*)", "user_id"),
@@ -42,7 +47,7 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
     table<Record<string, unknown>>("metric_observations", "*"),
     table<Record<string, unknown>>("meta_campaign_preparations", "*", "experiment_id"),
     table<Record<string, unknown>>("meta_preparation_runs", "*"),
-    table<Record<string, unknown>>("meta_preparation_steps", "*", "request_id"),
+    table<Record<string, unknown>>("meta_preparation_steps", "*", ["run_id", "step_key"]),
     table<Record<string, unknown>>("integration_connections", "*"),
     table<Record<string, unknown>>("ai_knowledge", "*").catch(err=>{
       if(!["42P01","PGRST205"].includes(err.code))throw err;
@@ -56,7 +61,7 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
     table<Record<string, unknown>>('ai_documents','*'),
     table<Record<string, unknown>>('provider_result_snapshots','*'),
     table<Record<string, unknown>>('posthog_preparations','*'),
-    table<Record<string, unknown>>('integration_project_profiles','*'),
+    table<Record<string, unknown>>('integration_project_profiles','*',['project_id','provider']),
     table<Record<string, unknown>>('ai_knowledge_revisions','*'),
   ]);
   const ids = new Set(records.map(r => r.id));

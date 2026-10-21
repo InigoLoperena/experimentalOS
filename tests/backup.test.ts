@@ -62,13 +62,13 @@ test("failed, truncated or changing queries cannot silently return an incomplete
   await assert.rejects(readAllPages(async from => ({ data: [{ id: 1 }], error: null, count: from ? 3 : 2 })), /han cambiado/);
 });
 test("the full-data service scopes every query to the authenticated workspace and reads profile/audit fields", async () => {
-  const queries: { name: string; select?: string; scope?: string; order?: string }[] = [];
+  const queries: { name: string; select?: string; scope?: string; order?: string; orders?: string[] }[] = [];
   const tables: Record<string, unknown[]> = { records: sampleBackup.records, members: sampleBackup.members.map(m => ({ ...m, profiles: { name: m.name, avatar_url: null, updated_at: "today" } })), audit_log: sampleBackup.audit, record_attachments: sampleBackup.attachments, record_comments: sampleBackup.comments! };
   const client = { from(name: string) {
     const query = { name } as typeof queries[number]; queries.push(query);
     return { select(select: string, options: { count: string }) { query.select = select; assert.equal(options.count, "exact"); return this; },
       eq(key: string, value: string) { assert.equal(key, "workspace_id"); query.scope = value; return this; },
-      order(key: string) { query.order = key; return this; }, range(from: number, to: number) { return Promise.resolve({ data: tables[name].slice(from, to + 1), count: tables[name].length, error: null }); } };
+      order(key: string) { query.order = key; (query.orders ||= []).push(key); return this; }, range(from: number, to: number) { return Promise.resolve({ data: tables[name].slice(from, to + 1), count: tables[name].length, error: null }); } };
   } } as unknown as SupabaseClient;
   tables.experiment_specs=[{experiment_id:'e',workspace_id:'w',project_id:'p',code:'EXP-P-0001'}];
   tables.experiment_variants=[]; tables.external_resources=[]; tables.metric_observations=[{id:'m',workspace_id:'w',experiment_id:'e',metric:'clicks',value:12}];
@@ -80,7 +80,10 @@ test("the full-data service scopes every query to the authenticated workspace an
   tables.smartlead_preparations=[{experiment_id:'e',request_id:'s',campaign_id:'456',status:'linked'}];
   tables.ai_chat_entries=[{id:'chat',project_id:'p',user_id:'u',question:'Pregunta',answer:'Respuesta'}];
   tables.ai_preparation_usage=[{request_id:'usage',user_id:'u',reserved_usd:0.03,model:'gpt-4o-mini-transcribe-2025-12-15'}];
-  tables.ai_documents=[];tables.provider_result_snapshots=[];tables.posthog_preparations=[];tables.integration_project_profiles=[];tables.ai_knowledge_revisions=[];
+  tables.ai_documents=[];tables.provider_result_snapshots=[];tables.posthog_preparations=[];
+  // Integration profiles have no "id": their primary key is (project_id, provider).
+  tables.integration_project_profiles=[{workspace_id:'w',project_id:'p',provider:'posthog',connection_id:'connection',config:{project_name:'demo'},updated_at:'today'}];
+  tables.ai_knowledge_revisions=[];
   const backup = await fetchBackup(client, "w");
   assert.equal(queries.length, 23); assert.ok(queries.every(q => q.scope === "w"));
   assert.equal(JSON.parse(backupJson(backup)).monitoring.ai_knowledge[0].content,'Información cualitativa');
@@ -97,6 +100,10 @@ test("the full-data service scopes every query to the authenticated workspace an
   assert.deepEqual(backup.records, sampleBackup.records); assert.deepEqual(backup.audit, sampleBackup.audit);
   assert.deepEqual(backup.comments, sampleBackup.comments);
   assert.equal(backup.members[0].name, "Íñigo García");
+  assert.deepEqual(queries.find(q => q.name === "integration_project_profiles")?.orders,["project_id","provider"]);
+  assert.deepEqual(queries.find(q => q.name === "meta_preparation_steps")?.orders,["run_id","step_key"]);
+  assert.deepEqual(backup.monitoring?.integration_project_profiles,tables.integration_project_profiles);
+  assert.deepEqual(JSON.parse(backupJson(backup)).monitoring.integration_project_profiles,tables.integration_project_profiles);
 });
 test("ZIP preserves structured data and original files with identical names without collisions", async () => {
   const downloaded: string[] = [];
