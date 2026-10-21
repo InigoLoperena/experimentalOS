@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { unzipSync, strFromU8 } from "fflate";
 import { backupCsv, backupJson, recordPath, type Backup } from "../lib/backup";
 import { readAllPages, fetchBackup } from "../lib/backup-service";
