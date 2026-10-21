@@ -25,12 +25,14 @@ import {
   Users,
   X,
   LayoutGrid,
+  Microscope,
   UserRound,
   Plug,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
 import { getGoiHierarchy } from "@/lib/goi-hierarchy";
+import { MvpExperimentation } from "./mvp-experimentation";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -149,6 +151,18 @@ const schemas: Record<Kind, Field[]> = {
     { key: "source", label: "Fuente / método de medición" },
     { key: "period", label: "Periodo" },
   ],
+  hypothesis: [
+    { key: "belief", label: "¿Qué creemos que es cierto?", type: "textarea" },
+    { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
+    { key: "validation_need", label: "¿Qué necesitamos comprobar?", type: "textarea" },
+  ],
+  research: [
+    { key: "description", label: "Descripción", type: "textarea" },
+    { key: "audience", label: "Target" },
+    { key: "method", label: "Método", type: "select", options: ["Entrevistas", "Encuestas", "Análisis de mercado", "Investigación documental", "Observación", "Otro"] },
+    { key: "findings", label: "Hallazgos", type: "textarea" },
+    { key: "learning", label: "Aprendizaje", type: "textarea" },
+  ],
   opportunity: [
     {
       key: "evidence",
@@ -224,6 +238,44 @@ const schemas: Record<Kind, Field[]> = {
     { key: "other_url", label: "Otro enlace 3" },
   ],
 };
+const mvpSchemas: Partial<Record<Kind, Field[]>> = {
+  project: [
+    { key: "site_url", label: "Web" },
+    { key: "targets", label: "Targets (uno por línea)", type: "textarea" },
+    { key: "value_propositions", label: "Propuestas de valor (una por línea)", type: "textarea" },
+    { key: "monetization_channels", label: "Vías de monetización (una por línea)", type: "textarea" },
+    { key: "north_star", label: "North Star Metric" },
+  ],
+  opportunity: [
+    { key: "description", label: "Descripción", type: "textarea" },
+    { key: "opportunity_type", label: "Tipo", type: "select", options: ["Problema", "Oportunidad"] },
+    { key: "evidence", label: "Evidencias disponibles", type: "textarea" },
+    { key: "source", label: "Fuentes y enlaces", type: "textarea" },
+  ],
+  hypothesis: [
+    { key: "belief", label: "¿Qué creemos que es cierto?", type: "textarea" },
+    { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
+    { key: "validation_need", label: "¿Qué necesitamos comprobar?", type: "textarea" },
+  ],
+  research: [
+    { key: "description", label: "Descripción", type: "textarea" },
+    { key: "audience", label: "Target" },
+    { key: "method", label: "Método", type: "select", options: ["Entrevistas", "Encuestas", "Análisis de mercado", "Investigación documental", "Observación", "Otro"] },
+    { key: "findings", label: "Hallazgos", type: "textarea" },
+    { key: "learning", label: "Aprendizaje", type: "textarea" },
+  ],
+  experiment: [
+    { key: "description", label: "Descripción", type: "textarea" },
+    { key: "audience", label: "Target" },
+    { key: "metric", label: "North Star Metric principal" },
+    { key: "success_criteria", label: "Criterio de éxito", type: "textarea" },
+    { key: "start", label: "Fecha de inicio", type: "date" },
+    { key: "end", label: "Fecha de finalización", type: "date" },
+    { key: "result", label: "Resultados obtenidos", type: "textarea" },
+    { key: "learning", label: "Aprendizaje", type: "textarea" },
+    { key: "decision", label: "Decisión", type: "select", options: ["", "Continuar", "Iterar", "Descartar", "Investigar más"] },
+  ],
+};
 const experimentalBookCover = "/la-empresa-experimental.svg";
 const experimentalBookAmazon = "https://www.amazon.es/gp/product/B0GXPMFM7P/ref=kinw_myk_ro_title";
 const experimentalBookPdf = "https://drive.google.com/file/d/1dpZhjPz76bqfH8lcxpw9CppshkaDusxK/view?usp=sharing";
@@ -264,6 +316,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
 
 const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon }[] = [
   { id: "projects", label: "Proyectos", icon: LayoutGrid },
+  { id: "mvp", label: "Experimentación de MVPs", icon: Microscope },
   { id: "experiments", label: "Experimentos", icon: FlaskConical },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
   { id: "ai", label: "IA", icon: AIBrainIcon },
@@ -408,6 +461,7 @@ export default function Home() {
   },[]);
   function navigateView(destination:View){
     setView(destination);
+    if (destination !== 'mvp') setMvpEditor(false);
     setFilter('');
     const path=pathForView(destination);
     if(window.location.pathname!==path) window.history.pushState(window.history.state,'',path);
@@ -439,6 +493,7 @@ export default function Home() {
   const [googlePreparationTarget,setGooglePreparationTarget]=useState<string|null>(null);
   const [posthogPreparationTarget,setPosthogPreparationTarget]=useState<string|null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
+  const [mvpEditor, setMvpEditor] = useState(false);
   useEffect(()=>setDraftFiles([]),[draft?.id]);
   const [selectedHistory, setSelectedHistory] = useState<Activity[]>([]);
   const [recordComments, setRecordComments] = useState<RecordComment[]>([]);
@@ -470,7 +525,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai"].includes(view);
+  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai", "mvp"].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -829,7 +884,7 @@ export default function Home() {
     setCommentText("");
     setSelectedHistory([]);
     setRecordComments([]);
-    if (!selected || !["goal", "opportunity", "idea"].includes(selected.kind) || publicMode) return;
+    if (!selected || !["goal", "opportunity", "idea", "hypothesis", "research", "experiment"].includes(selected.kind) || publicMode) return;
     if (demo) {
       setSelectedHistory(activity.filter((entry) => entry.record_id === selected.id));
       setRecordComments(demoComments[selected.id] || []);
@@ -905,7 +960,7 @@ export default function Home() {
     }
     setCommentBusy(false);
   }
-  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics") {
+  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics", hypothesisId?: string | null) {
     if(!can(kind,'create')){tell('No tienes permiso para crear este tipo de ficha.');return;}
     if (!workspace) return;
     if (!demo && !schemaReady) {
@@ -938,7 +993,7 @@ export default function Home() {
       resolvedParentId = goalParent(resolvedParentId, items);
     }
 
-    if ((kind === "opportunity" || kind === "idea") && !resolvedParentId) {
+    if ((kind === "opportunity" || kind === "idea") && !resolvedParentId && view !== "mvp") {
       const requiredParentKind: Kind = kind === "opportunity" ? "goal" : "opportunity";
       const candidates = items.filter((i) => i.kind === requiredParentKind);
       if (!candidates.length) {
@@ -997,6 +1052,7 @@ export default function Home() {
         ...(kind === "goal"
           ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
           : {}),
+        ...(kind === "experiment" && hypothesisId ? { mvp_hypothesis_id: hypothesisId } : {}),
         ...(kind === "experiment"
           ? {
               impact: 5,
@@ -1012,6 +1068,20 @@ export default function Home() {
       created_by: user?.id || null,
       updated_by: user?.id || null,
     });
+  }
+  function createMvp(kind: Kind, parent: string | null = null) {
+    setMvpEditor(true);
+    create(kind, kind === "experiment" ? null : parent, undefined, kind === "experiment" ? parent : null);
+  }
+  function editMvp(record: Item) {
+    setMvpEditor(true);
+    setDraft(structuredClone(record));
+    setSelected(null);
+    setError("");
+  }
+  function openMvp(record: Item) {
+    setMvpEditor(true);
+    setSelected(record);
   }
   function openAIProposal(proposal:Preparation){
     if(!workspace||!currentProject||!can('experiment','create')||(!demo&&!schemaReady))return;
@@ -1516,7 +1586,7 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && schemas[draft.kind].filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" && (![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
+  const draftFields = (links?: ReactNode) => draft && (mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind]).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" && (![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 <label
