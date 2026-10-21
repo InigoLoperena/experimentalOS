@@ -993,19 +993,8 @@ export default function Home() {
       resolvedParentId = goalParent(resolvedParentId, items);
     }
 
-    if ((kind === "opportunity" || kind === "idea") && !resolvedParentId && view !== "mvp") {
-      const requiredParentKind: Kind = kind === "opportunity" ? "goal" : "opportunity";
-      const candidates = items.filter((i) => i.kind === requiredParentKind);
-      if (!candidates.length) {
-        tell(
-          kind === "opportunity"
-            ? "Crea primero un objetivo o una Input Metric en este proyecto antes de crear una oportunidad."
-            : "Crea primero una oportunidad en este proyecto antes de crear una idea.",
-        );
-        return;
-      }
-      if (candidates.length === 1) resolvedParentId = candidates[0].id;
-    }
+    // Keep truly unassigned opportunities and ideas under "Sin vincular".
+    // Never silently select an arbitrary GOI parent.
 
     setError("");
     const defaults = Object.fromEntries(
