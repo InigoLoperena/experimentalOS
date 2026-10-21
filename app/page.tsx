@@ -307,7 +307,7 @@ function PublicViewBanner({ onSignup }: { onSignup: () => void }) {
       <div>
         <strong>Vista pública.</strong>
         <p>
-          Estás explorando los proyectos, experimentos, aprendizajes y GOI Tree publicados por Imagine Builder en modo solo lectura.
+          Estás explorando los proyectos, experimentos, aprendizajes y Growth Tree publicados por Imagine Builder en modo solo lectura.
         </p>
       </div>
       <button onClick={onSignup}>Crear mi espacio gratis</button>
@@ -320,10 +320,10 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "mvp", label: "MVPs Tree", icon: Microscope },
   { id: "learning", label: "Documentar aprendizajes", icon: BookOpen },
   { id: "ai", label: "IA", icon: AIBrainIcon },
-  { id: "map", label: "GOI Tree", icon: GitBranch },
+  { id: "map", label: "Growth Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
-  { id: "method", label: "Cómo utilizar Experiments OS", icon: CircleHelp },
+  { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas",
@@ -1296,6 +1296,11 @@ export default function Home() {
     tell("Copia completa descargada");
   }
   const experiments = items.filter((i) => i.kind === "experiment");
+  // Distinct MVP records in the currently selected project; shared problems
+  // and experiments count once even though both trees display them.
+  const mvpTreeCount = items.filter(i =>
+    ["opportunity", "hypothesis", "research", "experiment"].includes(i.kind)
+  ).length;
   const northStarDescription =
     "Métrica que mide al mismo tiempo el valor que recibe el usuario y nuestra capacidad para monetizar.";
   function northStarForProject(project: Item) {
@@ -1558,9 +1563,9 @@ export default function Home() {
         context.registerTool(
           {
             name: "read_growth_workspace",
-            title: "Consultar el GOI Tree del proyecto",
+            title: "Consultar el Growth Tree del proyecto",
             description:
-              "Lee los registros visibles del proyecto seleccionado, con North Star, GOI Tree, experimentos y aprendizajes.",
+              "Lee los registros visibles del proyecto seleccionado, con North Star, Growth Tree, experimentos y aprendizajes.",
             inputSchema: {
               type: "object",
               properties: {},
@@ -1836,8 +1841,13 @@ export default function Home() {
               >
                 <I size={18} />
                 {label}
+                {id === "mvp" && (
+                  <span className="nav-count" title="Fichas de MVPs Tree en el proyecto seleccionado" aria-label={`${mvpTreeCount} fichas de MVPs Tree`}>
+                    {mvpTreeCount}
+                  </span>
+                )}
                 {id === "map" && (
-                  <span className="nav-count">{experiments.length}</span>
+                  <span className="nav-count" title="Experimentos del proyecto seleccionado">{experiments.length}</span>
                 )}
               </button>
               {id === "mvp" && (
@@ -1979,7 +1989,7 @@ export default function Home() {
                 {view === "map"
                   ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
                   : (mvpViews as readonly string[]).includes(view)
-                    ? "Problemas, hipótesis, investigaciones y experimentos vinculados en el mismo proyecto, con fichas compartidas con GOI Tree."
+                    ? "Problemas, hipótesis, investigaciones y experimentos vinculados en el mismo proyecto, con fichas compartidas con Growth Tree."
                     : view === "experiments"
                     ? "Documenta qué vas a probar y cómo sabrás si funciona."
                     : view === "learning"
@@ -1989,7 +1999,7 @@ export default function Home() {
                         : view === "integrations"
                           ? "Configura las cuentas y conexiones de tus proyectos en un único lugar."
                         : view === "projects"
-                          ? "Cada proyecto tiene su propio GOI Tree, experimentos y aprendizajes."
+                          ? "Cada proyecto tiene su propio Growth Tree, experimentos y aprendizajes."
                           : "Una guía sencilla para empezar a trabajar."}
               </p>
             </div>
@@ -2086,7 +2096,7 @@ export default function Home() {
           {projectScoped && !currentProject && (
             <Empty
               title="Empieza creando un proyecto"
-              text="Cada proyecto tendrá su propio GOI Tree, experimentos y aprendizajes."
+              text="Cada proyecto tendrá su propio Growth Tree, experimentos y aprendizajes."
               action={can('project','create') ? () => create("project") : undefined}
             />
           )}
@@ -2184,7 +2194,7 @@ export default function Home() {
               )}
               <div className="section-heading">
                 <div>
-                  <h2>GOI Tree · {currentProject.title}</h2>
+                  <h2>Growth Tree · {currentProject.title}</h2>
                   <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Ideas → Experimentos</p>
                 </div>
                 <Action onClick={() => void load()} disabled={loading}>
@@ -2272,7 +2282,7 @@ export default function Home() {
                   <div className="section-heading">
                     <div>
                       <h2>Experimentos sin idea</h2>
-                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una idea de GOI Tree.</p>
+                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una idea de Growth Tree.</p>
                     </div>
                   </div>
                   <div className="cards-grid">
@@ -2334,7 +2344,7 @@ export default function Home() {
             <div className="goi-hierarchy-list">
               {(() => {
                 const { target, expanded, roots, children, orphanOpportunities, orphanIdeas } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
-                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del GOI Tree." />;
+                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
                 // Keep each selected subsection visible with all its ancestors.
                 // Only levels below the selected subsection start collapsed.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
@@ -2507,7 +2517,7 @@ export default function Home() {
                         navigateView("map");
                       }}
                     >
-                      Abrir GOI Tree
+                      Abrir Growth Tree
                     </Action>
                     {can('project','edit') && (
                       <Action onClick={() => setSelected(p)}>
@@ -3106,7 +3116,7 @@ export default function Home() {
               {draft.kind === "experiment" && mvpEditor && (
                 <>
                   <label>
-                    Idea en GOI Tree (opcional)
+                    Idea en Growth Tree (opcional)
                     <select value={draft.parent_id || ""} onChange={e => setDraft({...draft,parent_id:e.target.value || null})}>
                       <option value="">Experimento sin idea</option>
                       {items.filter(item => item.kind === "idea").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
@@ -3286,7 +3296,7 @@ function Auth({
         </p>
         <div className="auth-steps">
           <span>North Star</span>
-          <span>GOI Tree</span>
+          <span>Growth Tree</span>
           <span>Experimentos</span>
         </div>
       </div>
@@ -3442,12 +3452,48 @@ function Method() {
         <h2>1. Empieza por un proyecto</h2>
         <p>
           En <strong>Proyectos</strong>, crea un espacio para cada producto o
-          iniciativa. Selecciona un proyecto para consultar su GOI Tree,
-          experimentos, aprendizajes e IA.
+          iniciativa. Selecciona uno para trabajar con sus dos árboles:
+          <strong> MVPs Tree</strong> para investigar y validar ideas de negocio
+          y <strong>Growth Tree</strong> para organizar objetivos, oportunidades
+          y crecimiento. Ambos utilizan el mismo proyecto, equipo e información.
         </p>
       </section>
       <section className="panel">
-        <h2>2. Organiza tus oportunidades en GOI Tree</h2>
+        <h2>2. Descubre y valida en MVPs Tree</h2>
+        <div className="method-chain method-chain-mvp">
+          {["Problemas u Oportunidades", "Hipótesis", "Experimentos o Investigación"].map((label,index)=>(
+            <span key={label}>
+              <small>0{index+1}</small>
+              {label}
+            </span>
+          ))}
+        </div>
+        <p>
+          <strong>Primero, identifica problemas u oportunidades</strong> de tus
+          posibles clientes. Crea un registro por cada uno y añade las
+          evidencias que tengas. Después, añade las <strong>hipótesis</strong>
+          que intentan explicar o resolver cada problema.
+        </p>
+        <p>
+          <strong>Comprueba las hipótesis de dos maneras:</strong> con
+          <strong> Investigación</strong> (entrevistas, encuestas, observación
+          o análisis documental) para obtener hallazgos cualitativos, o con
+          <strong> Experimentos</strong> para probar una solución o propuesta
+          y medir sus resultados. Una misma hipótesis puede tener varias
+          investigaciones y experimentos asociados.
+        </p>
+        <p>
+          El árbol muestra sus hijos por defecto. Puedes contraer o desplegar
+          una rama completa con <strong>Mostrar hijos / Ocultar hijos</strong>.
+          Si una hipótesis o un experimento aún no tiene vínculo, permanecerá
+          visible en <strong>Sin vincular</strong> para asignarlo después.
+        </p>
+        <a href="/experimentacion-mvps">
+          Abrir MVPs Tree <ArrowUpRight size={14} />
+        </a>
+      </section>
+      <section className="panel">
+        <h2>3. Organiza el crecimiento en Growth Tree</h2>
         <div className="method-chain">
           {[
             "North Star",
@@ -3455,25 +3501,39 @@ function Method() {
             "Oportunidades-problemas",
             "Ideas",
             "Experimentos",
-          ].map((label, index) => (
+          ].map((label,index)=>(
             <span key={label}>
-              <small>0{index + 1}</small>
+              <small>0{index+1}</small>
               {label}
             </span>
           ))}
         </div>
         <p>
-          Define la <strong>North Star Metric</strong> de tu proyecto.
-          Objetivos e Input Metrics cuelgan de ella al mismo nivel.
-          De ellos nacen oportunidades-problemas; de cada oportunidad,
-          ideas que podrás validar mediante experimentos.
+          Define la <strong>North Star Metric</strong> del proyecto. De ella
+          dependen los <strong>Objetivos</strong> y las
+          <strong> Input Metrics</strong>, situados al mismo nivel. Cada uno
+          puede contener oportunidades o problemas; de estos nacen
+          <strong> Ideas</strong> que puedes validar mediante
+          <strong> Experimentos</strong>. Recorre la jerarquía con sus
+          controles de hijos expandibles.
         </p>
-        <a href="https://producthackers.com/es/blog/que-es-goi-tree/" target="_blank" rel="noopener noreferrer">
-          Aprende más sobre GOI Tree <ArrowUpRight size={14} />
+        <p className="method-shared-trees">
+          <strong>Cómo se conectan ambos árboles:</strong> los
+          <strong> problemas y oportunidades</strong> y los
+          <strong> experimentos</strong> son exactamente las mismas fichas en
+          MVPs Tree y Growth Tree. Crear, editar o eliminar una de estas
+          fichas actualiza automáticamente su visualización en ambos,
+          respetando los permisos. No se duplican datos. En MVPs Tree un
+          experimento puede depender de una <strong>Hipótesis</strong>, mientras
+          que en Growth Tree puede depender de una <strong>Idea</strong>.
+          Ambas relaciones son independientes y opcionales.
+        </p>
+        <a href="/goi-tree">
+          Abrir Growth Tree <ArrowUpRight size={14} />
         </a>
       </section>
       <section className="panel">
-        <h2>3. Investiga y consulta la IA del proyecto</h2>
+        <h2>4. Investiga y consulta la IA del proyecto</h2>
         <p>
           En <strong>IA</strong>, pregunta por problemas, hipótesis y próximos pasos.
           Desde <strong>Memoria del proyecto → Importar información</strong>,
@@ -3481,31 +3541,39 @@ function Method() {
           La IA utiliza el contexto disponible, pero debes verificar sus conclusiones.
         </p>
         <p>
-          Puedes dictar preguntas o adjuntar documentos al chat.
-          Para utilizar la IA necesitas sesión y una conexión de OpenAI
-          configurada por el administrador en Integraciones.
+          Puedes dictar preguntas o adjuntar documentos al chat. Para utilizar
+          la IA necesitas sesión y una conexión de OpenAI configurada
+          por el administrador en Integraciones. También puedes guardar
+          investigaciones como fichas dentro de MVPs Tree y vincularlas a hipótesis.
         </p>
         <a href="/guia-investigacion" target="_blank" rel="noopener noreferrer">
           Guía para investigar un mercado desde cero <ArrowUpRight size={14} />
         </a>
       </section>
       <section className="panel">
-        <h2>4. Diseña un experimento medible</h2>
+        <h2>5. Diseña un experimento verificable</h2>
         <p>
-          Define la <strong>hipótesis, métrica principal, criterio de éxito,
-          audiencia y reparto de tráfico</strong> antes de empezar.
-          Usa ICE (impacto, confianza y facilidad) para priorizar.
-          Documentar una ficha no ejecuta por sí solo el test: debes
-          implementarlo en tu producto o herramienta de experimentación.
+          Define la <strong>hipótesis, la métrica o evidencia principal, el
+          criterio de éxito y la audiencia</strong> antes de empezar. Cuando
+          corresponda, concreta también el reparto de tráfico y utiliza
+          ICE (impacto, confianza y facilidad) para priorizar. Un estudio
+          cualitativo puede documentarse como Investigación en MVPs Tree.
+        </p>
+        <p>
+          Los experimentos son comunes a ambos árboles: puedes vincularlos
+          a una hipótesis, a una idea o a ambas. Documentar una ficha no
+          ejecuta por sí solo el test; debes implementarlo en tu producto
+          o herramienta de experimentación.
         </p>
       </section>
       <section className="panel">
-        <h2>5. Guarda y reutiliza los aprendizajes</h2>
+        <h2>6. Guarda y reutiliza los aprendizajes</h2>
         <p>
           Tras cada prueba, pulsa <strong>Documentar aprendizaje</strong>:
-          registra resultados, evidencia, limitaciones y siguiente decisión,
-          incluso si la hipótesis no se confirma. Así mejorarás el contexto
-          que consultas con la IA en futuras investigaciones.
+          registra resultados, evidencias, limitaciones y siguiente decisión,
+          incluso si la hipótesis no se confirma. Las fichas compartidas
+          conservan sus comentarios, archivos e historial de cambios en
+          ambos árboles.
         </p>
         <p>
           <strong>Compartir:</strong> sin iniciar sesión se puede navegar por

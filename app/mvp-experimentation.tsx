@@ -1,5 +1,5 @@
 "use client";
-import { BarChart3, ExternalLink, Gift, Layers, Leaf, Link2, Microscope, Pencil, Users } from "lucide-react";
+import { BarChart3, ExternalLink, FlaskConical, Gift, Layers, Leaf, Lightbulb, Link2, Microscope, Pencil, Users } from "lucide-react";
 import type { Item, Kind } from "@/lib/model";
 import { linkedResearchIds } from "@/lib/mvp-relationships";
 import { MvpHierarchy } from "./mvp-hierarchy";
@@ -71,9 +71,9 @@ export function MvpExperimentation({
   <div className="mvp-tree-path" aria-label="Jerarquía de validación">
    <span><Microscope size={16}/> Problemas u Oportunidades</span>
    <span aria-hidden="true">→</span>
-   <span>Hipótesis</span>
+   <span><Lightbulb size={16} aria-hidden="true"/> Hipótesis</span>
    <span aria-hidden="true">→</span>
-   <span>Experimentos / Investigación</span>
+   <span><FlaskConical size={16} aria-hidden="true"/> Experimentos / Investigación</span>
   </div>
   <MvpHierarchy
    key={project.id}

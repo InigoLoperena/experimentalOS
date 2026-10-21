@@ -75,7 +75,7 @@ export function StrategicAI({workspace,project,disabled,canImport,canEdit,canDel
    <div className="ai-intro-header">
     <div className="ai-intro-copy">
      <h2><AIBrainIcon size={28}/> IA / {workspace.name||'Mi espacio de trabajo'}</h2>
-     <p className="ai-chat-intro">Una IA que aprende de todos tus experimentos, hipótesis y aprendizajes y utiliza la metodología GOI Tree para enfocar el crecimiento en la estrategia. Importa información y contexto relevante de tus proyectos, cualitativo o cuantitativo, en archivos CSV, PDF, DOCX o TXT para hacerla más inteligente.</p>
+     <p className="ai-chat-intro">Una IA que aprende de todos tus experimentos, hipótesis y aprendizajes y utiliza la metodología Growth Tree para enfocar el crecimiento en la estrategia. Importa información y contexto relevante de tus proyectos, cualitativo o cuantitativo, en archivos CSV, PDF, DOCX o TXT para hacerla más inteligente.</p>
      <a className="ai-research-guide-link" href="/guia-investigacion" target="_blank" rel="noopener noreferrer">Consejos para investigar mercados, problemas, soluciones e importar información útil</a>
     </div>
     <img className="ai-project-mascot" src="/einstein-project-ia.webp" width={160} height={151} alt="Einstein con una bombilla y una probeta"/>

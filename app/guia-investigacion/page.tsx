@@ -162,7 +162,7 @@ Proyecto ejemplo,2026-10-13,visitantes,landing,registros,8,80,personas,Analytics
           <li>«Diseña tres experimentos baratos para nuestra fase actual, con métrica, guardrails y criterio de éxito definido previamente».</li>
           <li>«¿Qué investigación necesitamos hacer antes de poder defender estas hipótesis?».</li>
         </ul>
-        <p>Para conectar la investigación con la estrategia, prueba: «Para el proyecto indicado, relaciona las fuentes importadas con nuestro objetivo y GOI Tree. Separa hechos, hipótesis y desconocidos; cita las fuentes disponibles y propón un experimento para comprobar la suposición más arriesgada, con métrica y criterio de éxito».</p>
+        <p>Para conectar la investigación con la estrategia, prueba: «Para el proyecto indicado, relaciona las fuentes importadas con nuestro objetivo y Growth Tree. Separa hechos, hipótesis y desconocidos; cita las fuentes disponibles y propón un experimento para comprobar la suposición más arriesgada, con métrica y criterio de éxito».</p>
         <p><strong>Cómo se utiliza:</strong> tus archivos y conocimientos se guardan en Supabase, dentro de tu espacio. Al consultar la IA se recupera contexto autorizado y relevante y se envía a OpenAI para preparar la respuesta. No se entrena un modelo propio ni se envían todos los documentos en cada pregunta. Importar un CSV aporta contexto; no crea automáticamente métricas en los paneles de experimentos. Revisa las conclusiones y valida los aprendizajes antes de tratarlos como hechos.</p>
         <p>Hay dos fuentes complementarias: una biblioteca general de metodología y referencias en OpenAI, compartida por todos los espacios, y la memoria privada de cada equipo en Supabase. Los documentos que importas aquí permanecen en tu espacio: no se añaden automáticamente a la biblioteca general ni se comparten con otros equipos. La IA combina los fragmentos pertinentes de ambas fuentes; conservar y recuperar información no equivale a reentrenar el modelo.</p>
       </section>
@@ -175,7 +175,7 @@ Proyecto ejemplo,2026-10-13,visitantes,landing,registros,8,80,personas,Analytics
           <tr><td>5–8</td><td>Realizar entrevistas con perfiles variados y observar tareas reales.</td><td>Notas anonimizadas, fricciones y citas con contexto.</td></tr>
           <tr><td>9–10</td><td>Diseñar y probar una landing, prototipo o servicio manual.</td><td>Primeras métricas con conteos, denominadores y segmentos.</td></tr>
           <tr><td>11–12</td><td>Triangular cualitativo + cuantitativo y puntuar incertidumbre.</td><td>Ranking de oportunidades y datos por comprobar.</td></tr>
-          <tr><td>13–14</td><td>Importar hallazgos, alimentar el GOI Tree y definir 2–3 experimentos.</td><td>Memoria inicial útil y plan de aprendizaje medible.</td></tr>
+          <tr><td>13–14</td><td>Importar hallazgos, alimentar el Growth Tree y definir 2–3 experimentos.</td><td>Memoria inicial útil y plan de aprendizaje medible.</td></tr>
         </tbody></table></div>
         <p>Al acabar deberías poder responder: «¿Quién tiene un problema real?», «¿Cómo lo sabemos?», «¿Qué alternativa utiliza?», «¿Qué ignoramos todavía?» y «¿Cuál es el siguiente experimento más barato que puede cambiar nuestra decisión?».</p>
       </section>
