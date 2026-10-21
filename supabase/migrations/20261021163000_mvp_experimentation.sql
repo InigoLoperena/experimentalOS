@@ -91,36 +91,24 @@ create trigger zz_cleanup_mvp_links after delete on public.records
 for each row execute function public.cleanup_mvp_record_links();
 revoke all on function public.cleanup_mvp_record_links() from public;
 
--- Public visitors receive only explicitly approved non-sensitive fields.
--- The private/authenticated workspace still reads through existing RLS.
+-- Extend the public reader allowlist without revealing private workspace fields.
 do $mvp$
-declare definition text := pg_get_functiondef('experimental_private.read_public_preview()'::regprocedure);
+declare
+ definition text := pg_get_functiondef('experimental_private.read_public_preview()'::regprocedure);
+ old_kinds text := chr(39)||'objective'||chr(39)||','||chr(39)||'kr'||chr(39);
+ new_kinds text := chr(39)||'objective'||chr(39)||','||chr(39)||'kr'||chr(39)||','||chr(39)||'hypothesis'||chr(39)||','||chr(39)||'research'||chr(39);
+ old_field text := chr(39)||'channel'||chr(39);
+ new_field text := chr(39)||array_to_string(array['channel','mvp_hypothesis_id','mvp_links','targets','value_propositions','monetization_channels','belief','reason','validation_need','method','findings','description','end'],chr(39)||','||chr(39))||chr(39);
 begin
-  if position('''hypothesis'',''research''' in definition)=0 then
-    if position('''objective'',''kr''' in definition)=0 then
-      raise exception 'Unexpected public preview record-kind allowlist'; end if;
-    definition:=replace(definition,'''objective'',''kr''',
-       '''objective'',''kr'',''hypothesis'',''research''');
-  end if;
-  if position('''mvp_hypothesis_id''' in definition)=0 then
-    definition:=replace(definition,$old
-  end if;
-  execute definition;
-end $mvp$;
-
-notify pgrst,'reload schema';
-commit;
-channel'$old$,
-       $new
-  end if;
-  execute definition;
-end $mvp$;
-
-notify pgrst,'reload schema';
-commit;
-channel','mvp_hypothesis_id','mvp_links','targets','value_propositions','monetization_channels','belief','reason','validation_need','method','findings','description','end'$new$);
-  end if;
-  execute definition;
+ if position(chr(39)||'research'||chr(39) in definition)=0 then
+   if position(old_kinds in definition)=0 then raise exception 'Unexpected public record allowlist';end if;
+   definition:=replace(definition,old_kinds,new_kinds);
+ end if;
+ if position(chr(39)||'mvp_hypothesis_id'||chr(39) in definition)=0 then
+   if position(old_field in definition)=0 then raise exception 'Unexpected public field allowlist';end if;
+   definition:=replace(definition,old_field,new_field);
+ end if;
+ execute definition;
 end $mvp$;
 
 notify pgrst,'reload schema';
