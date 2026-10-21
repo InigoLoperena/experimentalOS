@@ -103,8 +103,22 @@ begin
        '''objective'',''kr'',''hypothesis'',''research''');
   end if;
   if position('''mvp_hypothesis_id''' in definition)=0 then
-    definition:=replace(definition,'''channel''',
-       '''channel'',''mvp_hypothesis_id'',''mvp_links'',''targets'',''value_propositions'',''monetization_channels'',''belief'',''reason'',''validation_need'',''method'',''findings'',''description'',''end'');
+    definition:=replace(definition,$old
+  end if;
+  execute definition;
+end $mvp$;
+
+notify pgrst,'reload schema';
+commit;
+channel'$old$,
+       $new
+  end if;
+  execute definition;
+end $mvp$;
+
+notify pgrst,'reload schema';
+commit;
+channel','mvp_hypothesis_id','mvp_links','targets','value_propositions','monetization_channels','belief','reason','validation_need','method','findings','description','end'$new$);
   end if;
   execute definition;
 end $mvp$;
