@@ -22,6 +22,14 @@ export function mvpTargets(record: Item): string[] {
 export function linkedHypothesis(experiment: Item): string {
   return String(experiment.fields.mvp_hypothesis_id || "");
 }
+function safeProjectUrl(value: unknown): string | null {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 type Props = {
   project: Item;
@@ -133,8 +141,8 @@ export function MvpExperimentation({
       </div>
       <div className="mvp-project-fields">
         {mvpProjectFields.map(field => <div key={field.key}><strong>{field.label}</strong>
-          {field.key === "site_url" && project.fields.site_url
-            ? <a href={String(project.fields.site_url)} rel="noopener noreferrer" target="_blank">{String(project.fields.site_url)}</a>
+          {field.key === "site_url" && safeProjectUrl(project.fields.site_url)
+            ? <a href={safeProjectUrl(project.fields.site_url)!} rel="noopener noreferrer" target="_blank">{String(project.fields.site_url)}</a>
             : lines(project.fields[field.key]).length
               ? <ul>{lines(project.fields[field.key]).map((line,index)=><li key={index}>{line}</li>)}</ul>
               : <span>Sin definir</span>}
@@ -163,6 +171,8 @@ export function MvpExperimentation({
               {expandedAll?"Contraer todo":"Expandir todo"}
             </button>
             {createButton("+ Añadir problema u oportunidad", "opportunity")}
+            {createButton("+ Añadir hipótesis", "hypothesis")}
+            {createButton("+ Añadir experimento", "experiment")}
           </div>
         </header>
         {problems.map(problem => (
