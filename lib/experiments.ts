@@ -18,7 +18,8 @@ export const experimentFields: {
 
 ];
 const iceKeys = new Set(["impact", "confidence", "ease"]);
-const legacyKeys = ["secondary_metrics", "audience", "traffic_plan", "risks"];
+const legacyKeys = ["secondary_metrics", "audience", "traffic_plan", "risks",
+  "description", "end", "result", "learning", "decision", "mvp_hypothesis_id"];
 export const experimentSections = {
   primary: experimentFields.filter(f => !iceKeys.has(f.key) && f.key !== "posthog_experiment_id"),
   ice: experimentFields.filter(f => iceKeys.has(f.key)),

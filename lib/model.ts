@@ -4,6 +4,8 @@ export type Kind =
   | "north_star"
   | "goal"
   | "opportunity"
+  | "hypothesis"
+  | "research"
   | "idea"
   | "experiment"
   | "learning"
@@ -48,6 +50,8 @@ export const kinds: Record<Kind, string> = {
   north_star: "North Star",
   goal: "Objetivo",
   opportunity: "Oportunidad-problema",
+  hypothesis: "Hipótesis",
+  research: "Investigación",
   idea: "Idea",
   experiment: "Experimento",
   learning: "Aprendizaje",
@@ -59,6 +63,8 @@ export const parents: Record<Kind, Kind | null> = {
   north_star: null,
   goal: "north_star",
   opportunity: "goal",
+  hypothesis: "opportunity",
+  research: null,
   idea: "opportunity",
   experiment: "idea",
   learning: "experiment",
@@ -91,7 +97,7 @@ export function validate(
   if (!item.title.trim()) return "Escribe un nombre.";
   if(item.kind==='experiment')try{parseChannel(item.fields.channel);executionFromFields(item.fields);}catch(error){return error instanceof Error?error.message:'Revisa la configuración del experimento.';}
   if (
-    !["experiment", "learning", "goal", "opportunity", "idea", "kr"].includes(item.kind) &&
+    !["experiment", "learning", "goal", "opportunity", "idea", "kr", "hypothesis"].includes(item.kind) &&
     parents[item.kind] &&
     !item.parent_id
   )

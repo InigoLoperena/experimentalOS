@@ -1,6 +1,6 @@
 /** Canonical paths for each Xperiments section. */
 export const sectionPaths = {
- projects: '/proyectos', experiments: '/experimentos', learning: '/aprendizajes',
+ projects: '/proyectos', mvp: '/experimentacion-mvps', experiments: '/experimentos', learning: '/aprendizajes',
  ai: '/ia', map: '/goi-tree', goals: '/goi-tree/objetivos',
  input_metrics: '/goi-tree/input-metrics', opportunities: '/goi-tree/oportunidades',
  ideas: '/goi-tree/ideas', team: '/equipo',

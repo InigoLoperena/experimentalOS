@@ -10,7 +10,7 @@ export type Attachment = {
   preview_url?: string;
 };
 export function supportsAttachments(kind: Kind) {
-  return ["experiment", "learning", "north_star", "goal", "opportunity", "idea"].includes(kind);
+  return ["experiment", "learning", "north_star", "goal", "opportunity", "idea", "hypothesis", "research"].includes(kind);
 }
 export function linkSlots(attachments: Attachment[]) {
   const slots: (Attachment | undefined)[] = Array(3).fill(undefined);
