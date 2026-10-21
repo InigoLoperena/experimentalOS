@@ -5,6 +5,7 @@ import { kinds, parents, validate, type Item } from "../lib/model";
 import { cleanExperimentFields, normalizeExperiment } from "../lib/experiments";
 import { supportsAttachments } from "../lib/attachments";
 import { sectionPaths, viewForPath } from "../lib/section-routes";
+import { buildMvpBoard, linkedResearchIds } from "../lib/mvp-relationships";
 
 const record = (kind:Item["kind"],fields:Item["fields"]={}) =>
  ({kind,title:"Prueba",parent_id:null,fields});
@@ -47,10 +48,52 @@ test("The MVP board displays both modules through the existing CRUD, including u
  assert.match(page,/onDelete=\{item => void deleteRecord\(item\)\}/);
  assert.match(component,/Experimentos sin hipótesis/);
  assert.match(component,/Hipótesis sin problema/);
- assert.match(component,/linkedHypothesis\(item\) === hypothesisId/);
  assert.match(component,/mvpTargets\(item\)/);
  assert.match(migration,/create trigger zz_mvp_record_links/);
  assert.match(migration,/create trigger zz_cleanup_mvp_links/);
  assert.match(migration,/''hypothesis'' then ''opportunity''/);
  assert.doesNotMatch(migration,/drop table public\.records/i);
+});
+
+test("MVP relationships keep shared IDs, orphans and project isolation",()=>{
+ const r=(id:string,kind:Item["kind"],project_id:string,parent_id:string|null=null,fields:Item["fields"]={}):Item=>({
+  id,kind,project_id,parent_id,fields,title:id,workspace_id:"w",related_id:null,owner_id:null,created_by:null,updated_by:null,created_at:"",updated_at:""
+ });
+ const source=[
+  r("o1","opportunity","p"),r("o2","opportunity","p"),r("h1","hypothesis","p","o1"),r("h2","hypothesis","p","o2"),
+  r("hx","hypothesis","p"),r("e1","experiment","p",null,{mvp_hypothesis_id:"h1"}),
+  r("e2","experiment","p",null,{mvp_hypothesis_id:"h2"}),r("ex","experiment","p"),
+  r("research","research","p",null,{mvp_links:"o1,h1,o1"}),
+  r("other","experiment","other",null,{mvp_hypothesis_id:"h1"}),
+ ];
+ const all=buildMvpBoard(source,"p");
+ assert.equal(all.problems.length,2);
+ assert.equal(all.hypotheses.length,3);
+ assert.equal(all.experiments.length,3);
+ assert.equal(all.research.length,1);
+ assert.deepEqual(all.orphanHypotheses.map(x=>x.id),["hx"]);
+ assert.deepEqual(all.orphanExperiments.map(x=>x.id),["ex"]);
+ assert.deepEqual(linkedResearchIds(source[8]),["o1","h1"]);
+ assert.deepEqual(buildMvpBoard(source,"p","o1").visibleHypotheses.map(x=>x.id),["h1"]);
+ assert.deepEqual(buildMvpBoard(source,"p","o1").visibleExperiments.map(x=>x.id),["e1"]);
+ assert.deepEqual(buildMvpBoard(source,"p",null,"h2").visibleExperiments.map(x=>x.id),["e2"]);
+ assert.equal(buildMvpBoard(source,"p","o1","h2").selectedHypothesis,null);
+ assert.equal(buildMvpBoard(source,"other").experiments.length,1);
+});
+test("MVP board has four colored lanes and preserves GOI visual and edit routes",async()=>{
+ const [component,styles,page]=await Promise.all([
+  readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+ ]);
+ for(const lane of ["research","problems","hypotheses","experiments"]){
+  assert.ok(component.includes("mvp-lane-"+lane));
+  assert.ok(styles.includes(".mvp-lane-"+lane));
+ }
+ assert.match(component,/readOnly&&canEdit/);
+ assert.match(component,/canDelete\(item.kind\)/);
+ assert.match(component,/aria-pressed=\{selected\}/);
+ assert.match(component,/buildMvpBoard\(items,project.id/);
+ assert.match(page,/view === "map" && currentProject/);
+ assert.match(page,/view === "mvp" && currentProject/);
 });
