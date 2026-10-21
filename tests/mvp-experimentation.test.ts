@@ -113,7 +113,7 @@ test("MVP subsection hierarchy preserves the same shared records, parents, desce
   mk("unlinkedResearch","research"),mk("outsider","experiment",null,{},"outside"),
  ];
  const problemHierarchy=getMvpHierarchy(example,"mvp_problems");
- assert.equal(problemHierarchy.roots[0],example[1]); // shared reference, not copied
+ assert.equal(problemHierarchy.roots.find(x=>x.id==="problem"),example[1]); // shared reference, not copied
  assert.deepEqual(problemHierarchy.children("problem").map(x=>x.id),["hypothesis","research"]);
  assert.deepEqual(problemHierarchy.children("hypothesis").map(x=>x.id),["experiment","research"]);
  assert.equal(problemHierarchy.expanded.size,0); // top-level children initially collapsed
@@ -129,7 +129,7 @@ test("MVP subsection hierarchy preserves the same shared records, parents, desce
  assert.ok(researchHierarchy.children("hypothesis").some(x=>x.id==="research"));
  assert.deepEqual(researchHierarchy.unlinked.map(x=>x.id),["unlinkedResearch"]);
  assert.equal(experimentHierarchy.target.some(x=>x.id==="outsider"),false);
- assert.equal(problemHierarchy.roots[0],example[1]);
+ assert.equal(problemHierarchy.roots.find(x=>x.id==="problem"),example[1]);
  const {getGoiHierarchy}=await import("../lib/goi-hierarchy");
  const goi=getGoiHierarchy(example,"opportunities");
  assert.equal(goi.target[0],problemHierarchy.target[0]); // one DB record in both systems
