@@ -2223,7 +2223,7 @@ export default function Home() {
                 <section className="goi-orphaned-panel panel">
                   <div className="section-heading">
                     <div>
-                      <h2>Elementos sin padre</h2>
+                      <h2>Sin vincular · Elementos sin padre</h2>
                       <p>Conservados aunque se haya eliminado su elemento padre. Abre cada ficha para reasignarla cuando quieras.</p>
                     </div>
                   </div>
