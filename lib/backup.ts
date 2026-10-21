@@ -43,38 +43,48 @@ export function csvCell(value: unknown): string {
   if (/^[\s\uFEFF]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
   return '"' + text.replace(/"/g, '""') + '"';
 }
+/**
+ * Human-readable CSV of the GOI Tree and experiments. Unlike the JSON backup,
+ * this intentionally exports no IDs, account information or auxiliary tables.
+ */
 export function backupCsv(backup: Backup): string {
-  const fields = [...new Set(backup.records.flatMap(r => Object.keys(r.fields || {})))].sort();
-  const header = ["grupo", "tipo", "id", "proyecto_id", "proyecto", "padre_id", "padre", "relacionado_id", "responsable_id", "responsable", "nombre", "rol", "creado", "actualizado", "creado_por", "actualizado_por", "datos_json", ...fields.map(f => "campo_" + f)];
-  const rows: Record<string, unknown>[] = [];
-  const records = new Map(backup.records.map(r => [r.id, r]));
-  const members = new Map(backup.members.map(m => [m.user_id, m]));
-  rows.push({ grupo: "Exportación", tipo: "Metadatos", id: backup.workspace_id, creado: backup.exported_at,
-    datos_json: { schema_version: backup.schema_version, exported_at: backup.exported_at, workspace_id: backup.workspace_id, notes: backup.notes } });
-  for (const r of backup.records) {
-    const row: Record<string, unknown> = { grupo: r.kind === "project" ? "Proyectos" : r.kind === "experiment" ? "Experimentos" : r.kind === "learning" ? "Aprendizajes" : "GOI Tree", tipo: kinds[r.kind] || r.kind,
-      id: r.id, proyecto_id: r.project_id, proyecto: records.get(r.project_id || "")?.title, padre_id: r.parent_id,
-      padre: records.get(r.parent_id || "")?.title, relacionado_id: r.related_id, responsable_id: r.owner_id,
-      responsable: members.get(r.owner_id || "")?.name, nombre: r.title, creado: r.created_at, actualizado: r.updated_at,
-      creado_por: r.created_by, actualizado_por: r.updated_by, datos_json: r };
-    for (const key of fields) row["campo_" + key] = r.fields[key];
-    rows.push(row);
-  }
-  for (const m of backup.members) rows.push({ grupo: "Equipo", tipo: "Miembro", id: m.user_id, nombre: m.name, rol: roleLabels[m.role] || m.role, datos_json: m });
-  for (const a of backup.attachments) {
-    const record = records.get(a.record_id);
-    rows.push({ grupo: "Adjuntos", tipo: a.kind, id: a.id, nombre: a.name, padre_id: a.record_id, padre: record?.title,
-      proyecto_id: record?.project_id, proyecto: records.get(record?.project_id || "")?.title, creado: a.created_at, creado_por: a.created_by, datos_json: a });
-  }
-  for (const c of backup.comments || []) {
-    const record = records.get(String(c.record_id));
-    rows.push({ grupo: "Comentarios", tipo: "Comentario", id: c.id, nombre: c.body, padre_id: c.record_id, padre: record?.title,
-      proyecto_id: record?.project_id, proyecto: records.get(record?.project_id || "")?.title,
-      creado: c.created_at, creado_por: c.author_id, responsable: c.author_name, datos_json: c });
-  }
-  for (const [type, values] of Object.entries(backup.monitoring || {})) for (const value of values) rows.push({ grupo: "Preparación y resultados", tipo: type, id: value.id || value.experiment_id, proyecto_id: value.project_id, proyecto: records.get(String(value.project_id))?.title, padre_id: value.experiment_id, padre: records.get(String(value.experiment_id))?.title, nombre: value.label || value.metric || value.code, creado: value.created_at, actualizado: value.updated_at, datos_json: value });
-  for (const a of backup.audit) rows.push({ grupo: "Historial", tipo: a.action, id: a.id, nombre: a.title, creado: a.created_at, creado_por: a.actor_id, responsable: a.actor_name, datos_json: a });
-  return "\uFEFF" + [header.map(csvCell).join(";"), ...rows.map(row => header.map(key => csvCell(row[key])).join(";"))].join("\r\n") + "\r\n";
+  const header = ["tipo", "proyecto", "padre", "nombre"];
+  const byId = new Map(backup.records.map(record => [record.id, record]));
+  const classification = (record: Item): [string, number] | null => {
+    if (record.kind === "goal") {
+      return record.fields.goi_section === "input_metrics"
+        ? ["Input Metric", 1] : ["Objetivo", 0];
+    }
+    if (record.kind === "opportunity") return ["Oportunidad-problema", 2];
+    if (record.kind === "idea") return ["Idea", 3];
+    if (record.kind === "experiment") return ["Experimento", 4];
+    return null;
+  };
+  const projectName = (record: Item): string => {
+    const project = byId.get(record.project_id || "");
+    return project?.kind === "project" ? project.title : "";
+  };
+  const compareName = (a: string, b: string): number =>
+    a.localeCompare(b, "es", { sensitivity: "base" });
+  const eligible = backup.records.filter(record => classification(record) !== null);
+  eligible.sort((a, b) => {
+    const projectOrder = compareName(projectName(a), projectName(b));
+    if (projectOrder) return projectOrder;
+    const typeOrder = classification(a)![1] - classification(b)![1];
+    if (typeOrder) return typeOrder;
+    return compareName(a.title, b.title) || a.id.localeCompare(b.id);
+  });
+  const rows = eligible.map(record => {
+    const parent = byId.get(record.parent_id || "");
+    return [
+      classification(record)![0],
+      projectName(record),
+      parent && parent.project_id === record.project_id ? parent.title : "",
+      record.title,
+    ];
+  });
+  return "\uFEFF" + [header, ...rows].map(row => row.map(csvCell).join(";")).join("\r\n") + "\r\n";
 }
+
 export function backupName(backup: Backup) { return "experimental-os-copia-" + backup.exported_at.replace(/[:.]/g, "-"); }
 export function archiveName(value: string) { return value.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/^\.+/, "_").slice(0, 130) || "archivo"; }

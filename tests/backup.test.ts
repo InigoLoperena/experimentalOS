@@ -35,22 +35,47 @@ function parseCsv(source: string) {
   }
   return rows.slice(1).map(row => Object.fromEntries(rows[0].map((key, i) => [key, row[i]])));
 }
-test("CSV preserves every project, field, relation, profile and audit payload safely", () => {
-  const output = backupCsv(sampleBackup); assert.ok(output.startsWith("\uFEFF"));
+test("CSV contains exactly four readable columns and only requested GOI and experiment kinds", () => {
+  const output = backupCsv(sampleBackup);
+  assert.ok(output.startsWith("\uFEFF"));
+  assert.equal(output.slice(1).split("\r\n")[0], '"tipo";"proyecto";"padre";"nombre"');
   const rows = parseCsv(output);
-  assert.equal(rows.length, 1 + sampleBackup.records.length + sampleBackup.members.length + sampleBackup.attachments.length + sampleBackup.audit.length + sampleBackup.comments!.length);
-  for (const r of sampleBackup.records) assert.deepEqual(JSON.parse(rows.find(x => JSON.parse(x.datos_json).id === r.id && x.grupo !== "Historial")!.datos_json), r);
-  const experiment = rows.find(x => x.grupo === "Experimentos")!;
-  assert.equal(experiment.nombre, "'=Experimento;\"A\"");
-  assert.equal(experiment.campo_hypothesis, sampleBackup.records[6].fields.hypothesis);
-  assert.equal(experiment.campo_current, "0"); assert.equal(experiment.campo_focus, "false");
-  assert.ok(experiment.campo_tags.startsWith("'="));
-  assert.equal(rows.filter(x => x.grupo === "Equipo")[0].nombre, "Íñigo García");
-  assert.deepEqual(JSON.parse(rows.find(x => x.grupo === "Historial")!.datos_json), sampleBackup.audit[0]);
-  assert.deepEqual(JSON.parse(rows.find(x => x.grupo === "Comentarios")!.datos_json), sampleBackup.comments![0]);
+  assert.equal(rows.length, 4);
+  assert.ok(rows.every(row => Object.keys(row).join(",") === "tipo,proyecto,padre,nombre"));
+  assert.deepEqual(rows.map(row => [row.tipo, row.proyecto, row.padre, row.nombre]), [
+    ["Objetivo", "Proyecto España", "North Star", "Goal retención"],
+    ["Oportunidad-problema", "Proyecto España", "Goal retención", "Oportunidad"],
+    ["Idea", "Proyecto España", "Oportunidad", "Idea"],
+    ["Experimento", "Proyecto España", "Idea", "'" + sampleBackup.records[6].title],
+  ]);
+  for(const excluded of ["datos_json", "grupo", "proyecto_id", "padre_id", "campo_", "Íñigo García", "Aprendizaje acción", "Segundo proyecto"]) {
+    assert.ok(!output.includes(excluded), "Unexpected CSV content: " + excluded);
+  }
   assert.equal(JSON.parse(backupJson(sampleBackup)).records.length, 9);
   assert.equal(recordPath(sampleBackup.records[6], sampleBackup.records), 'North Star / Goal retención / Oportunidad / Idea / =Experimento;"A"');
 });
+
+test("CSV groups projects alphabetically, distinguishes Input Metrics and leaves missing parents blank", () => {
+  const projectA = {...record("project-a", "project", null), title:"Árbol"};
+  const projectZ = {...record("project-z", "project", null), title:"Zorro"};
+  const nsm = {...record("north-star", "north_star", "project-z"), title:"North Star"};
+  const objective = {...record("objective", "goal", "project-z"), title:"Interés", parent_id:nsm.id};
+  const metric = {...record("metric", "goal", "project-z", {goi_section:"input_metrics"}), title:"Usuarios registrados", parent_id:nsm.id};
+  const orphanProblem = {...record("orphanProblem", "opportunity", "project-z"), title:"Problema huérfano"};
+  const orphanIdea = {...record("orphanIdea", "idea", "project-z"), title:"Idea sin padre", parent_id:"missing"};
+  const ideaA = {...record("ideaA", "idea", "project-a"), title:"Idea Árbol"};
+  const experimentA = {...record("experimentA", "experiment", "project-a"), title:"Experimento Árbol", parent_id:ideaA.id};
+  const extra = {...sampleBackup, records:[metric, orphanIdea, projectZ, experimentA, nsm, objective, orphanProblem, projectA, ideaA]};
+  const rows = parseCsv(backupCsv(extra));
+  assert.deepEqual(rows.map(row => row.proyecto), ["Árbol","Árbol","Zorro","Zorro","Zorro","Zorro"]);
+  assert.deepEqual(rows.map(row => row.tipo), ["Idea","Experimento","Objetivo","Input Metric","Oportunidad-problema","Idea"]);
+  assert.equal(rows.find(row=>row.nombre==="Interés")?.padre,"North Star");
+  assert.equal(rows.find(row=>row.nombre==="Usuarios registrados")?.padre,"North Star");
+  assert.equal(rows.find(row=>row.nombre==="Problema huérfano")?.padre,"");
+  assert.equal(rows.find(row=>row.nombre==="Idea sin padre")?.padre,"");
+  assert.equal(rows.find(row=>row.nombre==="Experimento Árbol")?.padre,"Idea Árbol");
+});
+
 test("pagination exports beyond 1000 rows, including a server cap below requested page size", async () => {
   const all = Array.from({ length: 1203 }, (_, id) => ({ id })); const offsets: number[] = [];
   const rows = await readAllPages(async (from, to) => { offsets.push(from); return { data: all.slice(from, Math.min(to + 1, from + 100)), error: null, count: all.length }; });
@@ -90,12 +115,12 @@ test("the full-data service scopes every query to the authenticated workspace an
   assert.equal(backup.schema_version,8); assert.equal(backup.monitoring?.metric_observations[0].value,12);
   for(const table of ['google_ads_preparations','smartlead_preparations','ai_chat_entries','ai_preparation_usage']){
     assert.deepEqual(JSON.parse(backupJson(backup)).monitoring[table],tables[table]);
-    assert.ok(backupCsv(backup).includes(table));
+    assert.ok(!backupCsv(backup).includes(table));
   }
   assert.ok(backup.notes.some(note=>note.includes('conversaciones de otros miembros permanecen privadas')));
   assert.equal(backup.monitoring?.meta_preparation_steps[0].request_id,'request');
   assert.ok(backup.notes.some(note=>note.includes('no se exportan')));
-  assert.ok(backupCsv(backup).includes('EXP-P-0001')); assert.equal(JSON.parse(backupJson(backup)).monitoring.metric_observations[0].metric,'clicks');
+  assert.ok(!backupCsv(backup).includes('EXP-P-0001')); assert.equal(JSON.parse(backupJson(backup)).monitoring.metric_observations[0].metric,'clicks');
   assert.equal(queries.find(q => q.name === "members")?.select, "*,profiles(*)");
   assert.deepEqual(backup.records, sampleBackup.records); assert.deepEqual(backup.audit, sampleBackup.audit);
   assert.deepEqual(backup.comments, sampleBackup.comments);
