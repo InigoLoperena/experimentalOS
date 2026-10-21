@@ -3052,6 +3052,41 @@ export default function Home() {
                   </select>
                 </label>
               )}
+              {draft.kind === "experiment" && mvpEditor && (
+                <>
+                  <label>
+                    Idea en GOI Tree (opcional)
+                    <select value={draft.parent_id || ""} onChange={e => setDraft({...draft,parent_id:e.target.value || null})}>
+                      <option value="">Experimento sin idea</option>
+                      {items.filter(item => item.kind === "idea").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Hipótesis para Experimentación de MVPs
+                    <select value={String(draft.fields.mvp_hypothesis_id || "")}
+                      onChange={e => setDraft({...draft,fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
+                      <option value="">Experimento sin hipótesis</option>
+                      {items.filter(item => item.kind === "hypothesis").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+                    </select>
+                  </label>
+                </>
+              )}
+              {draft.kind === "research" && (
+                <fieldset className="mvp-link-fieldset full">
+                  <legend>Vincular a problemas e hipótesis (puedes elegir varios)</legend>
+                  {items.filter(item => item.kind === "opportunity" || item.kind === "hypothesis").map(item => {
+                    const selectedLinks=String(draft.fields.mvp_links || "").split(",").filter(Boolean);
+                    return <label className="mvp-link-option" key={item.id}>
+                      <input type="checkbox" checked={selectedLinks.includes(item.id)} onChange={e => {
+                        const links=e.target.checked ? [...selectedLinks,item.id] : selectedLinks.filter(id=>id!==item.id);
+                        setDraft({...draft,fields:{...draft.fields,mvp_links:links.join(",")}});
+                      }}/>
+                      {kinds[item.kind]}: {item.title}
+                    </label>;
+                  })}
+                  {!items.some(item => item.kind === "opportunity" || item.kind === "hypothesis") && <p>Crea primero un problema o una hipótesis para poder vincular esta investigación.</p>}
+                </fieldset>
+              )}
               {draft.kind === "kr" && (
                 <label>
                   Goal vinculado

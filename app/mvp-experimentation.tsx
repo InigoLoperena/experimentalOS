@@ -101,7 +101,7 @@ export function MvpExperimentation({
     const branch = experiments.filter(item => linkedHypothesis(item) === hypothesisId);
     return <div className="mvp-nested mvp-experiment-list">
       {branch.map(item => card(item, "experiment"))}
-      {createButton("+ Añadir experimento", "experiment")}
+      {createButton("+ Añadir experimento", "experiment", hypothesisId)}
     </div>;
   };
   const hypothesisNodes = (problem: Item) => {
