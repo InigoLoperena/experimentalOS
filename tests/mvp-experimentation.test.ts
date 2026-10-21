@@ -36,19 +36,23 @@ test("The MVP experiment editor never discards GOI, PostHog, or new MVP results 
  assert.equal(normalizeExperiment(item).fields.execution_config,"{}");
 });
 
-test("The MVP board displays both modules through the existing CRUD, including unmatched experiments",async()=>{
- const [page,component,migration] = await Promise.all([
+test("MVPs Tree displays the shared GOI records in a visible hierarchical overview",async()=>{
+ const [page,component,hierarchy,migration] = await Promise.all([
   readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../supabase/migrations/20261021163000_mvp_experimentation.sql",import.meta.url),"utf8")
  ]);
  assert.match(page,/view === "mvp" && currentProject/);
  assert.match(page,/items=\{items\}/);
  assert.match(page,/onCreate=\{createMvp\}/);
  assert.match(page,/onDelete=\{item => void deleteRecord\(item\)\}/);
- assert.match(component,/Experimentos sin hipótesis/);
- assert.match(component,/Hipótesis sin problema/);
- assert.match(component,/linkedResearchIds\(item\)/);
+ assert.match(component,/MVPs Tree/);
+ assert.match(component,/<MvpHierarchy/);
+ assert.match(component,/view="mvp"/);
+ assert.doesNotMatch(component,/Ver hipótesis/);
+ assert.match(hierarchy,/Sin vincular/);
+ assert.match(hierarchy,/Mostrar hijos/);
  assert.match(migration,/create trigger zz_mvp_record_links/);
  assert.match(migration,/create trigger zz_cleanup_mvp_links/);
  assert.match(migration,/''hypothesis'' then ''opportunity''/);
@@ -80,22 +84,23 @@ test("MVP relationships keep shared IDs, orphans and project isolation",()=>{
  assert.equal(buildMvpBoard(source,"p","o1","h2").selectedHypothesis,null);
  assert.equal(buildMvpBoard(source,"other").experiments.length,1);
 });
-test("MVP board has four colored lanes and preserves GOI visual and edit routes",async()=>{
- const [component,styles,page]=await Promise.all([
+test("MVPs Tree reuses GOI's hierarchical disclosures and restricts edits in read-only mode",async()=>{
+ const [component,hierarchy,styles,page]=await Promise.all([
   readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
  ]);
- for(const lane of ["research","problems","hypotheses","experiments"]){
-  assert.ok(component.includes("mvp-lane-"+lane));
-  assert.ok(styles.includes(".mvp-lane-"+lane));
- }
- assert.match(component,/readOnly&&canEdit/);
- assert.match(component,/canDelete\(item.kind\)/);
- assert.match(component,/aria-pressed=\{selected\}/);
- assert.match(component,/buildMvpBoard\(items,project.id/);
+ assert.match(component,/<MvpHierarchy/);
+ assert.match(component,/readOnly=\{readOnly\}/);
+ assert.match(hierarchy,/!readOnly&&canCreate/);
+ assert.match(hierarchy,/!readOnly&&<div className="mvp-hierarchy-actions"/);
+ assert.match(hierarchy,/goi-hierarchy-toggle/);
+ assert.match(styles,/\.goi-hierarchy-children/);
+ assert.match(styles,/\.mvp-hierarchy-experiment\{--node-accent:var\(--experiment-accent\)/);
  assert.match(page,/view === "map" && currentProject/);
  assert.match(page,/view === "mvp" && currentProject/);
+ assert.ok(!page.includes('{ id: "experiments", label: "Experimentos", icon: FlaskConical }'));
 });
 
 test("MVP subsection hierarchy preserves the same shared records, parents, descendants and research links",async()=>{
@@ -116,10 +121,10 @@ test("MVP subsection hierarchy preserves the same shared records, parents, desce
  assert.equal(problemHierarchy.roots.find(x=>x.id==="problem"),example[1]); // shared reference, not copied
  assert.deepEqual(problemHierarchy.children("problem").map(x=>x.id),["hypothesis","research"]);
  assert.deepEqual(problemHierarchy.children("hypothesis").map(x=>x.id),["experiment","research"]);
- assert.equal(problemHierarchy.expanded.size,0); // top-level children initially collapsed
+ assert.ok(problemHierarchy.expanded.has("problem")); // descendants visible by default
  const hypothesisHierarchy=getMvpHierarchy(example,"mvp_hypotheses","p");
  assert.ok(hypothesisHierarchy.expanded.has("problem"));
- assert.ok(!hypothesisHierarchy.expanded.has("hypothesis"));
+ assert.ok(hypothesisHierarchy.expanded.has("hypothesis"));
  assert.deepEqual(hypothesisHierarchy.unlinked.map(x=>x.id),["orphanHypothesis"]);
  const experimentHierarchy=getMvpHierarchy(example,"mvp_experiments","p");
  assert.ok(experimentHierarchy.expanded.has("problem"));
@@ -170,4 +175,50 @@ test("MVP links cannot attach records from different projects in hierarchy",asyn
  const research=getMvpHierarchy(records,"mvp_research","a");
  assert.deepEqual(research.unlinked.map(i=>i.id),["cross-research"]);
  assert.ok(!research.target.some(i=>i.project_id==="b"));
+});
+
+test("MVPs Tree overview opens every nested level, without duplicating shared records",async()=>{
+ const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
+ const mk=(id:string,kind:Item["kind"],parent_id:string|null=null,fields:Item["fields"]={},project_id="one"):Item=>({
+  id,kind,parent_id,fields,project_id,workspace_id:"w",title:id,related_id:null,owner_id:null,
+  created_by:null,updated_by:null,created_at:"",updated_at:""
+ });
+ const dataset=[
+  mk("problem","opportunity"),
+  mk("hypothesis","hypothesis","problem"),
+  mk("experiment","experiment",null,{mvp_hypothesis_id:"hypothesis"}),
+  mk("investigation","research",null,{mvp_links:"hypothesis"}),
+  mk("unlinkedExperiment","experiment"),
+  mk("external","experiment",null,{mvp_hypothesis_id:"hypothesis"},"other")
+ ];
+ const view=getMvpHierarchy(dataset,"mvp","one");
+ assert.deepEqual(view.target.map(x=>x.id),["problem","hypothesis","experiment","investigation","unlinkedExperiment"]);
+ assert.deepEqual(view.roots.map(x=>x.id),["problem"]);
+ assert.deepEqual(view.children("problem").map(x=>x.id),["hypothesis"]);
+ assert.deepEqual(view.children("hypothesis").map(x=>x.id),["experiment","investigation"]);
+ assert.ok(view.expanded.has("problem"));
+ assert.ok(view.expanded.has("hypothesis"));
+ assert.deepEqual(view.unlinked.map(x=>x.id),["unlinkedExperiment"]);
+ assert.equal(view.children("problem")[0],dataset[1]);
+});
+
+test("Experiments live only under MVPs Tree and GOI Tree with a unified purple accent",async()=>{
+ const [page,css,routes]=await Promise.all([
+  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  import("../lib/section-routes")
+ ]);
+ assert.ok(page.includes('{ id: "mvp", label: "MVPs Tree", icon: Microscope }'));
+ assert.doesNotMatch(page,/\{ id: "experiments", label: "Experimentos", icon: FlaskConical \}/);
+ const mvpMenu=page.indexOf('id === "mvp" &&');
+ const goiMenu=page.indexOf('id === "map" &&',mvpMenu);
+ assert.ok(mvpMenu>0&&goiMenu>mvpMenu);
+ const ideas=page.indexOf('navigateView("ideas")',goiMenu);
+ const experiments=page.indexOf('navigateView("experiments")',goiMenu);
+ assert.ok(ideas>0&&experiments>ideas);
+ assert.match(css,/\.mvp-lane-experiments\{--lane:var\(--experiment-accent\)/);
+ assert.match(css,/\.mvp-hierarchy-experiment\{--node-accent:var\(--experiment-accent\)/);
+ assert.match(css,/nav-goi-subsection\.experiment/);
+ assert.equal(routes.sectionPaths.experiments,"/goi-tree/experimentos");
+ assert.equal(routes.viewForPath("/experimentos"),"experiments");
 });
