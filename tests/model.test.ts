@@ -73,6 +73,8 @@ test("legacy experiments can be edited and exported without obsolete constraints
     metric: "M",
     start: "2026-10-03",
     impact: 7,
+    // MVP experimentation preserves the previously ignored end date.
+    end: "2020-01-01",
   });
   assert.equal(normalized.project_id, original.project_id);
   assert.equal(normalized.parent_id, original.parent_id);

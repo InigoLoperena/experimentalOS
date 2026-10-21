@@ -1052,6 +1052,7 @@ export default function Home() {
         ...(kind === "goal"
           ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
           : {}),
+        ...(kind === "opportunity" && view === "mvp" ? { opportunity_type: "Problema" } : {}),
         ...(kind === "experiment" && hypothesisId ? { mvp_hypothesis_id: hypothesisId } : {}),
         ...(kind === "experiment"
           ? {
