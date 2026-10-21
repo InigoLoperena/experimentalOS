@@ -35,45 +35,57 @@ function parseCsv(source: string) {
   }
   return rows.slice(1).map(row => Object.fromEntries(rows[0].map((key, i) => [key, row[i]])));
 }
-test("CSV contains exactly four readable columns and only requested GOI and experiment kinds", () => {
-  const output = backupCsv(sampleBackup);
-  assert.ok(output.startsWith("\uFEFF"));
-  assert.equal(output.slice(1).split("\r\n")[0], '"tipo";"proyecto";"padre";"nombre"');
-  const rows = parseCsv(output);
-  assert.equal(rows.length, 4);
-  assert.ok(rows.every(row => Object.keys(row).join(",") === "tipo,proyecto,padre,nombre"));
-  assert.deepEqual(rows.map(row => [row.tipo, row.proyecto, row.padre, row.nombre]), [
+test("CSV contains only the four named columns and only approved kinds", () => {
+  const csv = backupCsv(sampleBackup);
+  assert.ok(csv.startsWith("\uFEFF"));
+  assert.equal(csv.slice(1).split("\r\n")[0], '"Tipo";"Proyecto";"Padre";"Nombre"');
+  const rows = parseCsv(csv);
+  assert.deepEqual(rows.map(row => [row.Tipo,row.Proyecto,row.Padre,row.Nombre]), [
     ["Objetivo", "Proyecto España", "North Star", "Goal retención"],
-    ["Oportunidad-problema", "Proyecto España", "Goal retención", "Oportunidad"],
+    ["Oportunidad", "Proyecto España", "Goal retención", "Oportunidad"],
     ["Idea", "Proyecto España", "Oportunidad", "Idea"],
     ["Experimento", "Proyecto España", "Idea", "'" + sampleBackup.records[6].title],
   ]);
-  for(const excluded of ["datos_json", "grupo", "proyecto_id", "padre_id", "campo_", "Íñigo García", "Aprendizaje acción", "Segundo proyecto"]) {
-    assert.ok(!output.includes(excluded), "Unexpected CSV content: " + excluded);
-  }
-  assert.equal(JSON.parse(backupJson(sampleBackup)).records.length, 9);
-  assert.equal(recordPath(sampleBackup.records[6], sampleBackup.records), 'North Star / Goal retención / Oportunidad / Idea / =Experimento;"A"');
+  assert.ok(rows.every(row => Object.keys(row).join(",") === "Tipo,Proyecto,Padre,Nombre"));
+  const excluded=["datos_json","grupo","proyecto_id","padre_id","campo_","Íñigo García","Aprendizaje acción","Segundo proyecto"];
+  for(const term of excluded)assert.ok(!csv.includes(term),"Unexpected CSV content: "+term);
+  assert.equal(JSON.parse(backupJson(sampleBackup)).records.length,9);
+  assert.equal(recordPath(sampleBackup.records[6],sampleBackup.records),'North Star / Goal retención / Oportunidad / Idea / =Experimento;"A"');
 });
 
-test("CSV groups projects alphabetically, distinguishes Input Metrics and leaves missing parents blank", () => {
-  const projectA = {...record("project-a", "project", null), title:"Árbol"};
-  const projectZ = {...record("project-z", "project", null), title:"Zorro"};
-  const nsm = {...record("north-star", "north_star", "project-z"), title:"North Star"};
-  const objective = {...record("objective", "goal", "project-z"), title:"Interés", parent_id:nsm.id};
-  const metric = {...record("metric", "goal", "project-z", {goi_section:"input_metrics"}), title:"Usuarios registrados", parent_id:nsm.id};
-  const orphanProblem = {...record("orphanProblem", "opportunity", "project-z"), title:"Problema huérfano"};
-  const orphanIdea = {...record("orphanIdea", "idea", "project-z"), title:"Idea sin padre", parent_id:"missing"};
-  const ideaA = {...record("ideaA", "idea", "project-a"), title:"Idea Árbol"};
-  const experimentA = {...record("experimentA", "experiment", "project-a"), title:"Experimento Árbol", parent_id:ideaA.id};
-  const extra = {...sampleBackup, records:[metric, orphanIdea, projectZ, experimentA, nsm, objective, orphanProblem, projectA, ideaA]};
-  const rows = parseCsv(backupCsv(extra));
-  assert.deepEqual(rows.map(row => row.proyecto), ["Árbol","Árbol","Zorro","Zorro","Zorro","Zorro"]);
-  assert.deepEqual(rows.map(row => row.tipo), ["Idea","Experimento","Objetivo","Input Metric","Oportunidad-problema","Idea"]);
-  assert.equal(rows.find(row=>row.nombre==="Interés")?.padre,"North Star");
-  assert.equal(rows.find(row=>row.nombre==="Usuarios registrados")?.padre,"North Star");
-  assert.equal(rows.find(row=>row.nombre==="Problema huérfano")?.padre,"");
-  assert.equal(rows.find(row=>row.nombre==="Idea sin padre")?.padre,"");
-  assert.equal(rows.find(row=>row.nombre==="Experimento Árbol")?.padre,"Idea Árbol");
+test("CSV skips input metrics, separates explicitly tagged problems and sorts within each project", () => {
+  const a = {...record("pa","project",null),title:"Árbol"};
+  const z = {...record("pz","project",null),title:"Zorro"};
+  const northStar = {...record("ns","north_star","pz"),title:"North Star"};
+  const objective = {...record("goal","goal","pz"),title:"Validación",parent_id:"ns"};
+  const metric = {...record("metric","goal","pz",{goi_section:"input_metrics"}),title:"Usuarios registrados",parent_id:"ns"};
+  const problem = {...record("problem","opportunity","pz",{opportunity_type:"problema"}),title:"Falta confianza",parent_id:"goal"};
+  const opportunity = {...record("op","opportunity","pz"),title:"Nueva oportunidad",parent_id:"goal"};
+  const idea = {...record("idea","idea","pa"),title:"Idea Árbol"};
+  const experiment = {...record("ex","experiment","pa"),title:"Experimento Árbol",parent_id:"idea"};
+  const withoutParent = {...record("unparented","idea","pz"),title:"Idea huérfana",parent_id:"removed"};
+  const outside = {...record("orphan-project","experiment","missing"),title:"Sin proyecto"};
+  const rows=parseCsv(backupCsv({...sampleBackup,records:[metric,problem,outside,idea,z,withoutParent,objective,opportunity,experiment,a,northStar]}));
+  assert.deepEqual(rows.map(row=>row.Proyecto),["Árbol","Árbol","Zorro","Zorro","Zorro","Zorro"]);
+  assert.deepEqual(rows.map(row=>row.Tipo),["Idea","Experimento","Objetivo","Oportunidad","Problema","Idea"]);
+  assert.equal(rows.find(row=>row.Nombre==="Idea huérfana")?.Padre,"");
+  assert.equal(rows.find(row=>row.Nombre==="Falta confianza")?.Padre,"Validación");
+  assert.equal(rows.find(row=>row.Nombre==="Experimento Árbol")?.Padre,"Idea Árbol");
+  assert.ok(!rows.some(row=>row.Nombre==="Usuarios registrados"));
+  assert.ok(!rows.some(row=>row.Nombre==="Sin proyecto"));
+  assert.ok(rows.every(row=>["Objetivo","Oportunidad","Problema","Idea","Experimento"].includes(row.Tipo)));
+});
+
+test("CSV route uses records-only query and never includes a full ZIP", async () => {
+ const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const dialog=await readFile(new URL("../app/backup-dialog.tsx",import.meta.url),"utf8");
+ const service=await readFile(new URL("../lib/backup-service.ts",import.meta.url),"utf8");
+ assert.match(page,/if \(format === "csv"\)/);
+ assert.match(page,/await fetchCsvRecords\(supabase!, workspace\.id\)/);
+ assert.match(page,/await downloadBackup\(snapshot, "csv", false/);
+ assert.match(service,/\.select\("id,workspace_id,project_id,parent_id,kind,title,fields"/);
+ assert.match(dialog,/format !== "csv"/);
+ assert.match(dialog,/format === "csv" \? false : originals/);
 });
 
 test("pagination exports beyond 1000 rows, including a server cap below requested page size", async () => {

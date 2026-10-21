@@ -74,3 +74,17 @@ export async function fetchBackup(client: SupabaseClient, workspaceId: string): 
       meta_campaign_preparations: preparations, meta_preparation_runs: runs, meta_preparation_steps: steps, integration_connections: connections, ai_knowledge:knowledge,
       google_ads_preparations:googlePreparations,smartlead_preparations:smartleadPreparations,ai_chat_entries:chats,ai_preparation_usage:usage,ai_documents:documents,provider_result_snapshots:snapshots,posthog_preparations:posthogPreparations,integration_project_profiles:profiles,ai_knowledge_revisions:revisions } };
 }
+
+
+/**
+ * Fast read-only input for the 4-column CSV. Unlike fetchBackup, it does not
+ * retrieve members, audit logs, integration settings or private AI content.
+ */
+export function fetchCsvRecords(client: SupabaseClient, workspaceId: string): Promise<Item[]> {
+  return readAllPages<Item>((from, to) =>
+    client.from("records")
+      .select("id,workspace_id,project_id,parent_id,kind,title,fields", {count: "exact"})
+      .eq("workspace_id", workspaceId)
+      .order("id")
+      .range(from, to) as unknown as PromiseLike<Response<Item>>);
+}

@@ -22,27 +22,27 @@ export function BackupDialog({ onClose, onExport }: {
     <form onSubmit={async e => {
       e.preventDefault(); if (busy) return;
       setBusy(true); setError(""); setProgress("Recopilando todos los datos…");
-      try { await onExport(format, originals, setProgress); setProgress("Copia descargada."); }
+      try { await onExport(format, format === "csv" ? false : originals, setProgress); setProgress("Exportación descargada."); }
       catch (err) { setError(err instanceof Error ? err.message : "No se ha podido generar la copia. Vuelve a intentarlo."); setProgress(""); }
       finally { setBusy(false); }
     }}>
       <div className="backup-content">
       <p>{format === "csv"
-          ? "El CSV incluye solo tipo, proyecto, padre y nombre para objetivos, Input Metrics, oportunidades-problemas, ideas y experimentos, ordenados por proyecto."
-          : "El PDF o JSON conserva los registros y datos asociados del espacio de trabajo, sin aplicar filtros de pantalla."}</p>
+          ? "Listado CSV: solo Tipo, Proyecto, Padre y Nombre. Incluye únicamente Oportunidad, Problema, Objetivo, Experimento e Idea, agrupados por proyecto. No incluye Input Metrics ni datos auxiliares."
+          : "Copia de seguridad completa: el PDF o JSON incluye datos adicionales del espacio de trabajo."}</p>
         <label>Formato de la copia
           <select value={format} disabled={busy} onChange={e => setFormat(e.target.value as BackupFormat)}>
-            <option value="csv">CSV · abrir en Excel o Sheets</option>
-            <option value="pdf">PDF · consultar, guardar o imprimir</option>
-            <option value="json">JSON · conservar los datos estructurados</option>
+            <option value="csv">CSV · solo cuatro columnas</option>
+            <option value="pdf">PDF · copia completa con más datos</option>
+            <option value="json">JSON · copia completa con más datos</option>
           </select>
         </label>
-        <label className="check-label"><input type="checkbox" checked={originals} disabled={busy} onChange={e => setOriginals(e.target.checked)} />Incluir archivos adjuntos originales</label>
-        <p className="small">{originals
-          ? "Se descargará un ZIP con el documento elegido, una copia completa en JSON y los archivos adjuntos originales."
-          : format === "csv"
-            ? "El CSV es un resumen para Excel o Sheets; para una copia completa selecciona JSON."
-            : "Activa la casilla para conservar también los archivos adjuntos originales."}</p>
+        {format !== "csv" && <label className="check-label"><input type="checkbox" checked={originals} disabled={busy} onChange={e => setOriginals(e.target.checked)} />Incluir archivos adjuntos originales</label>}
+        <p className="small">{format === "csv"
+          ? "Siempre se descarga un único archivo .csv, sin ZIP, adjuntos, historial, credenciales ni datos de equipo."
+          : originals
+            ? "Se descargará un ZIP con una copia completa en JSON y los archivos adjuntos originales."
+            : "Para una copia con archivos adjuntos, activa la casilla."}</p>
         <p className="small">Conserva esta copia en un lugar seguro. No incluye contraseñas ni restaura automáticamente las cuentas de acceso.</p>
         {progress && <p className="backup-progress" role="status" aria-live="polite">{progress}</p>}
         {error && <p className="error" role="alert">{error}</p>}

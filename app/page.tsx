@@ -55,7 +55,7 @@ import {MemberPermissions} from './member-permissions';
 import {canRecord,type RecordAction} from '@/lib/permissions';
 import {addFileAttachment} from '@/lib/attachment-service';
 import type { Backup } from "@/lib/backup";
-import { fetchBackup } from "@/lib/backup-service";
+import { fetchBackup, fetchCsvRecords } from "@/lib/backup-service";
 import { deleteWorkspaceRecord, loadWorkspaceRecords, ensureProjectNorthStar, projectNorthStarRecord } from "@/lib/record-service";
 import { createPersonalTeamSpace, getPublicPreview, listTeamSpaces, selectTeamSpace } from "@/lib/internal-space";
 import { registerAccount } from "@/lib/auth-service";
@@ -1177,6 +1177,21 @@ export default function Home() {
 
   async function exportData(format: BackupFormat, originals: boolean, progress: (message: string) => void) {
     if (!workspace) throw new Error("Abre el equipo antes de exportar.");
+    // CSV is a strict 4-column list; don't fetch the full private backup
+    // or allow a ZIP with additional JSON or attachments on this route.
+    if (format === "csv") {
+      const records = demo ? structuredClone(workspaceItems) : await fetchCsvRecords(supabase!, workspace.id);
+      const { downloadBackup } = await import("@/lib/backup-download");
+      const snapshot: Backup = {
+        schema_version: 8, exported_at: new Date().toISOString(), workspace_id: workspace.id,
+        records, members: [], attachments: [], audit: [], notes: [],
+      };
+      await downloadBackup(snapshot, "csv", false, async () => {
+        throw new Error("La exportación CSV no incluye archivos adjuntos.");
+      }, progress);
+      tell("Listado CSV de cuatro columnas descargado");
+      return;
+    }
     const snapshot: Backup = demo ? {
       schema_version: 4, exported_at: new Date().toISOString(), workspace_id: workspace.id,
       records: structuredClone(workspaceItems), members: structuredClone(members), audit: structuredClone(activity) as unknown as Record<string, unknown>[],

@@ -47,42 +47,47 @@ export function csvCell(value: unknown): string {
  * Human-readable CSV of the GOI Tree and experiments. Unlike the JSON backup,
  * this intentionally exports no IDs, account information or auxiliary tables.
  */
-export function backupCsv(backup: Backup): string {
-  const header = ["tipo", "proyecto", "padre", "nombre"];
-  const byId = new Map(backup.records.map(record => [record.id, record]));
-  const classification = (record: Item): [string, number] | null => {
-    if (record.kind === "goal") {
-      return record.fields.goi_section === "input_metrics"
-        ? ["Input Metric", 1] : ["Objetivo", 0];
+export function backupCsv(backup: Pick<Backup, "records">): string {
+  // This is a *list*, not a backup. It must never expose auxiliary records
+  // or additional fields, even if the workspace contains them.
+  const header = ["Tipo", "Proyecto", "Padre", "Nombre"];
+  const byId = new Map(backup.records.map(item => [item.id, item]));
+  const projectName = (item: Item): string | null => {
+    const project = byId.get(item.project_id || "");
+    return project?.kind === "project" ? project.title : null;
+  };
+  const classification = (item: Item): {label: string; order: number} | null => {
+    if (item.kind === "goal" && item.fields.goi_section !== "input_metrics")
+      return { label: "Objetivo", order: 0 };
+    if (item.kind === "opportunity") {
+      // The stored kind combines both concepts. Never guess by title:
+      // an explicitly classified problem is a Problema; otherwise Oportunidad.
+      const type = String(item.fields.opportunity_type || "").trim().toLocaleLowerCase("es");
+      return type === "problema" || type === "problem"
+        ? { label: "Problema", order: 2 }
+        : { label: "Oportunidad", order: 1 };
     }
-    if (record.kind === "opportunity") return ["Oportunidad-problema", 2];
-    if (record.kind === "idea") return ["Idea", 3];
-    if (record.kind === "experiment") return ["Experimento", 4];
+    if (item.kind === "idea") return { label: "Idea", order: 3 };
+    if (item.kind === "experiment") return { label: "Experimento", order: 4 };
     return null;
   };
-  const projectName = (record: Item): string => {
-    const project = byId.get(record.project_id || "");
-    return project?.kind === "project" ? project.title : "";
-  };
-  const compareName = (a: string, b: string): number =>
-    a.localeCompare(b, "es", { sensitivity: "base" });
-  const eligible = backup.records.filter(record => classification(record) !== null);
-  eligible.sort((a, b) => {
-    const projectOrder = compareName(projectName(a), projectName(b));
-    if (projectOrder) return projectOrder;
-    const typeOrder = classification(a)![1] - classification(b)![1];
-    if (typeOrder) return typeOrder;
-    return compareName(a.title, b.title) || a.id.localeCompare(b.id);
-  });
-  const rows = eligible.map(record => {
-    const parent = byId.get(record.parent_id || "");
-    return [
-      classification(record)![0],
-      projectName(record),
-      parent && parent.project_id === record.project_id ? parent.title : "",
-      record.title,
-    ];
-  });
+  const compare = (a: string, b: string) =>
+    a.localeCompare(b, "es", {sensitivity: "base"});
+  const rows = backup.records
+    .filter(item => classification(item) !== null && projectName(item) !== null)
+    .sort((a, b) =>
+      compare(projectName(a)!, projectName(b)!) ||
+      classification(a)!.order - classification(b)!.order ||
+      compare(a.title, b.title) || a.id.localeCompare(b.id))
+    .map(item => {
+      const parent = byId.get(item.parent_id || "");
+      return [
+        classification(item)!.label,
+        projectName(item)!,
+        parent && parent.project_id === item.project_id ? parent.title : "",
+        item.title,
+      ];
+    });
   return "\uFEFF" + [header, ...rows].map(row => row.map(csvCell).join(";")).join("\r\n") + "\r\n";
 }
 
