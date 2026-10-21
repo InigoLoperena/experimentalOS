@@ -97,3 +97,57 @@ test("MVP board has four colored lanes and preserves GOI visual and edit routes"
  assert.match(page,/view === "map" && currentProject/);
  assert.match(page,/view === "mvp" && currentProject/);
 });
+
+test("MVP subsection hierarchy preserves the same shared records, parents, descendants and research links",async()=>{
+ const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
+ const mk=(id:string,kind:Item["kind"],parent_id:string|null=null,fields:Item["fields"]={},project_id="p"):Item=>({
+  id,kind,workspace_id:"w",project_id,parent_id,related_id:null,title:id,owner_id:null,
+  created_at:"",updated_at:"",created_by:null,updated_by:null,fields
+ });
+ const example=[
+  mk("goal","goal"),mk("problem","opportunity","goal"),mk("other","opportunity"),
+  mk("hypothesis","hypothesis","problem"),mk("orphanHypothesis","hypothesis"),
+  mk("experiment","experiment",null,{mvp_hypothesis_id:"hypothesis"}),
+  mk("orphanExperiment","experiment"),
+  mk("research","research",null,{mvp_links:"problem,hypothesis"}),
+  mk("unlinkedResearch","research"),mk("outsider","experiment",null,{},"outside"),
+ ];
+ const problemHierarchy=getMvpHierarchy(example,"mvp_problems");
+ assert.equal(problemHierarchy.roots[0],example[1]); // shared reference, not copied
+ assert.deepEqual(problemHierarchy.children("problem").map(x=>x.id),["hypothesis","research"]);
+ assert.deepEqual(problemHierarchy.children("hypothesis").map(x=>x.id),["experiment","research"]);
+ assert.equal(problemHierarchy.expanded.size,0); // top-level children initially collapsed
+ const hypothesisHierarchy=getMvpHierarchy(example,"mvp_hypotheses");
+ assert.ok(hypothesisHierarchy.expanded.has("problem"));
+ assert.ok(!hypothesisHierarchy.expanded.has("hypothesis"));
+ assert.deepEqual(hypothesisHierarchy.unlinked.map(x=>x.id),["orphanHypothesis"]);
+ const experimentHierarchy=getMvpHierarchy(example,"mvp_experiments");
+ assert.ok(experimentHierarchy.expanded.has("problem"));
+ assert.ok(experimentHierarchy.expanded.has("hypothesis"));
+ assert.deepEqual(experimentHierarchy.unlinked.map(x=>x.id),["orphanExperiment"]);
+ const researchHierarchy=getMvpHierarchy(example,"mvp_research");
+ assert.ok(researchHierarchy.children("hypothesis").some(x=>x.id==="research"));
+ assert.deepEqual(researchHierarchy.unlinked.map(x=>x.id),["unlinkedResearch"]);
+ assert.equal(experimentHierarchy.target.some(x=>x.id==="outsider"),false);
+ assert.equal(problemHierarchy.roots[0],example[1]);
+ const {getGoiHierarchy}=await import("../lib/goi-hierarchy");
+ const goi=getGoiHierarchy(example,"opportunities");
+ assert.equal(goi.target[0],problemHierarchy.target[0]); // one DB record in both systems
+});
+test("MVP subsections retain separate editable forms and navigation alongside GOI",async()=>{
+ const [page,hierarchy,css]=await Promise.all([
+  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/globals.css",import.meta.url),"utf8")
+ ]);
+ assert.match(page,/nav-mvp-subsections/);
+ assert.match(page,/onCreate=\{createMvp\}/);
+ assert.match(page,/view=\{view as "mvp_problems"/);
+ assert.match(page,/mvp_hypothesis_id: hypothesisId/);
+ assert.match(page,/mvp_links: researchTargetId/);
+ assert.match(hierarchy,/goi-hierarchy-toggle/);
+ assert.match(hierarchy,/querySelectorAll\("details.goi-hierarchy-toggle"\)/);
+ assert.match(hierarchy,/Mostrar hijos/);
+ assert.match(hierarchy,/Ocultar hijos/);
+ assert.match(css,/nav-mvp-subsections/);
+});

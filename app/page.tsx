@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
 import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { MvpExperimentation } from "./mvp-experimentation";
+import { MvpHierarchy } from "./mvp-hierarchy";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -325,7 +326,18 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "integrations", label: "Integraciones", icon: Plug },
   { id: "method", label: "Cómo utilizar Experiments OS", icon: CircleHelp },
 ];
-const viewLabels: Partial<Record<View, string>> = { goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas" };
+const viewLabels: Partial<Record<View, string>> = {
+ goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas",
+ mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
+ mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
+};
+const mvpViews = ["mvp", "mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
+const mvpSubsections = [
+ { id:"mvp_problems", label:"Problemas u Oportunidades", icon:Search, accent:"problems" },
+ { id:"mvp_hypotheses", label:"Hipótesis", icon:Lightbulb, accent:"hypotheses" },
+ { id:"mvp_experiments", label:"Experimentos", icon:FlaskConical, accent:"experiments" },
+ { id:"mvp_research", label:"Investigación", icon:Microscope, accent:"research" },
+] as const;
 function goalVisualClass(item: Item): "objective" | "input-metric" | "" {
   if (item.kind !== "goal") return "";
   return item.fields.goi_section === "input_metrics" ? "input-metric" : "objective";
@@ -461,7 +473,7 @@ export default function Home() {
   },[]);
   function navigateView(destination:View){
     setView(destination);
-    if (destination !== 'mvp') setMvpEditor(false);
+    if (!(mvpViews as readonly string[]).includes(destination)) setMvpEditor(false);
     setFilter('');
     const path=pathForView(destination);
     if(window.location.pathname!==path) window.history.pushState(window.history.state,'',path);
@@ -525,7 +537,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai", "mvp"].includes(view);
+  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai", ...mvpViews].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -960,7 +972,7 @@ export default function Home() {
     }
     setCommentBusy(false);
   }
-  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics", hypothesisId?: string | null) {
+  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics", hypothesisId?: string | null, researchTargetId?: string | null) {
     if(!can(kind,'create')){tell('No tienes permiso para crear este tipo de ficha.');return;}
     if (!workspace) return;
     if (!demo && !schemaReady) {
@@ -1041,7 +1053,8 @@ export default function Home() {
         ...(kind === "goal"
           ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
           : {}),
-        ...(kind === "opportunity" && view === "mvp" ? { opportunity_type: "Problema" } : {}),
+        ...(kind === "opportunity" && (mvpViews as readonly string[]).includes(view) ? { opportunity_type: "Problema" } : {}),
+        ...(kind === "research" && researchTargetId ? { mvp_links: researchTargetId } : {}),
         ...(kind === "experiment" && hypothesisId ? { mvp_hypothesis_id: hypothesisId } : {}),
         ...(kind === "experiment"
           ? {
@@ -1061,7 +1074,10 @@ export default function Home() {
   }
   function createMvp(kind: Kind, parent: string | null = null) {
     setMvpEditor(true);
-    create(kind, kind === "experiment" ? null : parent, undefined, kind === "experiment" ? parent : null);
+    // Research uses a many-to-many link, never GOI's parent_id. Experiments
+    // use an MVP hypothesis field and retain a separate GOI idea parent.
+    create(kind, kind === "experiment" || kind === "research" ? null : parent,
+      undefined, kind === "experiment" ? parent : null, kind === "research" ? parent : null);
   }
   function editMvp(record: Item) {
     setMvpEditor(true);
@@ -1824,6 +1840,17 @@ export default function Home() {
                   <span className="nav-count">{experiments.length}</span>
                 )}
               </button>
+              {id === "mvp" && (
+                <div className="nav-subsections nav-mvp-subsections" aria-label="Secciones de Experimentación de MVPs">
+                  {mvpSubsections.map(({id: section, label: sectionLabel, icon: SubIcon, accent}) => (
+                    <button key={section} type="button"
+                      className={"nav-mvp-subsection " + accent + (view === section ? " active" : "")}
+                      onClick={() => navigateView(section)}>
+                      <SubIcon size={16} aria-hidden="true" />{sectionLabel}
+                    </button>
+                  ))}
+                </div>
+              )}
               {id === "map" && (
                 <div className="nav-subsections">
                   <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => navigateView("goals")}>
@@ -1950,7 +1977,9 @@ export default function Home() {
               <p>
                 {view === "map"
                   ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
-                  : view === "experiments"
+                  : (mvpViews as readonly string[]).includes(view)
+                    ? "Problemas, hipótesis, investigaciones y experimentos vinculados en el mismo proyecto, con fichas compartidas con GOI Tree."
+                    : view === "experiments"
                     ? "Documenta qué vas a probar y cómo sabrás si funciona."
                     : view === "learning"
                       ? "Guarda lo que ocurrió, lo que aprendiste y qué harás después."
@@ -2072,6 +2101,21 @@ export default function Home() {
               onEdit={editMvp}
               onDelete={item => void deleteRecord(item)}
               onEditProject={() => editMvp(currentProject)}
+            />
+          )}
+          {(["mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as View[]).includes(view) && currentProject && (
+            <MvpHierarchy
+              key={currentProject.id + ":" + view}
+              view={view as "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research"}
+              project={currentProject} items={items}
+              readOnly={publicMode || (!demo && !editable)}
+              canCreate={kind => can(kind, "create")}
+              canEdit={kind => can(kind, "edit")}
+              canDelete={kind => can(kind, "delete")}
+              onCreate={createMvp}
+              onOpen={openMvp}
+              onEdit={editMvp}
+              onDelete={item => void deleteRecord(item)}
             />
           )}
           {view === "map" && currentProject && (

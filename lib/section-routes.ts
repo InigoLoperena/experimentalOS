@@ -1,6 +1,11 @@
 /** Canonical paths for each Xperiments section. */
 export const sectionPaths = {
- projects: '/proyectos', mvp: '/experimentacion-mvps', experiments: '/experimentos', learning: '/aprendizajes',
+ projects: '/proyectos', mvp: '/experimentacion-mvps',
+ mvp_problems: '/experimentacion-mvps/problemas-oportunidades',
+ mvp_hypotheses: '/experimentacion-mvps/hipotesis',
+ mvp_experiments: '/experimentacion-mvps/experimentos',
+ mvp_research: '/experimentacion-mvps/investigacion',
+ experiments: '/experimentos', learning: '/aprendizajes',
  ai: '/ia', map: '/goi-tree', goals: '/goi-tree/objetivos',
  input_metrics: '/goi-tree/input-metrics', opportunities: '/goi-tree/oportunidades',
  ideas: '/goi-tree/ideas', team: '/equipo',

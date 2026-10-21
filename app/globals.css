@@ -3335,3 +3335,49 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 @media(max-width:1060px){.mvp-board{grid-template-columns:repeat(2,minmax(0,1fr))}.mvp-project-fields{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}.mvp-flow-line{display:none}}
 @media(max-width:760px){.mvp-board{grid-template-columns:minmax(0,1fr)}.mvp-project-top{flex-wrap:wrap}.mvp-project-avatar{width:44px;height:44px}.mvp-project-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.mvp-toolbar{flex-wrap:wrap}.mvp-fact{grid-template-columns:minmax(80px,38%) minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.mvp-card-chevron{transition:none}}
+
+/* MVP subsections use the same hierarchical disclosure behavior as GOI Tree. */
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection{
+ display:flex;align-items:center;gap:9px;border:1px solid transparent;min-width:0;
+}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problems{color:#ff789a}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.hypotheses{color:#c19cff}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.experiments{color:#c6ff81}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.research{color:#75c1ff}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.active,
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection:hover{
+ background:var(--blue-tint);border-color:rgba(130,198,255,.43);font-weight:700
+}
+.mvp-hierarchy-screen{display:grid;gap:16px;min-width:0}
+.mvp-hierarchy-heading{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mvp-hierarchy-heading h2{margin:3px 0 5px}
+.mvp-hierarchy-heading p{max-width:850px;font-size:13px}
+.mvp-hierarchy-add{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 12px;
+ border-radius:8px;border:1px solid rgba(131,189,255,.42);background:var(--blue-tint);color:var(--blue-text);font-size:12px;font-weight:650}
+.mvp-hierarchy-add:hover{border-color:var(--blue-text)}
+.mvp-hierarchy-list{display:grid;gap:13px;min-width:0}
+.mvp-hierarchy-group{display:grid;gap:7px}
+.mvp-hierarchy-node{display:grid;gap:6px;min-width:0}
+.mvp-hierarchy-record{--node-accent:#ff789a;display:flex;align-items:flex-start;gap:12px;
+ border:1px solid rgba(255,120,154,.4);padding:12px;background:var(--surface-raised);border-radius:10px;min-width:0}
+.mvp-hierarchy-hypothesis{--node-accent:#c19cff;border-color:rgba(193,156,255,.42)}
+.mvp-hierarchy-experiment{--node-accent:#c6ff81;border-color:rgba(198,255,129,.42)}
+.mvp-hierarchy-research{--node-accent:#75c1ff;border-color:rgba(117,193,255,.42)}
+.mvp-hierarchy-record-icon{display:grid;place-items:center;flex-shrink:0;width:31px;height:31px;border-radius:8px;
+ color:var(--node-accent);background:rgba(135,150,190,.12)}
+.mvp-hierarchy-record-text{display:grid;gap:4px;min-width:0;flex:1}
+.mvp-hierarchy-kind{font-weight:700;color:var(--node-accent);font-size:11px}
+.mvp-hierarchy-title{font-size:14px;font-weight:750;text-align:left;border:0;background:transparent;
+ cursor:pointer;line-height:1.35;padding:0;overflow-wrap:anywhere}
+.mvp-hierarchy-title:hover{text-decoration:underline}
+.mvp-hierarchy-record-text p{font-size:12px;line-height:1.45}
+.mvp-hierarchy-relation{font-size:11px;color:var(--blue-text)}
+.mvp-hierarchy-actions,.mvp-hierarchy-child-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.mvp-hierarchy-actions button{background:transparent;color:var(--muted);padding:5px;border:1px solid transparent;border-radius:6px}
+.mvp-hierarchy-actions button:hover{color:var(--blue-text);border-color:var(--border)}
+.mvp-hierarchy-child-actions{padding:2px 0 8px 4px}
+.mvp-hierarchy-toggle>summary{color:var(--blue-text)}
+.mvp-hierarchy-unlinked{display:grid;gap:10px}
+.mvp-hierarchy-unlinked>.mvp-hierarchy-group{margin:0}
+.mvp-hierarchy-empty{display:grid;justify-items:start;gap:12px}
+@media(max-width:700px){.mvp-hierarchy-heading{align-items:flex-start}.mvp-hierarchy-record{gap:8px;padding:10px}.mvp-hierarchy-title{font-size:13px}}
