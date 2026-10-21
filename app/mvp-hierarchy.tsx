@@ -23,7 +23,7 @@ function ItemIcon({kind}:{kind:Kind}){
  return <Search size={17} aria-hidden="true"/>;
 }
 export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
- const hierarchy=getMvpHierarchy(items,view),meta=labels[view];
+ const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
  const byId=new Map(items.map(item=>[item.id,item]));
  const add=(label:string,kind:Kind,parentId:string|null=null)=>
   !readOnly&&canCreate(kind)&&<button type="button" className="mvp-hierarchy-add" onClick={()=>onCreate(kind,parentId)}><Plus size={14} aria-hidden="true"/>{label}</button>;

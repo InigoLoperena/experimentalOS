@@ -13,8 +13,8 @@ const byDateAndTitle=(a:Item,b:Item)=>a.created_at.localeCompare(b.created_at)||
  * opportunity/hypothesis -> research (fields.mvp_links, many-to-many).
  * No record is cloned, moved, or persisted by this function.
  */
-export function getMvpHierarchy(items:Item[], view:MvpHierarchyView){
- const local=items.filter(item=>displayKinds.has(item.kind));
+export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:string){
+ const local=items.filter(item=>displayKinds.has(item.kind) && (!projectId || item.project_id === projectId));
  const byId=new Map(local.map(item=>[item.id,item]));
  const parents=new Map<string,Item[]>();
  const childrenIndex=new Map<string,Item[]>();
