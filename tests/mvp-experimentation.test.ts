@@ -48,7 +48,7 @@ test("The MVP board displays both modules through the existing CRUD, including u
  assert.match(page,/onDelete=\{item => void deleteRecord\(item\)\}/);
  assert.match(component,/Experimentos sin hipótesis/);
  assert.match(component,/Hipótesis sin problema/);
- assert.match(component,/mvpTargets\(item\)/);
+ assert.match(component,/linkedResearchIds\(item\)/);
  assert.match(migration,/create trigger zz_mvp_record_links/);
  assert.match(migration,/create trigger zz_cleanup_mvp_links/);
  assert.match(migration,/''hypothesis'' then ''opportunity''/);
