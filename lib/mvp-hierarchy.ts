@@ -2,7 +2,7 @@ import type { Item } from "./model";
 import { isProblemon } from "./problemon";
 import { linkedHypothesis, linkedResearchIds } from "./mvp-relationships";
 
-export type MvpHierarchyView = "mvp" | "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research";
+export type MvpHierarchyView = "mvp" | "mvp_problems" | "mvp_hypotheses" | "mvp_main_hypothesis" | "mvp_experiments" | "mvp_research";
 const displayKinds = new Set<Item["kind"]>(["opportunity", "hypothesis", "experiment", "research"]);
 const byDateAndTitle=(a:Item,b:Item)=>Number(isProblemon(b))-Number(isProblemon(a))||a.created_at.localeCompare(b.created_at)||a.title.localeCompare(b.title,"es")||a.id.localeCompare(b.id);
 
@@ -37,7 +37,7 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
  }
  const desiredKind:Item["kind"] | null=
   view==="mvp"?null:view==="mvp_problems"?"opportunity":view==="mvp_hypotheses"?"hypothesis":
-  view==="mvp_experiments"?"experiment":"research";
+  view==="mvp_experiments"?"experiment":view==="mvp_main_hypothesis"?"hypothesis":"research";
  // Overview includes every linked and unlinked node, even experiments without an idea.
  const target=local.filter(item=>desiredKind===null || item.kind===desiredKind);
  const included=new Set(target.map(item=>item.id));
