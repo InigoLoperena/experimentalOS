@@ -3521,3 +3521,6 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .problemon-editor-toggle small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
 @media(max-width:680px){.problemon-panel{padding:12px}.problemon-header-actions{justify-content:flex-start}
  .problemon-choose>div{align-items:stretch}.problemon-choose select{min-width:0;width:100%}}
+
+/* Dictation for all editable form fields */
+.global-dictation-slot{display:inline-flex;vertical-align:middle;margin-left:5px}.global-dictation-button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--line,#ccc);border-radius:50%;background:transparent;color:inherit;cursor:pointer}.global-dictation-button:hover{background:#e8f4ec}.global-dictation-button.is-recording{color:#dc2626;border-color:#dc2626;animation:dictation-pulse 1s infinite}@keyframes dictation-pulse{50%{opacity:.45}}
