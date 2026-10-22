@@ -191,7 +191,7 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
    {add(meta.action,meta.kind)}
   </section>
   <div className="mvp-hierarchy-list">
-   {hierarchy.roots.filter(item=>view!=="mvp_hypotheses" || item.fields.is_main_hypothesis!==true).map(group)}
+   {hierarchy.roots.map(group)}
    {hierarchy.unlinked.length>0&&<section className="goi-orphans-section mvp-hierarchy-unlinked">
      <div className="goi-orphans-heading"><h2>Sin vincular <span>({hierarchy.unlinked.length})</span></h2>
      <p>Estos registros se conservan aunque falte su padre. Puedes asignarlo abriendo la ficha.</p></div>
