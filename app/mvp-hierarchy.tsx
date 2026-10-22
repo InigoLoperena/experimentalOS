@@ -21,12 +21,15 @@ const labels:Record<MvpHierarchyView,{title:string,description:string,action:str
 };
 const accents:{[K in Item["kind"]]?:string}={opportunity:"problem",hypothesis:"hypothesis",experiment:"experiment",research:"research"};
 const title:{[K in Item["kind"]]?:string}={opportunity:"Problema u Oportunidad",hypothesis:"Hipótesis",experiment:"Experimento",research:"Investigación"};
+/** Semantic identity, shared by tree cards and expanded ancestor cards. */
+const semanticColor=(kind:Kind)=>kind==="opportunity"?"var(--red-text)":kind==="hypothesis"?"var(--hypothesis-accent)":kind==="experiment"?"var(--experiment-accent)":kind==="research"?"#75c1ff":"var(--ink)";
 function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
- if(problemon)return <Flag size={17} aria-hidden="true"/>;
- if(kind==="hypothesis")return <Lightbulb size={17} aria-hidden="true"/>;
- if(kind==="experiment")return <FlaskConical size={17} aria-hidden="true"/>;
- if(kind==="research")return <Microscope size={17} aria-hidden="true"/>;
- return <Search size={17} aria-hidden="true"/>;
+ const color=semanticColor(kind);
+ if(problemon)return <Flag size={17} color={color} aria-hidden="true"/>;
+ if(kind==="hypothesis")return <Lightbulb size={17} color={color} aria-hidden="true"/>;
+ if(kind==="experiment")return <FlaskConical size={17} color={color} aria-hidden="true"/>;
+ if(kind==="research")return <Microscope size={17} color={color} aria-hidden="true"/>;
+ return <Search size={17} color={color} aria-hidden="true"/>;
 }
 export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
  const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
@@ -47,9 +50,12 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   }
   return path;
  };
- const parentRow=(item:Item)=><div key={item.id} className="mvp-upward-parent">
-  <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
-  <span><button type="button" onClick={()=>onOpen(item)}>{item.title}</button></span>
+ const parentRow=(item:Item)=><div key={item.id}
+  className={"mvp-upward-parent semantic-"+(isProblemon(item)?"problemon":item.kind)}>
+  <span className="mvp-hierarchy-record-icon" style={{color:semanticColor(item.kind)}}>
+   <ItemIcon kind={item.kind} problemon={isProblemon(item)}/>
+  </span>
+  <span><button type="button" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button></span>
  </div>;
  const toggleParents=(id:string)=>setOpenParents(previous=>{
   const next=new Set(previous);if(next.has(id))next.delete(id);else next.add(id);return next;
@@ -67,11 +73,11 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   const descendants=hierarchy.children(item.id);
   const description=String(item.fields.description||item.fields.belief||item.fields.context||"").trim();
   return <div className="mvp-hierarchy-node" key={item.id}>
-   <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]}>
+   <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]+(isProblemon(item)?" mvp-hierarchy-problemon":"")}>
     <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
     <div className="mvp-hierarchy-record-text">
      
-     <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(item)}>{item.title}</button>
+     <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button>
      {description&&<p>{description}</p>}
 
     </div>
@@ -117,10 +123,10 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
     return <section key={experiment.id} className="mvp-experiment-ranked-entry">
      
      <article className="mvp-hierarchy-record mvp-hierarchy-experiment mvp-experiment-ranked-card">
-      <span className="mvp-hierarchy-record-icon"><FlaskConical size={17} aria-hidden="true"/></span>
+      <span className="mvp-hierarchy-record-icon" style={{color:semanticColor("experiment")}}><FlaskConical size={17} color="var(--experiment-accent)" aria-hidden="true"/></span>
       <div className="mvp-hierarchy-record-text">
        
-       <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(experiment)}>{experiment.title}</button>
+       <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor("experiment")}} onClick={()=>onOpen(experiment)}>{experiment.title}</button>
        <span className="mvp-experiment-ice">ICE: <strong>{ice}</strong> <small>(Impacto {String(experiment.fields.impact??"—")} · Confianza {String(experiment.fields.confidence??"—")} · Facilidad {String(experiment.fields.ease??"—")})</small></span>
       </div>
       <div className="mvp-experiment-ranked-actions">
