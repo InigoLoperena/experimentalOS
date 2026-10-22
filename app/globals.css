@@ -3543,26 +3543,51 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .mvp-upward-parent button{border:0;background:transparent;text-align:left;padding:0;color:inherit;font-weight:600;cursor:pointer}
 @media(max-width:650px){.mvp-experiment-ranked-card{flex-wrap:wrap}.mvp-experiment-ranked-actions{width:100%;margin-left:0}}
 
-/* Unified semantic colors in every navigation level and hierarchy */
-.sidebar .nav-subsections .nav-goi-subsection.problemon,
-.sidebar .nav-subsections .nav-goi-subsection.problemon svg,
-.sidebar .nav-subsections .nav-goi-subsection.problems,
-.sidebar .nav-subsections .nav-goi-subsection.problems svg,
-.sidebar .nav-subsections .nav-goi-subsection.opportunity,
-.sidebar .nav-subsections .nav-goi-subsection.opportunity svg{color:var(--problemon-accent,#ff7474)}
-.sidebar .nav-subsections .nav-goi-subsection.hypotheses,
-.sidebar .nav-subsections .nav-goi-subsection.hypotheses svg,
-.sidebar .nav-subsections .nav-goi-subsection.hypothesis,
-.sidebar .nav-subsections .nav-goi-subsection.hypothesis svg{color:var(--hypothesis-accent,#ffd84d)}
-.sidebar .nav-subsections .nav-goi-subsection.experiments,
-.sidebar .nav-subsections .nav-goi-subsection.experiments svg,
-.sidebar .nav-subsections .nav-goi-subsection.experiment,
-.sidebar .nav-subsections .nav-goi-subsection.experiment svg{color:var(--experiment-accent,#83b5ff)}
-.mvp-hierarchy-problem .mvp-hierarchy-title,.mvp-hierarchy-problem .mvp-hierarchy-record-icon,.mvp-upward-parent:has(.mvp-hierarchy-record-icon) {color:var(--problemon-accent,#ff7474)}
-.mvp-hierarchy-hypothesis .mvp-hierarchy-title,.mvp-hierarchy-hypothesis .mvp-hierarchy-record-icon,.problemon-descendant-hypothesis .problemon-child-record span{color:var(--hypothesis-accent,#ffd84d)}
-.mvp-hierarchy-experiment .mvp-hierarchy-title,.mvp-hierarchy-experiment .mvp-hierarchy-record-icon,.problemon-descendant-experiment .problemon-child-record span{color:var(--experiment-accent,#83b5ff)}
-.goi-title-tag.opportunity:has(svg.lucide-flag){color:var(--problemon-accent,#ff7474)}
-.mvp-upward-chain{margin:0 12px 0 28px;padding:12px 0 0 16px;border-left:2px solid #7d92bc}
-.mvp-upward-parent:has(svg.lucide-lightbulb){color:var(--hypothesis-accent,#ffd84d)}
-.mvp-upward-parent:has(svg.lucide-flask-conical){color:var(--experiment-accent,#83b5ff)}
-.mvp-upward-parent button{color:inherit}
+/* One semantic palette for every MVP/Growth menu, node, and ancestor.
+   Use real record classes rather than SVG :has() guesses or inherited gray text. */
+:root { --tree-problem-color: var(--red-text); --tree-hypothesis-color: var(--hypothesis-accent); --tree-experiment-color: var(--experiment-accent); }
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problemon,
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problems,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon,
+.sidebar nav .nav-subsections .nav-goi-subsection.opportunity { color:var(--tree-problem-color); }
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.hypotheses,
+.sidebar nav .nav-subsections .nav-goi-subsection.hypothesis { color:var(--tree-hypothesis-color); }
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.experiments,
+.sidebar nav .nav-subsections .nav-goi-subsection.experiment { color:var(--tree-experiment-color); }
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problemon > svg,
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problems > svg,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon > svg,
+.sidebar nav .nav-subsections .nav-goi-subsection.opportunity > svg {color:var(--tree-problem-color)}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.hypotheses > svg,
+.sidebar nav .nav-subsections .nav-goi-subsection.hypothesis > svg {color:var(--tree-hypothesis-color)}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.experiments > svg,
+.sidebar nav .nav-subsections .nav-goi-subsection.experiment > svg {color:var(--tree-experiment-color)}
+.mvp-hierarchy-problem, .mvp-hierarchy-problemon { --node-accent:var(--tree-problem-color); }
+.mvp-hierarchy-problem .mvp-hierarchy-title,
+.mvp-hierarchy-problemon .mvp-hierarchy-title,
+.mvp-hierarchy-problem .mvp-hierarchy-record-icon,
+.mvp-hierarchy-problemon .mvp-hierarchy-record-icon {color:var(--tree-problem-color)}
+.mvp-hierarchy-hypothesis .mvp-hierarchy-title,
+.mvp-hierarchy-hypothesis .mvp-hierarchy-record-icon {color:var(--tree-hypothesis-color)}
+.mvp-hierarchy-experiment .mvp-hierarchy-title,
+.mvp-hierarchy-experiment .mvp-hierarchy-record-icon {color:var(--tree-experiment-color)}
+/* The key missing case: expanded ancestors have NO .mvp-hierarchy-hypothesis wrapper. */
+.mvp-upward-parent.semantic-opportunity,
+.mvp-upward-parent.semantic-problemon {--ancestor-color:var(--tree-problem-color)}
+.mvp-upward-parent.semantic-hypothesis {--ancestor-color:var(--tree-hypothesis-color)}
+.mvp-upward-parent.semantic-experiment {--ancestor-color:var(--tree-experiment-color)}
+.mvp-upward-parent.semantic-research {--ancestor-color:#75c1ff}
+.mvp-upward-parent .mvp-hierarchy-record-icon,
+.mvp-upward-parent .mvp-hierarchy-record-icon svg,
+.mvp-upward-parent button {color:var(--ancestor-color)}
+.mvp-upward-parent button {font-weight:750}
+.goi-title-tag.opportunity, .goi-title-tag.opportunity > svg {color:var(--tree-problem-color)}
+.goi-title-tag.hypothesis, .goi-title-tag.hypothesis > svg {color:var(--tree-hypothesis-color)}
+.experiment-identity,.experiment-identity > svg {color:var(--tree-experiment-color)}
+.problemon-primary-title {color:var(--tree-problem-color)}
+.problemon-descendant-opportunity .problemon-child-record > svg,
+.problemon-descendant-opportunity .problemon-child-record > span {color:var(--tree-problem-color)}
+.problemon-descendant-hypothesis .problemon-child-record > svg,
+.problemon-descendant-hypothesis .problemon-child-record > span {color:var(--tree-hypothesis-color)}
+.problemon-descendant-experiment .problemon-child-record > svg,
+.problemon-descendant-experiment .problemon-child-record > span {color:var(--tree-experiment-color)}
