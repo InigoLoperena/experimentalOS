@@ -3591,3 +3591,9 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .problemon-descendant-hypothesis .problemon-child-record > span {color:var(--tree-hypothesis-color)}
 .problemon-descendant-experiment .problemon-child-record > svg,
 .problemon-descendant-experiment .problemon-child-record > span {color:var(--tree-experiment-color)}
+
+/* ICE stays legible for every hypothesis/experiment when a child branch is revealed. */
+.mvp-hierarchy-ice,.hierarchy-ice{display:block;width:fit-content;font-size:12px;font-weight:650;line-height:1.4;margin-top:4px;color:var(--lime,#b7ff4c)}
+.mvp-hierarchy-ice strong{color:inherit;font-variant-numeric:tabular-nums}
+.problemon-child-record .hierarchy-ice{color:var(--lime,#b7ff4c)}
+.mvp-upward-parent .mvp-hierarchy-ice{color:var(--lime,#b7ff4c)}
