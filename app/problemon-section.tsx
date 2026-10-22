@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, Flag, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Target } from "lucide-react";
 import type {Item} from "@/lib/model";
+import {score} from "@/lib/model";
 import {getMvpHierarchy} from "@/lib/mvp-hierarchy";
 import {getProblemon,getProblemonCandidates,isProblemon} from "@/lib/problemon";
 
@@ -29,15 +30,10 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
   return <div key={item.id} className={"problemon-descendant problemon-descendant-"+item.kind}>
    <button type="button" className="problemon-child-record" onClick={()=>onOpen(item)}>
     <Icon size={16} color={color} aria-hidden="true"/>
-    <span style={{color}}>{item.title}</span>
+    <span style={{color}}>{item.title}{(item.kind==="experiment"||item.kind==="hypothesis"||["impact","confidence","ease"].some(key=>item.fields[key]!==undefined))&&<small className="hierarchy-ice">ICE {score(item.fields)}</small>}</span>
    </button>
-   {nested.length>0&&<details open className="goi-hierarchy-toggle problemon-children-toggle">
-    <summary onClick={event=>{
-     const parent=event.currentTarget.parentElement as HTMLDetailsElement|null;
-     if(!parent)return;
-     const opening=!parent.open;
-     parent.querySelectorAll("details.goi-hierarchy-toggle").forEach(node=>{(node as HTMLDetailsElement).open=opening;});
-    }}>
+   {nested.length>0&&<details className="goi-hierarchy-toggle problemon-children-toggle">
+    <summary>
      <ChevronRight size={15} aria-hidden="true"/>
      <span className="goi-toggle-show">Mostrar hijos ({nested.length})</span>
      <span className="goi-toggle-hide">Ocultar hijos ({nested.length})</span>
@@ -46,12 +42,12 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
    </details>}
   </div>;
  };
- return <section className={"problemon-panel"+(compact?" problemon-compact":"")} aria-label={"Problemon de "+project.title}>
+ return <section className={"problemon-panel"+(compact?" problemon-compact":"")} aria-label={"Problema principal de "+project.title}>
   <header className="problemon-header">
    <div className="problemon-heading">
     <span className="problemon-icon"><Flag size={23} aria-hidden="true"/></span>
     <div><span className="eyebrow">Problema u oportunidad principal</span>
-     <h2>Problemon <small>· {project.title}</small></h2>
+     <h2>Problema principal <small>· {project.title}</small></h2>
      <p>Una única oportunidad principal por proyecto, compartida entre Growth Tree y MVPs Tree.</p>
     </div>
    </div>
@@ -72,14 +68,14 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
      <span>{String(selected.fields.opportunity_type||"Problema u oportunidad")}</span>
     </div>
    </div>
-   {!compact&&children.length>0&&<section className="problemon-tree" aria-label="Jerarquía del Problemon">
+   {!compact&&children.length>0&&<section className="problemon-tree" aria-label="Jerarquía del problema principal">
     <h3>Hipótesis, experimentos e investigaciones vinculadas</h3>
     <div className="goi-hierarchy-children">{children.map(item=>renderChild(item,new Set([selected.id])))}</div>
    </section>}
   </>:<>
-   <p className="problemon-empty">Este proyecto todavía no tiene un Problemon. Puedes crear uno o designar una oportunidad existente sin duplicar registros.</p>
+   <p className="problemon-empty">Este proyecto todavía no tiene un problema principal. Puedes crear uno o designar una oportunidad existente sin duplicar registros.</p>
    {!readOnly&&canCreate&&<button type="button" className="btn primary problemon-create" onClick={onCreate}>
-    <Plus size={16} aria-hidden="true"/>Crear Problemon
+    <Plus size={16} aria-hidden="true"/>Crear problema principal
    </button>}
    {!compact&&!readOnly&&canEdit&&candidates.length>0&&<div className="problemon-choose">
     <label htmlFor={"problemon-existing-"+project.id}>Seleccionar un problema u oportunidad existente</label>
@@ -88,7 +84,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
       {candidates.map(item=><option value={item.id} key={item.id}>{item.title}</option>)}
      </select>
      <button type="button" className="btn" disabled={!candidate} onClick={()=>{if(candidate)onDesignate(candidate);}}>
-      Designar como Problemon
+      Designar como problema principal
      </button></div>
     <small>Su identificador, comentarios, archivos y relaciones seguirán siendo los mismos.</small>
    </div>}
