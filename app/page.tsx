@@ -327,7 +327,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "map", label: "Growth Tree", icon: GitBranch },
   { id: "team", label: "Equipo", icon: Users },
   { id: "integrations", label: "Integraciones", icon: Plug },
-  { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
+  { id: "method", label: "Cómo utilizar Xperiments", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
  problemon:"Problemón", mvp_problemon:"Problemón",
@@ -744,7 +744,7 @@ export default function Home() {
         }
         let preferred: string | null = preferredWorkspace.current;
         preferredWorkspace.current = null;
-        if (!preferred) { try { preferred = localStorage.getItem(`experimental-os.workspace.${user.id}`); } catch {} }
+        if (!preferred) { try { preferred = (localStorage.getItem(`xperiments.workspace.${user.id}`) || localStorage.getItem(`experimental-os.workspace.${user.id}`)); } catch {} }
         const space = selectTeamSpace(spaces, preferred);
         if (alive) { setWorkspaces(spaces); setWorkspace(space); setError(""); }
       } catch (err) {
@@ -1784,7 +1784,7 @@ export default function Home() {
             setPendingInvite("");
             setError("");
             window.history.replaceState({}, "", window.location.pathname);
-          }}>Ir a Experimental OS</button>
+          }}>Ir a Xperiments</button>
         </div>
       </div>
     );
@@ -1979,7 +1979,7 @@ export default function Home() {
                   ++loadVersion.current;
                   setMembers([]); setItems([]); setSelected(null); setDraft(null); setError("");
                   setWorkspace(next);
-                  if (user) { try { localStorage.setItem(`experimental-os.workspace.${user.id}`, next.id); } catch {} }
+                  if (user) { try { localStorage.setItem(`xperiments.workspace.${user.id}`, next.id); } catch {} }
                 }}>
                 {workspaces.map(space => <option key={space.id} value={space.id}>{space.name || "Espacio de trabajo"}</option>)}
               </select>
