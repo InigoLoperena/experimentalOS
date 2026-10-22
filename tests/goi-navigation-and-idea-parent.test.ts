@@ -15,7 +15,7 @@ test("Hypothesis parent opportunity has red magnifying-glass label in cards and 
  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  assert.match(page,/const parentOpportunity = parent\.kind === "opportunity"/);
  assert.match(page,/parentOpportunity \? "opportunity"/);
- assert.match(page,/parentOpportunity \? \(\s*<Search size=\{17\} aria-hidden="true"/);
+ assert.match(page,/parentOpportunity \? \(\s*isProblemon\(parent\) \? <Flag size=\{17\} color="var\(--red-text\)"/);
  const uses=(page.match(/\{parentTag\(/g)||[]).length;
  assert.ok(uses>=3, "parent label should be shared in cards, experiments and detail view");
  assert.match(css,/\.record-parent-pill\.opportunity\s*\{[^}]*color: var\(--red-text\)/);
