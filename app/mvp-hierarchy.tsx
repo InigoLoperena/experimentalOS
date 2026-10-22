@@ -39,6 +39,26 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
  const mainHypothesis=allProjectItems.find(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis===true);
  const experiments=allProjectItems.filter(item=>item.kind==="experiment").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
  const hypotheses=allProjectItems.filter(item=>item.kind==="hypothesis").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
+ const researchRecords=allProjectItems.filter(item=>item.kind==="research")
+  .sort((a,b)=>b.created_at.localeCompare(a.created_at)||a.title.localeCompare(b.title,"es"));
+ const researchParentsOf=(research:Item):Item[]=>{
+  // Research may be linked to several hypotheses and problems (mvp_links).
+  // Follow valid project-scoped links only; show each ancestor once.
+  const seen=new Set<string>([research.id]);
+  const related:Item[]=[];
+  const visit=(parent:Item)=>{
+   if(seen.has(parent.id)||parent.project_id!==project.id)return;
+   seen.add(parent.id);
+   if(parent.kind!=="opportunity"&&parent.kind!=="hypothesis")return;
+   related.push(parent);
+   if(parent.kind==="hypothesis"){
+    const problem=byId.get(parent.parent_id||"");
+    if(problem?.kind==="opportunity")visit(problem);
+   }
+  };
+  for(const direct of hierarchy.parents.get(research.id)||[])visit(direct);
+  return related;
+ };
  const parentsOf=(experiment:Item):Item[]=>{
   const path:Item[]=[];const visited=new Set<string>([experiment.id]);
   let id=linkedHypothesis(experiment);
@@ -140,6 +160,47 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
    })}
    {!hypotheses.length&&<div className="mvp-hierarchy-empty panel">
     <p>Este proyecto todavía no tiene hipótesis.</p>{add("Añadir hipótesis","hypothesis")}
+   </div>}
+  </div>
+ </div>;
+ if(view==="mvp_research")return <div className="mvp-hierarchy-screen">
+  <section className="mvp-hierarchy-heading panel">
+   <div><span className="eyebrow">MVPs Tree · {project.title}</span>
+    <h2>Investigación ({researchRecords.length})</h2>
+    <p>Listado de investigaciones del proyecto. Despliega los padres para consultar las hipótesis y problemas vinculados.</p>
+   </div>
+   {add("Añadir investigación","research")}
+  </section>
+  <div className="mvp-experiment-ranked-list mvp-research-ranked-list">
+   {researchRecords.map(research=>{
+    const ancestors=researchParentsOf(research);
+    const expanded=openParents.has(research.id);
+    const hasIce=["impact","confidence","ease"].some(key=>research.fields[key]!==undefined);
+    return <section key={research.id} className="mvp-experiment-ranked-entry">
+     <article className="mvp-hierarchy-record mvp-hierarchy-research mvp-experiment-ranked-card">
+      <span className="mvp-hierarchy-record-icon"><ItemIcon kind="research"/></span>
+      <div className="mvp-hierarchy-record-text">
+       <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor("research")}} onClick={()=>onOpen(research)}>{research.title}</button>
+       {hasIce&&<span className="mvp-hierarchy-ice">ICE <strong>{score(research.fields)}</strong></span>}
+      </div>
+      <div className="mvp-experiment-ranked-actions">
+       <button type="button" className="btn" onClick={()=>toggleParents(research.id)}
+        aria-expanded={expanded} aria-controls={"research-parents-"+research.id} disabled={!ancestors.length}>
+        <ChevronRight size={16} className={expanded?"mvp-upward-open":""} aria-hidden="true"/>
+        {expanded?"Ocultar padres":"Desplegar padres"} ({ancestors.length})
+       </button>
+       {!readOnly&&canEdit("research")&&<button type="button" title="Editar" aria-label={"Editar "+research.title} onClick={()=>onEdit(research)}><Pencil size={16}/></button>}
+       {!readOnly&&canDelete("research")&&<button type="button" title="Eliminar" aria-label={"Eliminar "+research.title} onClick={()=>onDelete(research)}><Trash2 size={16}/></button>}
+      </div>
+     </article>
+     {expanded&&ancestors.length>0&&<div id={"research-parents-"+research.id} className="mvp-upward-chain mvp-research-parents" aria-label={"Padres de "+research.title}>
+      {ancestors.map(parentRow)}
+     </div>}
+    </section>;
+   })}
+   {!researchRecords.length&&<div className="mvp-hierarchy-empty panel">
+    <p>Este proyecto todavía no tiene investigaciones.</p>
+    {add("Añadir investigación","research")}
    </div>}
   </div>
  </div>;
