@@ -15,8 +15,8 @@ const records=[
  sample("input","goal","nsm","input_metrics"),
  sample("opportunity","opportunity","goal"),
  sample("secondOpportunity","opportunity","goal"),
- sample("idea","idea","opportunity"),
- sample("secondIdea","idea","opportunity"),
+ sample("idea","hypothesis","opportunity"),
+ sample("secondIdea","hypothesis","opportunity"),
  sample("experiment","experiment","idea"),
  sample("otherExperiment","experiment","secondIdea"),
  sample("metricOpportunity","opportunity","input"),
@@ -34,7 +34,7 @@ function initiallyVisible(view:"goals"|"input_metrics"|"opportunities"|"ideas") 
  return {h,seen};
 }
 
-test("Oportunidades shows each goal and its problems without opening ideas",()=>{
+test("Oportunidades shows each goal and its problems without opening hypotheses",()=>{
  const {h,seen}=initiallyVisible("opportunities");
  assert.deepEqual(seen,["goal","opportunity","secondOpportunity","input","metricOpportunity"]);
  assert.ok(h.expanded.has("goal"));
@@ -44,9 +44,9 @@ test("Oportunidades shows each goal and its problems without opening ideas",()=>
  assert.ok(!seen.includes("nsm"));
 });
 
-test("Ideas shows ancestor goals and problems plus the ideas, but not experiments",()=>{
+test("Hipótesis shows ancestor goals and problems plus the hypotheses, but not experiments",()=>{
  const {h,seen}=initiallyVisible("ideas");
- assert.deepEqual(seen,["goal","opportunity","idea","secondIdea"]);
+ assert.deepEqual(seen,["goal","opportunity","hypothesis","secondIdea"]);
  assert.ok(h.expanded.has("goal")&&h.expanded.has("opportunity"));
  assert.ok(!h.expanded.has("idea"));
  assert.deepEqual(h.children("idea").map(i=>i.id),["experiment"]);
@@ -68,12 +68,12 @@ test("native details use the selected hierarchy ancestor expansion by default",a
  assert.match(page,/<details key=\{view \+ ":" \+ item\.id\} className="goi-hierarchy-toggle" open=\{expanded\.has\(item\.id\)\}/);
 });
 
-test("Unassigned opportunities appear in their own first-position group on Problems and Ideas",()=>{
+test("Unassigned opportunities appear in their own first-position group on Problems and Hypotheses",()=>{
  const fixture=[
   ...records,
   sample("orphanProblem","opportunity"),
   sample("orphanProblemWithMissingParent","opportunity","deletedGoal"),
-  sample("ideaUnderOrphanProblem","idea","orphanProblem"),
+  sample("ideaUnderOrphanProblem","hypothesis","orphanProblem"),
   sample("orphanIdea","idea"),
   sample("experimentUnderOrphanIdea","experiment","orphanIdea"),
  ];
@@ -84,15 +84,15 @@ test("Unassigned opportunities appear in their own first-position group on Probl
   assert.deepEqual(h.children("orphanProblem").map(x=>x.id),["ideaUnderOrphanProblem"]);
  }
  const ideas=getGoiHierarchy(fixture,"ideas");
- assert.deepEqual(ideas.orphanIdeas.map(x=>x.id),["orphanIdea"]);
+ assert.deepEqual(ideas.orphanHypotheses.map(x=>x.id),["orphanIdea"]);
  assert.ok(!ideas.roots.some(x=>x.id==="orphanIdea"));
  assert.deepEqual(ideas.children("orphanIdea").map(x=>x.id),["experimentUnderOrphanIdea"]);
  const problems=getGoiHierarchy(fixture,"opportunities");
- assert.equal(problems.orphanIdeas.length,0);
+ assert.equal(problems.orphanHypotheses.length,0);
  assert.ok(problems.roots.some(x=>x.id==="goal"));
 });
 
-test("Orphaned opportunity cards appear in Ideas even if no ideas exist yet",()=>{
+test("Orphaned opportunity cards appear in Hipótesis even if no ideas exist yet",()=>{
  const h=getGoiHierarchy([sample("orphan","opportunity")],"ideas");
  assert.equal(h.target.length,0);
  assert.deepEqual(h.orphanOpportunities.map(x=>x.id),["orphan"]);
@@ -102,9 +102,9 @@ test("Orphaned opportunity cards appear in Ideas even if no ideas exist yet",()=
 test("Orphan groups precede regular GOI branches in both subsection views",async()=>{
  const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
  const start=page.indexOf('aria-label="Oportunidades-problemas huérfanos"');
- const ideas=page.indexOf('aria-label="Ideas huérfanas"');
+ const ideas=page.indexOf('aria-label="Hipótesis huérfanas"');
  const regular=page.indexOf("{roots.map(renderGroup)}");
  assert.ok(start > 0 && ideas > start && regular > ideas);
  assert.match(page,/orphanOpportunities\.map\(renderGroup\)/);
- assert.match(page,/orphanIdeas\.map\(renderGroup\)/);
+ assert.match(page,/orphanHypotheses\.map\(renderGroup\)/);
 });

@@ -16,6 +16,7 @@ test("Growth Tree is the only visible tree name, while stable GOI routes stay us
   assert.doesNotMatch(source,/GOI Tree/);
  }
  assert.equal(routes.sectionPaths.map,"/goi-tree");
+ assert.equal(routes.viewForPath("/goi-tree/hipotesis"),"ideas");
  assert.equal(routes.viewForPath("/goi-tree/ideas"),"ideas");
  assert.equal(routes.viewForPath("/goi-tree/experimentos"),"experiments");
 });

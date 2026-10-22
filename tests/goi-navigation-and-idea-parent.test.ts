@@ -7,10 +7,10 @@ test("GOI Tree sidebar uses one blue selected state for every subsection",async(
  assert.match(css,/\.nav-goi-subsection\.active,[\s\S]*?\.nav-goi-subsection:hover\s*\{\s*background: var\(--input-metric-soft\);[\s\S]*?border-color: rgba\(130, 198, 255,/);
  assert.doesNotMatch(css,/\.nav-goi-subsection\.objective\.active/);
  assert.doesNotMatch(css,/\.nav-goi-subsection\.input-metric\.active/);
- for(const label of ["objective","input-metric","opportunity","idea"])assert.ok(css.includes(".nav-goi-subsection."+label));
+ for(const label of ["objective","input-metric","opportunity","hypothesis"])assert.ok(css.includes(".nav-goi-subsection."+label));
 });
 
-test("Idea parent opportunity has red magnifying-glass label in cards and expanded details",async()=>{
+test("Hypothesis parent opportunity has red magnifying-glass label in cards and expanded details",async()=>{
  const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  assert.match(page,/const parentOpportunity = parent\.kind === "opportunity"/);

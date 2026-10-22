@@ -15,8 +15,8 @@ export const sampleBackup: Backup = {
     record("North Star", "north_star", "Proyecto España", { definition: "Compras realizadas" }),
     { ...record("Goal retención", "goal", "Proyecto España", { target: 0 }), parent_id: "North Star" },
     { ...record("Oportunidad", "opportunity", "Proyecto España", { evidence: "Análisis; entrevistas" }), parent_id: "Goal retención" },
-    { ...record("Idea", "idea", "Proyecto España", { description: "Mejorar el formulario" }), parent_id: "Oportunidad" },
-    { ...record("=Experimento;\"A\"", "experiment", "Proyecto España", { hypothesis: 'Hipótesis; con "comillas"\ny nueva línea 🚀', current: 0, focus: false, tags: "=HYPERLINK(\"url\")" }), parent_id: "Idea" },
+    { ...record("Hipótesis", "hypothesis", "Proyecto España", { description: "Mejorar el formulario" }), parent_id: "Oportunidad" },
+    { ...record("=Experimento;\"A\"", "experiment", "Proyecto España", { hypothesis: 'Hipótesis; con "comillas"\ny nueva línea 🚀', current: 0, focus: false, tags: "=HYPERLINK(\"url\")" }), parent_id: "Hipótesis" },
     { ...record("Aprendizaje acción", "learning", "Segundo proyecto", { learning: "Aprendimos algo", result: "+SUM(1,2)" }), related_id: "=Experimento;\"A\"" },
     record("Ficha huérfana", "learning", "proyecto-eliminado", { learning: "No perder" })],
   members: [{ user_id: "u", role: "owner", name: "Íñigo García" }, { user_id: "v", role: "viewer", name: "Lector" }],
@@ -44,14 +44,14 @@ test("CSV contains only the four named columns and only approved kinds", () => {
   assert.deepEqual(rows.map(row => [row.Tipo,row.Proyecto,row.Padre,row.Nombre]), [
     ["Objetivo", "Proyecto España", "North Star", "Goal retención"],
     ["Oportunidad", "Proyecto España", "Goal retención", "Oportunidad"],
-    ["Idea", "Proyecto España", "Oportunidad", "Idea"],
-    ["Experimento", "Proyecto España", "Idea", "'" + sampleBackup.records[6].title],
+    ["Hipótesis", "Proyecto España", "Oportunidad", "Hipótesis"],
+    ["Experimento", "Proyecto España", "Hipótesis", "'" + sampleBackup.records[6].title],
   ]);
   assert.ok(rows.every(row => Object.keys(row).join(",") === "Tipo,Proyecto,Padre,Nombre"));
   const excluded=["datos_json","grupo","proyecto_id","padre_id","campo_","Íñigo García","Aprendizaje acción","Segundo proyecto"];
   for(const term of excluded)assert.ok(!csv.includes(term),"Unexpected CSV content: "+term);
   assert.equal(JSON.parse(backupJson(sampleBackup)).records.length,9);
-  assert.equal(recordPath(sampleBackup.records[6],sampleBackup.records),'North Star / Goal retención / Oportunidad / Idea / =Experimento;"A"');
+  assert.equal(recordPath(sampleBackup.records[6],sampleBackup.records),'North Star / Goal retención / Oportunidad / Hipótesis / =Experimento;"A"');
 });
 
 test("CSV skips input metrics, separates explicitly tagged problems and sorts within each project", () => {
@@ -62,19 +62,19 @@ test("CSV skips input metrics, separates explicitly tagged problems and sorts wi
   const metric = {...record("metric","goal","pz",{goi_section:"input_metrics"}),title:"Usuarios registrados",parent_id:"ns"};
   const problem = {...record("problem","opportunity","pz",{opportunity_type:"problema"}),title:"Falta confianza",parent_id:"goal"};
   const opportunity = {...record("op","opportunity","pz"),title:"Nueva oportunidad",parent_id:"goal"};
-  const idea = {...record("idea","idea","pa"),title:"Idea Árbol"};
-  const experiment = {...record("ex","experiment","pa"),title:"Experimento Árbol",parent_id:"idea"};
-  const withoutParent = {...record("unparented","idea","pz"),title:"Idea huérfana",parent_id:"removed"};
+  const idea = {...record("hypothesis","hypothesis","pa"),title:"Hipótesis Árbol"};
+  const experiment = {...record("ex","experiment","pa"),title:"Experimento Árbol",parent_id:"hypothesis"};
+  const withoutParent = {...record("unparented","hypothesis","pz"),title:"Hipótesis huérfana",parent_id:"removed"};
   const outside = {...record("orphan-project","experiment","missing"),title:"Sin proyecto"};
   const rows=parseCsv(backupCsv({...sampleBackup,records:[metric,problem,outside,idea,z,withoutParent,objective,opportunity,experiment,a,northStar]}));
   assert.deepEqual(rows.map(row=>row.Proyecto),["Árbol","Árbol","Zorro","Zorro","Zorro","Zorro"]);
-  assert.deepEqual(rows.map(row=>row.Tipo),["Idea","Experimento","Objetivo","Oportunidad","Problema","Idea"]);
-  assert.equal(rows.find(row=>row.Nombre==="Idea huérfana")?.Padre,"");
+  assert.deepEqual(rows.map(row=>row.Tipo),["Hipótesis","Experimento","Objetivo","Oportunidad","Problema","Hipótesis"]);
+  assert.equal(rows.find(row=>row.Nombre==="Hipótesis huérfana")?.Padre,"");
   assert.equal(rows.find(row=>row.Nombre==="Falta confianza")?.Padre,"Validación");
-  assert.equal(rows.find(row=>row.Nombre==="Experimento Árbol")?.Padre,"Idea Árbol");
+  assert.equal(rows.find(row=>row.Nombre==="Experimento Árbol")?.Padre,"Hipótesis Árbol");
   assert.ok(!rows.some(row=>row.Nombre==="Usuarios registrados"));
   assert.ok(!rows.some(row=>row.Nombre==="Sin proyecto"));
-  assert.ok(rows.every(row=>["Objetivo","Oportunidad","Problema","Idea","Experimento"].includes(row.Tipo)));
+  assert.ok(rows.every(row=>["Objetivo","Oportunidad","Problema","Hipótesis","Experimento"].includes(row.Tipo)));
 });
 
 test("CSV route uses records-only query and never includes a full ZIP", async () => {

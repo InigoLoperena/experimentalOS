@@ -1996,7 +1996,7 @@ export default function Home() {
               <h1>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</h1>
               <p>
                 {view === "map"
-                  ? "La arquitectura de información diseñada para maximizar la generación de ideas de Growth con la máxima calidad, contexto, fundamento y orden."
+                  ? "La arquitectura de información diseñada para maximizar la generación de hipótesis de Growth con la máxima calidad, contexto, fundamento y orden."
                   : (mvpViews as readonly string[]).includes(view)
                     ? "Problemas, hipótesis, investigaciones y experimentos vinculados en el mismo proyecto, con fichas compartidas con Growth Tree."
                     : view === "experiments"
@@ -3040,7 +3040,7 @@ export default function Home() {
                   {draft.kind === "goal" && draft.fields.goi_section === "input_metrics" ? "INPUT METRIC" : kinds[draft.kind].toUpperCase()}
                 </span>
                 <h2 className={draft.kind === "hypothesis" ? "hypothesis-detail-title" : undefined}>{draft.kind === "hypothesis" && <Lightbulb size={22} aria-hidden="true" />}{draft.title || "Nueva ficha"}</h2>
-                {draft.parent_id && ["opportunity","idea","experiment"].includes(draft.kind) && items.some(i => i.id === draft.parent_id) && (
+                {draft.parent_id && ["opportunity","hypothesis","experiment"].includes(draft.kind) && items.some(i => i.id === draft.parent_id) && (
                   <div className="record-relation"><span>Hijo de</span>{parentTag(draft)}</div>
                 )}
               </div>
@@ -3565,7 +3565,7 @@ function Method() {
         </p>
         <p>
           Los experimentos son comunes a ambos árboles: puedes vincularlos
-          a una hipótesis, a una idea o a ambas. Documentar una ficha no
+          a la misma hipótesis compartida en ambos árboles. Documentar una ficha no
           ejecuta por sí solo el test; debes implementarlo en tu producto
           o herramienta de experimentación.
         </p>
