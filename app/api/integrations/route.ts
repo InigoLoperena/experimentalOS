@@ -10,6 +10,7 @@ import {smartleadCampaigns} from '@/lib/smartlead';
 import {metricoolBrand,metricoolJson} from '@/lib/metricool';
 import {integrationProfileFields} from '@/lib/workspace-connection';
 import {posthogHost,posthogIdentifier} from '@/lib/posthog-api';
+import {openAIResponseError} from '@/lib/openai-api-errors';
 export const runtime='nodejs';
 export const maxDuration=60;
 const headers={'Cache-Control':'private, no-store'};
@@ -22,17 +23,29 @@ async function verify(row:Connection,secrets:Record<string,string>){
   if(secrets.write_token)await metaAccount({accountId:row.config.account_id,token:secrets.write_token});
   return `Lectura comprobada: ${account.name} · ${account.currency}. ${secrets.write_token?'Token de preparación con acceso a la cuenta; ads_management se valida al crear.':'Sin token de preparación.'}`;
  }
+ // Listing a model is free, but cannot detect an exhausted spend limit.
+ // A minimal generation is run only after the owner presses "Comprobar conexión".
+ if(row.provider==='openai'){
+  let response:Response;
+  try{
+   response=await fetch('https://api.openai.com/v1/responses',{
+    method:'POST',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000),
+    headers:{Authorization:`Bearer ${secrets.api_key}`,'Content-Type':'application/json'},
+    body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,input:'Responde solo OK.',max_output_tokens:16})
+   });
+  }catch{throw new ApiError('No se pudo contactar con OpenAI para comprobar la IA. Prueba de nuevo en unos instantes.',502);}
+  if(!response.ok)throw await openAIResponseError(response,'verify');
+  const result=await response.json().catch(()=>null);
+  if(result?.status!=='completed')throw new ApiError('OpenAI aceptó la conexión, pero no completó la respuesta de prueba. Vuelve a comprobarla.',502);
+  return 'Conexión, permisos, modelo y generación de OpenAI comprobados. Prueba mínima completada (consume unos pocos tokens). Los presupuestos futuros se revisan en OpenAI Platform.';
+ }
  let response:Response;
  try{
-  const url=row.provider==='openai'?'https://api.openai.com/v1/models/gpt-4.1-mini-2025-04-14':`${posthogHost(row.config.host)}/api/projects/${posthogIdentifier(row.config.project_id)}/`;
+  const url=`${posthogHost(row.config.host)}/api/projects/${posthogIdentifier(row.config.project_id)}/`;
   response=await fetch(url,{headers:{Authorization:`Bearer ${secrets.api_key}`},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(12000)});
  }catch{throw new ApiError('El proveedor no respondió. La configuración sigue guardada; puedes volver a comprobarla.',502);}
  if(!response.ok)throw new ApiError('El proveedor rechazó la conexión. Revisa la clave, permisos y cuenta. No se han enviado cambios.',502);
  const body=await response.json().catch(()=>null);
- if(row.provider==='openai'){
-  if(body?.id!=='gpt-4.1-mini-2025-04-14')throw new ApiError('OpenAI no confirmó el modelo configurado.',502);
-  return 'Acceso al modelo comprobado. El saldo y los límites de facturación se revisan en OpenAI; no se ha generado contenido.';
- }
  if(String(body?.id)!==row.config.project_id)throw new ApiError('PostHog no confirmó el proyecto indicado.',502);
  return 'Acceso al proyecto comprobado. Los permisos para experimentos se validan al consultarlos.';
 }
