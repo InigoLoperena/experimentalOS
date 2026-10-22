@@ -1557,7 +1557,7 @@ export default function Home() {
       .sort((a, b) => score(b.fields) - score(a.fields));
     return (
       <div className={"tree-branch " + i.kind} key={i.id}>
-        {itemCard(i)}
+        {itemCard(i, true)}
         {children.length > 0 && (
           <details open={i.kind !== "hypothesis"}>
             <summary>
