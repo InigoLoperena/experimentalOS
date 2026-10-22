@@ -1159,6 +1159,11 @@ export default function Home() {
       setError("Este proyecto ya tiene un Problemón. Solo se permite uno por proyecto.");
       return;
     }
+    if (record.kind==="hypothesis" && record.fields.is_main_hypothesis===true &&
+        items.some(item=>item.kind==="hypothesis"&&item.id!==record.id&&item.fields.is_main_hypothesis===true)) {
+      setError("Ya hay una hipótesis principal. Desmarca la actual antes de designar otra.");
+      return;
+    }
     if (problem) {
       setError(problem);
       return;
