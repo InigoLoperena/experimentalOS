@@ -3,7 +3,6 @@ import { Flag, ChevronRight, FlaskConical, Lightbulb, Microscope, Pencil, Plus, 
 import type { Item, Kind } from "@/lib/model";
 import { getMvpHierarchy, type MvpHierarchyView } from "@/lib/mvp-hierarchy";
 import { isProblemon } from "@/lib/problemon";
-import { linkedHypothesis, linkedResearchIds } from "@/lib/mvp-relationships";
 type Props={
  view:MvpHierarchyView;project:Item;items:Item[];readOnly:boolean;
  canCreate:(kind:Kind)=>boolean;canEdit:(kind:Kind)=>boolean;canDelete:(kind:Kind)=>boolean;
@@ -27,7 +26,6 @@ function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
 }
 export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
  const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
- const byId=new Map(items.map(item=>[item.id,item]));
  const add=(label:string,kind:Kind,parentId:string|null=null)=>
   !readOnly&&canCreate(kind)&&<button type="button" className="mvp-hierarchy-add" onClick={()=>onCreate(kind,parentId)}><Plus size={14} aria-hidden="true"/>{label}</button>;
  const childActions=(item:Item)=>{
@@ -39,12 +37,6 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   if(visited.has(item.id))return null;
   const next=new Set(visited);next.add(item.id);
   const descendants=hierarchy.children(item.id);
-  const relationship=item.kind==="experiment"
-   ? byId.get(linkedHypothesis(item))?.title||"Sin hipótesis vinculada"
-   : item.kind==="research"
-     ? linkedResearchIds(item).map(id=>byId.get(id)?.title).filter(Boolean).join(" · ")||"Sin vínculos"
-     : item.kind==="hypothesis"?byId.get(item.parent_id||"")?.title||"Sin problema vinculado"
-     : null;
   const description=String(item.fields.description||item.fields.belief||item.fields.context||"").trim();
   return <div className="mvp-hierarchy-node" key={item.id}>
    <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]}>
@@ -54,7 +46,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
       ?String(item.fields.opportunity_type):title[item.kind]}</span>
      <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(item)}>{item.title}</button>
      {description&&<p>{description}</p>}
-     {relationship&&<span className="mvp-hierarchy-relation">{item.kind==="research"?"Vinculada a":item.kind==="experiment"?"Hipótesis": "Hijo de"}: {relationship}</span>}
+
     </div>
     {!readOnly&&<div className="mvp-hierarchy-actions">
      {canEdit(item.kind)&&<button title="Editar" aria-label={"Editar "+item.title} onClick={()=>onEdit(item)}><Pencil size={16}/></button>}
