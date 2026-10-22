@@ -250,3 +250,37 @@ test("Both MVPs Tree and Growth Tree show hypotheses directly, with parents and 
  assert.deepEqual(result.children("hypothesis").map(item=>item.id),["experiment"]);
  assert.equal(result.expanded.size,0);
 });
+
+test("Research shows every investigation directly, with expandable and deduplicated parents",async()=>{
+ const ui=await readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8");
+ assert.match(ui,/if\(view==="mvp_research"\)return/);
+ assert.match(ui,/researchRecords\.map\(research=>/);
+ assert.match(ui,/allProjectItems\.filter\(item=>item\.kind==="research"\)/);
+ assert.match(ui,/researchParentsOf\(research\)/);
+ assert.match(ui,/hierarchy\.parents\.get\(research\.id\)/);
+ assert.match(ui,/openParents\.has\(research\.id\)/);
+ assert.match(ui,/Desplegar padres/);
+ assert.match(ui,/ancestors\.map\(parentRow\)/);
+ assert.match(ui,/Este proyecto todavía no tiene investigaciones/);
+ const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
+ const mk=(id:string,kind:Item["kind"],projectId="p",parent:string|null=null,fields:Item["fields"]={}):Item=>({
+  id,kind,project_id:projectId,parent_id:parent,fields,workspace_id:"w",title:id,related_id:null,
+  owner_id:null,created_by:null,updated_by:null,created_at:"",updated_at:""
+ });
+ const source=[
+  mk("problem","opportunity"),mk("hypothesis","hypothesis","p","problem"),
+  mk("multi","research","p",null,{mvp_links:"problem,hypothesis,problem"}),
+  mk("direct","research","p",null,{mvp_links:"problem"}),
+  mk("unlinked","research"),
+  mk("externalProblem","opportunity","other"),
+  mk("cross","research","p",null,{mvp_links:"externalProblem"}),
+  mk("foreign","research","other",null,{mvp_links:"problem"})
+ ];
+ const projection=getMvpHierarchy(source,"mvp_research","p");
+ assert.deepEqual(projection.target.map(item=>item.id),["multi","direct","unlinked","cross"]);
+ assert.deepEqual(projection.parents.get("multi")?.map(item=>item.id),["problem","hypothesis"]);
+ assert.deepEqual(projection.parents.get("direct")?.map(item=>item.id),["problem"]);
+ assert.equal(projection.parents.has("unlinked"),false);
+ assert.equal(projection.parents.has("cross"),false);
+ assert.ok(projection.target.every(item=>item.project_id==="p"));
+});
