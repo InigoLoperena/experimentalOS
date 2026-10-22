@@ -334,13 +334,14 @@ const viewLabels: Partial<Record<View, string>> = {
  problemon:"Problemón", mvp_problemon:"Problemón",
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
- mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
+ mvp_problems: "Problemas u Oportunidades", mvp_main_hypothesis: "Hipótesis principal", mvp_hypotheses: "Hipótesis",
  mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
 };
-const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
+const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_main_hypothesis", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
 const mvpSubsections = [
  { id:"mvp_problemon", label:"Problemón", icon:Flag, accent:"problemon" },
  { id:"mvp_problems", label:"Problemas u Oportunidades", icon:Search, accent:"problems" },
+ { id:"mvp_main_hypothesis", label:"Hipótesis principal", icon:Lightbulb, accent:"hypotheses" },
  { id:"mvp_hypotheses", label:"Hipótesis", icon:Lightbulb, accent:"hypotheses" },
  { id:"mvp_experiments", label:"Experimentos", icon:FlaskConical, accent:"experiments" },
  { id:"mvp_research", label:"Investigación", icon:Microscope, accent:"research" },
@@ -1014,8 +1015,9 @@ export default function Home() {
       resolvedParentId = goalParent(resolvedParentId, items);
     }
 
-    // Keep parentless opportunities and hypotheses under "Sin vincular".
-    // Never silently select an arbitrary GOI parent.
+    if(kind==="hypothesis" && !resolvedParentId && currentProject) resolvedParentId=getProblemon(items,currentProject.id)?.id||null;
+    if(kind==="experiment" && !resolvedParentId && !hypothesisId)
+      resolvedParentId=items.find(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis===true)?.id||null;
 
     setError("");
     const defaults = Object.fromEntries(
@@ -1065,6 +1067,7 @@ export default function Home() {
         ...(kind === "opportunity" && (mvpViews as readonly string[]).includes(view) ? { opportunity_type: "Problema" } : {}),
         ...(kind === "opportunity" && markProblemon ? { is_problemon: true } : {}),
         ...(kind === "research" && researchTargetId ? { mvp_links: researchTargetId } : {}),
+        ...(kind === "hypothesis" && view==="mvp_main_hypothesis" ? {is_main_hypothesis:true}: {}),
         ...(kind === "experiment" && (hypothesisId || (resolvedParentId && parent?.kind === "hypothesis")) ? { mvp_hypothesis_id: hypothesisId || resolvedParentId! } : {}),
         ...(kind === "experiment"
           ? {
@@ -2169,10 +2172,10 @@ export default function Home() {
               problemonSection={renderProblemon(true)}
             />
           )}
-          {(["mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as View[]).includes(view) && currentProject && (
+          {(["mvp_problems", "mvp_main_hypothesis", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as View[]).includes(view) && currentProject && (
             <MvpHierarchy
               key={currentProject.id + ":" + view}
-              view={view as "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research"}
+              view={view as "mvp_problems" | "mvp_main_hypothesis" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research"}
               project={currentProject} items={items}
               readOnly={publicMode || (!demo && !editable)}
               canCreate={kind => can(kind, "create")}
@@ -3156,9 +3159,15 @@ export default function Home() {
                   </select>
                 </label>
               )}
+              {draft.kind === "hypothesis" && <label className="check-label full">
+                <input type="checkbox" checked={draft.fields.is_main_hypothesis===true}
+                  disabled={items.some(item=>item.kind==="hypothesis"&&item.id!==draft.id&&item.fields.is_main_hypothesis===true)&&draft.fields.is_main_hypothesis!==true}
+                  onChange={event=>setDraft({...draft,fields:{...draft.fields,is_main_hypothesis:event.target.checked}})}/>
+                Hipótesis principal (padre predeterminado de los nuevos experimentos)
+              </label>}
               {draft.kind !== "experiment" && draft.kind !== "goal" && parents[draft.kind] && (
                 <label>
-                  {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : kinds[parents[draft.kind]!] + " al que pertenece"}
+                  {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : draft.kind==="hypothesis" ? "Padre de la hipótesis (Problemón predeterminado)" : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
                     value={draft.parent_id || ""}
                     onChange={(e) =>
@@ -3177,7 +3186,7 @@ export default function Home() {
                         <option key={i.id} value={i.id}>
                           {draft.kind === "opportunity" && i.kind === "goal"
                             ? (i.fields.goi_section === "input_metrics" ? "Input Metric: " : "Objetivo: ") + i.title
-                            : i.title}
+                            : draft.kind==="hypothesis" && isProblemon(i) ? "Problemón (predeterminado): "+i.title : i.title}
                         </option>
                       ))}
                   </select>
@@ -3186,13 +3195,13 @@ export default function Home() {
               {draft.kind === "experiment" && (
                 <>
                   <label>
-                    Hipótesis (compartida entre Growth Tree y MVPs Tree)
+                    Hipótesis padre (principal predeterminada; compartida entre Growth Tree y MVPs Tree)
                     <select value={draft.parent_id || String(draft.fields.mvp_hypothesis_id || "")}
                       onChange={e => setDraft({...draft,parent_id:e.target.value || null,
                         fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
                       <option value="">Experimento sin hipótesis</option>
                       {items.filter(item => item.kind === "hypothesis").map(item =>
-                        <option key={item.id} value={item.id}>{item.title}</option>)}
+                        <option key={item.id} value={item.id}>{item.fields.is_main_hypothesis===true?"Hipótesis principal: ":""}{item.title}</option>)}
                     </select>
                   </label>
                 </>
