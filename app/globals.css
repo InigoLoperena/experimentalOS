@@ -3453,3 +3453,9 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .legend-dot.hypothesis{background:var(--hypothesis-accent)}
 .tree-branch.hypothesis .branch-children{border-left-color:rgba(255,216,77,.5)}
 .hypothesis-form-section{color:var(--hypothesis-accent);font-size:13px;font-weight:750;line-height:1.3;padding-top:8px;border-top:1px solid var(--border);margin:4px 0 0}
+
+/* Read-only detail view for the merged, cross-tree hypothesis record. */
+.hypothesis-details{display:grid;gap:15px;min-width:0}
+.hypothesis-detail-section{display:grid;gap:9px;min-width:0;border-top:1px solid var(--border);padding-top:11px}
+.hypothesis-detail-section h3{color:var(--hypothesis-accent);font-size:13px;font-weight:750;margin:0}
+.hypothesis-detail-section .field-details{margin:0}

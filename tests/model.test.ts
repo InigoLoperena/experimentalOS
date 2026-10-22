@@ -45,7 +45,7 @@ test("standalone experiments save without removed launch or completion fields", 
   );
   // A former child may be orphaned after its parent is deleted.
   assert.equal(
-    validate({ kind: "idea", title: "Idea", parent_id: null, fields: {} }),
+    validate({ kind: "hypothesis", title: "Hipótesis", parent_id: null, fields: {} }),
     null,
   );
 });
