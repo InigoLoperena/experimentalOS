@@ -42,12 +42,11 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
  const target=local.filter(item=>desiredKind===null || item.kind===desiredKind);
  const included=new Set(target.map(item=>item.id));
  const expanded=new Set<string>();
- // Make each selected kind and all ancestors visible on arrival, while
- // keeping levels beneath the selected kind folded (matching GOI Tree).
+ // Include all ancestors, but keep every child branch folded on arrival.
  function addAncestors(id:string,path:Set<string>){
   for(const parent of parents.get(id)||[]){
    if(path.has(parent.id))continue;
-   included.add(parent.id);expanded.add(parent.id);
+   included.add(parent.id);
    addAncestors(parent.id,new Set([...path,parent.id]));
   }
  }
@@ -64,11 +63,7 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
   .filter(item=>included.has(item.id)).sort(byDateAndTitle);
  const roots=local.filter(item=>included.has(item.id) &&
   !(parents.get(item.id)||[]).some(parent=>included.has(parent.id))).sort(byDateAndTitle);
- // Unlike GOI Tree's subsection default, MVPs Tree always displays the
- // complete problem -> hypothesis -> experiment/research chain on arrival.
- for(const [parentId,descendants] of childrenIndex){
-  if(included.has(parentId) && descendants.some(child=>included.has(child.id))) expanded.add(parentId);
- }
+ // All hierarchy branches start closed; each user click opens one level.
  const unlinked=roots.filter(item=>item.kind!=="opportunity");
  const unlinkedIds=new Set(unlinked.map(item=>item.id));
  return {target,roots:roots.filter(item=>!unlinkedIds.has(item.id)),unlinked,children,expanded,parents};
