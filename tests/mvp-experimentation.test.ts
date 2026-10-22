@@ -222,3 +222,31 @@ test("Experiments live only under MVPs Tree and GOI Tree with a unified purple a
  assert.equal(routes.sectionPaths.experiments,"/goi-tree/experimentos");
  assert.equal(routes.viewForPath("/experimentos"),"experiments");
 });
+
+test("Both MVPs Tree and Growth Tree show hypotheses directly, with parents and children collapsed per row",async()=>{
+ const [page,hierarchy,styles]=await Promise.all([
+  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+ ]);
+ assert.match(hierarchy,/if\(view==="mvp_hypotheses"\)return/);
+ assert.match(hierarchy,/hypotheses\.map\(hypothesis=>/);
+ assert.match(hierarchy,/allProjectItems\.filter\(item=>item\.kind==="hypothesis"\)/);
+ assert.match(hierarchy,/Desplegar padres e hijos/);
+ assert.match(hierarchy,/ancestors\.map\(parentRow\)/);
+ assert.match(hierarchy,/descendants\.map\(child=>/);
+ assert.match(hierarchy,/openParents\.has\(hypothesis\.id\)/);
+ assert.match(page,/view === "ideas" && currentProject/);
+ assert.match(page,/view="mvp_hypotheses" treeName="Growth Tree"/);
+ assert.match(styles,/mvp-hypothesis-ranked-list/);
+ const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
+ const mk=(id:string,kind:Item["kind"],parent_id:string|null=null,fields:Item["fields"]={}):Item=>({
+  id,kind,parent_id,fields,project_id:"p",workspace_id:"w",title:id,related_id:null,owner_id:null,
+  created_by:null,updated_by:null,created_at:"",updated_at:"",
+ });
+ const data=[mk("problem","opportunity"),mk("hypothesis","hypothesis","problem",{impact:9,confidence:7,ease:5}),mk("experiment","experiment","hypothesis",{impact:7,confidence:7,ease:7})];
+ const result=getMvpHierarchy(data,"mvp_hypotheses","p");
+ assert.deepEqual(result.target.map(item=>item.id),["hypothesis"]);
+ assert.deepEqual(result.children("hypothesis").map(item=>item.id),["experiment"]);
+ assert.equal(result.expanded.size,0);
+});
