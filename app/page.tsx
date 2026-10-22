@@ -358,8 +358,6 @@ function IconFor({ kind }: { kind: Kind }) {
           ? Lightbulb
           : kind === "research"
             ? Microscope
-            : kind === "hypothesis"
-          ? Lightbulb
           : kind === "opportunity"
             ? Search
             : Target;
@@ -1010,7 +1008,7 @@ export default function Home() {
       resolvedParentId = goalParent(resolvedParentId, items);
     }
 
-    // Keep truly unassigned opportunities and ideas under "Sin vincular".
+    // Keep parentless opportunities and hypotheses under "Sin vincular".
     // Never silently select an arbitrary GOI parent.
 
     setError("");
@@ -2925,8 +2923,8 @@ export default function Home() {
                 </>}
 
                 {files}
-              </> : <><FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />{links}{files}</>}
-            </RecordAttachments> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}
+              </> : <>{selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}{links}{files}</>}
+            </RecordAttachments> : {selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}}
             {["goal", "opportunity", "hypothesis", "research", "experiment"].includes(selected.kind) && !publicMode && (
               <section className="record-activity">
                 <div className="record-activity-head">
@@ -3528,9 +3526,9 @@ function Method() {
           MVPs Tree y Growth Tree. Crear, editar o eliminar una de estas
           fichas actualiza automáticamente su visualización en ambos,
           respetando los permisos. No se duplican datos. En MVPs Tree un
-          experimento puede depender de una <strong>Hipótesis</strong>, mientras
-          que en Growth Tree puede depender de una <strong>Idea</strong>.
-          Ambas relaciones son independientes y opcionales.
+          experimento se vincula a la <strong>misma hipótesis</strong> en
+          Growth Tree y MVPs Tree. La relación, los comentarios y los adjuntos
+          son compartidos y no se duplican.
         </p>
         <a href="/goi-tree">
           Abrir Growth Tree <ArrowUpRight size={14} />
@@ -3642,6 +3640,29 @@ function PasswordRecovery({ onDone }: { onDone: () => void }) {
       </div>
     </div>
   );
+}
+
+/**
+ * One shared detail layout for hypotheses in both trees. Former idea fields
+ * and MVP hypothesis fields coexist without hiding or repeating any field.
+ */
+function HypothesisDetails({ record }: { record: Item }) {
+  const groups = [
+    { title: "Planteamiento", keys: ["description"] },
+    { title: "Hipótesis y fundamentos", keys: ["belief", "reason"] },
+    { title: "Validación", keys: ["validation_need"] },
+    { title: "Indicadores y priorización", keys: ["metric", "experimental_focus", "evidence", "impact", "confidence", "ease"] },
+  ];
+  return <div className="hypothesis-details">
+    {groups.map(group => {
+      const visible = schemas.hypothesis.filter(f => group.keys.includes(f.key) &&
+        record.fields[f.key] !== undefined && record.fields[f.key] !== "");
+      return visible.length ? <section key={group.title} className="hypothesis-detail-section">
+        <h3>{group.title}</h3>
+        <FieldDetails record={record} fields={visible}/>
+      </section> : null;
+    })}
+  </div>;
 }
 
 function FieldDetails({ record, fields }: { record: Item; fields: Field[] }) {
