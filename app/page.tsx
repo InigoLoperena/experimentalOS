@@ -1490,10 +1490,10 @@ export default function Home() {
 
   function goiTitleTag(i: Item) {
     const visual = i.kind === "goal" ? goalVisualClass(i) : i.kind;
-    const I = i.kind === "goal" ? null : i.kind === "opportunity" ? Search : Lightbulb;
+    const I = i.kind === "goal" ? null : i.kind === "opportunity" ? (isProblemon(i) ? Flag : Search) : Lightbulb;
     return <span className={`goi-title-tag ${visual}`} title={i.title}>
       {i.kind === "goal" ? <GoalTypeIcon item={i} size={17}/> : I ? <I size={17} aria-hidden="true"/> : null}
-      <span>{i.title}</span>
+      <span>{isProblemon(i) ? "Problemon · " + i.title : i.title}</span>
     </span>;
   }
 
