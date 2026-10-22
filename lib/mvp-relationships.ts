@@ -1,6 +1,6 @@
 import type { Item } from "./model";
-export function linkedHypothesis(experiment:Pick<Item,"fields">):string{
- return String(experiment.fields.mvp_hypothesis_id||"").trim();
+export function linkedHypothesis(experiment:Pick<Item,"fields"> & Partial<Pick<Item,"parent_id">>):string{
+ return String(experiment.parent_id || experiment.fields.mvp_hypothesis_id || "").trim();
 }
 export function linkedResearchIds(research:Pick<Item,"fields">):string[]{
  return [...new Set(String(research.fields.mvp_links||"").split(",").map(v=>v.trim()).filter(Boolean))];

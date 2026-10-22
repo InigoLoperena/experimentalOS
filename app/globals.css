@@ -3444,3 +3444,12 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
  color:var(--hypothesis-accent);overflow-wrap:anywhere;
 }
 .hypothesis-detail-title svg{flex-shrink:0;color:var(--hypothesis-accent)}
+
+/* The shared hypothesis replaces old yellow Idea cards in Growth Tree. */
+.sidebar nav .nav-subsections .nav-goi-subsection.hypothesis,
+.sidebar nav .nav-subsections .nav-goi-subsection.hypothesis > svg{color:var(--hypothesis-accent)}
+.goi-title-tag.hypothesis{color:var(--hypothesis-accent);background:var(--hypothesis-soft);border:1px solid rgba(255,216,77,.5)}
+.record-parent-pill.hypothesis,.record-parent-pill.hypothesis > svg{color:var(--hypothesis-accent)}
+.legend-dot.hypothesis{background:var(--hypothesis-accent)}
+.tree-branch.hypothesis .branch-children{border-left-color:rgba(255,216,77,.5)}
+.hypothesis-form-section{color:var(--hypothesis-accent);font-size:13px;font-weight:750;line-height:1.3;padding-top:8px;border-top:1px solid var(--border);margin:4px 0 0}

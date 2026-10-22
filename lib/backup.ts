@@ -67,7 +67,7 @@ export function backupCsv(backup: Pick<Backup, "records">): string {
         ? { label: "Problema", order: 2 }
         : { label: "Oportunidad", order: 1 };
     }
-    if (item.kind === "idea") return { label: "Idea", order: 3 };
+    if (item.kind === "hypothesis") return { label: "Hipótesis", order: 3 };
     if (item.kind === "experiment") return { label: "Experimento", order: 4 };
     return null;
   };

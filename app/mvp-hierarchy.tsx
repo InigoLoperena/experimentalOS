@@ -12,7 +12,7 @@ const labels:Record<MvpHierarchyView,{title:string,description:string,action:str
  mvp:{title:"Árbol de validación",description:"Problemas u oportunidades → hipótesis → experimentos o investigación. Todos los niveles aparecen desplegados para mostrar sus relaciones.",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_problems:{title:"Problemas u Oportunidades",description:"Son la raíz de esta jerarquía. Cada uno puede tener varias hipótesis, además de investigaciones vinculadas.",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_hypotheses:{title:"Hipótesis",description:"Cada hipótesis es hija de un problema u oportunidad y puede comprobarse con investigaciones o experimentos.",action:"Añadir hipótesis",kind:"hypothesis"},
- mvp_experiments:{title:"Experimentos",description:"Los experimentos pueden validar hipótesis; sus vínculos con las ideas de Growth Tree permanecen independientes.",action:"Añadir experimento",kind:"experiment"},
+ mvp_experiments:{title:"Experimentos",description:"Los experimentos pueden validar hipótesis; la misma hipótesis se utiliza en Growth Tree y MVPs Tree.",action:"Añadir experimento",kind:"experiment"},
  mvp_research:{title:"Investigación",description:"Entrevistas, encuestas y otras investigaciones vinculables a uno o varios problemas o hipótesis.",action:"Añadir investigación",kind:"research"},
 };
 const accents:{[K in Item["kind"]]?:string}={opportunity:"problem",hypothesis:"hypothesis",experiment:"experiment",research:"research"};

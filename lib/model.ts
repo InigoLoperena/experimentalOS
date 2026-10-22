@@ -66,7 +66,7 @@ export const parents: Record<Kind, Kind | null> = {
   hypothesis: "opportunity",
   research: null,
   idea: "opportunity",
-  experiment: "idea",
+  experiment: "hypothesis",
   learning: "experiment",
   objective: null,
   kr: "objective",

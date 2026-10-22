@@ -8,7 +8,7 @@ export const sectionPaths = {
  experiments: '/goi-tree/experimentos', learning: '/aprendizajes',
  ai: '/ia', map: '/goi-tree', goals: '/goi-tree/objetivos',
  input_metrics: '/goi-tree/input-metrics', opportunities: '/goi-tree/oportunidades',
- ideas: '/goi-tree/ideas', team: '/equipo',
+ ideas: '/goi-tree/hipotesis', team: '/equipo',
  integrations: '/integraciones', method: '/como-utilizar',
 } as const;
 export type SectionView = keyof typeof sectionPaths;
@@ -18,6 +18,7 @@ export function viewForPath(pathname:string):SectionView|null {
  if(pathnameNormalized==='/')return 'projects';
  // Preserve existing links, bookmarks and integrations from the former main menu.
  if(pathnameNormalized==='/experimentos')return 'experiments';
+ if(pathnameNormalized==='/goi-tree/ideas')return 'ideas';
  const entry=(Object.entries(sectionPaths) as [SectionView,string][]).find(([,value])=>value===pathnameNormalized);
  return entry?.[0]??null;
 }

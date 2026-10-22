@@ -2,7 +2,7 @@ import type { Item } from "./model";
 
 export type GoiHierarchyView = "goals" | "input_metrics" | "opportunities" | "ideas";
 
-const VISIBLE_KINDS = new Set<Item["kind"]>(["goal", "opportunity", "idea", "experiment"]);
+const VISIBLE_KINDS = new Set<Item["kind"]>(["goal", "opportunity", "hypothesis", "experiment"]);
 const byDateThenId = (a: Item, b: Item) =>
   a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
 
@@ -15,7 +15,7 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
   const target = items.filter(item =>
     view === "goals" ? item.kind === "goal" && item.fields.goi_section !== "input_metrics" :
     view === "input_metrics" ? item.kind === "goal" && item.fields.goi_section === "input_metrics" :
-    view === "opportunities" ? item.kind === "opportunity" : item.kind === "idea"
+    view === "opportunities" ? item.kind === "opportunity" : item.kind === "hypothesis"
   );
   const byId = new Map(items.map(item => [item.id, item]));
   const validParent = (item: Item, parent: Item | undefined) =>
@@ -23,7 +23,7 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
     (item.kind === "goal" ? parent.kind === "north_star" :
      item.kind === "opportunity" ? parent.kind === "goal" :
      item.kind === "idea" ? parent.kind === "opportunity" :
-     item.kind === "experiment" ? parent.kind === "idea" : false);
+     item.kind === "experiment" ? parent.kind === "hypothesis" : false);
   // Orphans are independent records, never deleted or hidden with their old parents.
   const orphanProblemRecords = items.filter(item =>
     item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")));
@@ -37,13 +37,13 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
   }
 
   const included = new Set(target.map(item => item.id));
-  // The Ideas subsection also surfaces parentless opportunities, even if
+  // The Hypotheses subsection also surfaces parentless opportunities, even if
   // they have not yet been linked to an idea.
   if (view === "ideas") orphanProblemRecords.forEach(item => included.add(item.id));
   const expanded = new Set<string>();
 
   // Opening all ancestors makes the selected kind visible by default:
-  // opportunities => goal + opportunities; ideas => goal + opportunities + ideas.
+  // opportunities => goal + opportunities; hypotheses => goal + opportunities + ideas.
   for (const selected of target) {
     const seen = new Set<string>([selected.id]);
     let child = selected;
@@ -84,10 +84,10 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
   const orphanOpportunities = (view === "opportunities" || view === "ideas")
     ? allRoots.filter(item => item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")))
     : [];
-  const orphanIdeas = view === "ideas"
+  const orphanHypotheses = view === "ideas"
     ? allRoots.filter(item => item.kind === "idea" && !validParent(item, byId.get(item.parent_id || "")))
     : [];
-  const orphanIds = new Set([...orphanOpportunities, ...orphanIdeas].map(item => item.id));
+  const orphanIds = new Set([...orphanOpportunities, ...orphanHypotheses].map(item => item.id));
   const roots = allRoots.filter(item => !orphanIds.has(item.id));
-  return { target, roots, children, expanded, orphanOpportunities, orphanIdeas };
+  return { target, roots, children, expanded, orphanOpportunities, orphanHypotheses };
 }

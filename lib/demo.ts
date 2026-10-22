@@ -94,20 +94,20 @@ export const demoItems: Item[] = [
       stage: "Activación",
     },
   ),
-  make("i1", "idea", "Explicar el beneficio antes del formulario", "o1", {
+  make("i1", "hypothesis", "Explicar el beneficio antes del formulario", "o1", {
     impact: 8,
     confidence: 7,
     ease: 9,
     description:
       "Dar una razón concreta para publicar y reducir la incertidumbre.",
   }),
-  make("i2", "idea", "Recordatorio con objetos cercanos", "o2", {
+  make("i2", "hypothesis", "Recordatorio con objetos cercanos", "o2", {
     impact: 7,
     confidence: 6,
     ease: 8,
     description: "Probar un mensaje de reactivación contextual.",
   }),
-  make("i3", "idea", "Confirmación de disponibilidad reciente", "o3", {
+  make("i3", "hypothesis", "Confirmación de disponibilidad reciente", "o3", {
     impact: 9,
     confidence: 5,
     ease: 5,
