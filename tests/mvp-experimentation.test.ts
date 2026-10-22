@@ -121,14 +121,14 @@ test("MVP subsection hierarchy preserves the same shared records, parents, desce
  assert.equal(problemHierarchy.roots.find(x=>x.id==="problem"),example[1]); // shared reference, not copied
  assert.deepEqual(problemHierarchy.children("problem").map(x=>x.id),["hypothesis","research"]);
  assert.deepEqual(problemHierarchy.children("hypothesis").map(x=>x.id),["experiment","research"]);
- assert.ok(problemHierarchy.expanded.has("problem")); // descendants visible by default
+ assert.equal(problemHierarchy.expanded.size,0); // children hidden by default
  const hypothesisHierarchy=getMvpHierarchy(example,"mvp_hypotheses","p");
- assert.ok(hypothesisHierarchy.expanded.has("problem"));
- assert.ok(hypothesisHierarchy.expanded.has("hypothesis"));
+ assert.equal(hypothesisHierarchy.expanded.size,0);
+ assert.ok(hypothesisHierarchy.children("problem").some(item=>item.id==="hypothesis"));
  assert.deepEqual(hypothesisHierarchy.unlinked.map(x=>x.id),["orphanHypothesis"]);
  const experimentHierarchy=getMvpHierarchy(example,"mvp_experiments","p");
- assert.ok(experimentHierarchy.expanded.has("problem"));
- assert.ok(experimentHierarchy.expanded.has("hypothesis"));
+ assert.equal(experimentHierarchy.expanded.size,0);
+ assert.ok(experimentHierarchy.children("hypothesis").some(item=>item.id==="experiment"));
  assert.deepEqual(experimentHierarchy.unlinked.map(x=>x.id),["orphanExperiment"]);
  const researchHierarchy=getMvpHierarchy(example,"mvp_research","p");
  assert.ok(researchHierarchy.children("hypothesis").some(x=>x.id==="research"));
@@ -151,7 +151,7 @@ test("MVP subsections retain separate editable forms and navigation alongside GO
  assert.match(page,/mvp_hypothesis_id: hypothesisId/);
  assert.match(page,/mvp_links: researchTargetId/);
  assert.match(hierarchy,/goi-hierarchy-toggle/);
- assert.match(hierarchy,/querySelectorAll\("details.goi-hierarchy-toggle"\)/);
+ assert.doesNotMatch(hierarchy,/querySelectorAll\("details.goi-hierarchy-toggle"\)/);
  assert.match(hierarchy,/Mostrar hijos/);
  assert.match(hierarchy,/Ocultar hijos/);
  assert.match(css,/nav-mvp-subsections/);
@@ -177,7 +177,7 @@ test("MVP links cannot attach records from different projects in hierarchy",asyn
  assert.ok(!research.target.some(i=>i.project_id==="b"));
 });
 
-test("MVPs Tree overview opens every nested level, without duplicating shared records",async()=>{
+test("MVPs Tree overview preserves nested levels without opening children by default",async()=>{
  const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
  const mk=(id:string,kind:Item["kind"],parent_id:string|null=null,fields:Item["fields"]={},project_id="one"):Item=>({
   id,kind,parent_id,fields,project_id,workspace_id:"w",title:id,related_id:null,owner_id:null,
@@ -196,8 +196,8 @@ test("MVPs Tree overview opens every nested level, without duplicating shared re
  assert.deepEqual(view.roots.map(x=>x.id),["problem"]);
  assert.deepEqual(view.children("problem").map(x=>x.id),["hypothesis"]);
  assert.deepEqual(view.children("hypothesis").map(x=>x.id),["experiment","investigation"]);
- assert.ok(view.expanded.has("problem"));
- assert.ok(view.expanded.has("hypothesis"));
+ assert.equal(view.expanded.size,0);
+ assert.ok(view.children("hypothesis").some(item=>item.id==="experiment"));
  assert.deepEqual(view.unlinked.map(x=>x.id),["unlinkedExperiment"]);
  assert.equal(view.children("problem")[0],dataset[1]);
 });
