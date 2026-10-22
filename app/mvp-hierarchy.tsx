@@ -47,10 +47,9 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   }
   return path;
  };
- const labelOf=(item:Item)=>isProblemon(item)?"Problemón":title[item.kind]||"Elemento padre";
  const parentRow=(item:Item)=><div key={item.id} className="mvp-upward-parent">
   <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
-  <span><small>{labelOf(item)}</small><button type="button" onClick={()=>onOpen(item)}>{item.title}</button></span>
+  <span><button type="button" onClick={()=>onOpen(item)}>{item.title}</button></span>
  </div>;
  const toggleParents=(id:string)=>setOpenParents(previous=>{
   const next=new Set(previous);if(next.has(id))next.delete(id);else next.add(id);return next;
@@ -71,8 +70,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
    <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]}>
     <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
     <div className="mvp-hierarchy-record-text">
-     <span className="mvp-hierarchy-kind">{item.kind==="opportunity"&&isProblemon(item) ? "Problemón" : item.kind==="opportunity"&&item.fields.opportunity_type
-      ?String(item.fields.opportunity_type):title[item.kind]}</span>
+     
      <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(item)}>{item.title}</button>
      {description&&<p>{description}</p>}
 
@@ -110,20 +108,18 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
  if(view==="mvp_experiments")return <div className="mvp-hierarchy-screen">
   <section className="mvp-hierarchy-heading panel">
    <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>Experimentos ({experiments.length})</h2>
-    <p>Ordenados de mayor a menor puntuación ICE. Despliega los padres de cada experimento para ver su jerarquía hacia arriba.</p></div>
+    <p>Ordenados de mayor a menor puntuación ICE. Despliega los padres de cada experimento para ver su jerarquía hacia abajo.</p></div>
    {add("Añadir experimento","experiment")}
   </section>
   <div className="mvp-experiment-ranked-list">
    {experiments.map((experiment,index)=>{
     const ancestors=parentsOf(experiment),expanded=openParents.has(experiment.id),ice=score(experiment.fields);
     return <section key={experiment.id} className="mvp-experiment-ranked-entry">
-     {expanded&&ancestors.length>0&&<div className="mvp-upward-chain" aria-label={"Padres de "+experiment.title}>
-      {ancestors.map(parentRow)}
-     </div>}
+     
      <article className="mvp-hierarchy-record mvp-hierarchy-experiment mvp-experiment-ranked-card">
       <span className="mvp-hierarchy-record-icon"><FlaskConical size={17} aria-hidden="true"/></span>
       <div className="mvp-hierarchy-record-text">
-       <span className="mvp-hierarchy-kind">Experimento · #{index+1}</span>
+       
        <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(experiment)}>{experiment.title}</button>
        <span className="mvp-experiment-ice">ICE: <strong>{ice}</strong> <small>(Impacto {String(experiment.fields.impact??"—")} · Confianza {String(experiment.fields.confidence??"—")} · Facilidad {String(experiment.fields.ease??"—")})</small></span>
       </div>
@@ -136,6 +132,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
        {!readOnly&&canDelete("experiment")&&<button type="button" title="Eliminar" aria-label={"Eliminar "+experiment.title} onClick={()=>onDelete(experiment)}><Trash2 size={16}/></button>}
       </div>
      </article>
+     {expanded&&ancestors.length>0&&<div className="mvp-upward-chain" aria-label={"Padres de "+experiment.title}>{ancestors.slice().reverse().map(parentRow)}</div>}
     </section>;
    })}
    {!experiments.length&&<div className="mvp-hierarchy-empty panel">Todavía no hay experimentos en este proyecto. {add("Añadir experimento","experiment")}</div>}
