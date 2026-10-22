@@ -153,9 +153,14 @@ const schemas: Record<Kind, Field[]> = {
     { key: "period", label: "Periodo" },
   ],
   hypothesis: [
+    { key: "description", label: "Descripción / propuesta", type: "textarea" },
     { key: "belief", label: "¿Qué creemos que es cierto?", type: "textarea" },
     { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
     { key: "validation_need", label: "¿Qué necesitamos comprobar?", type: "textarea" },
+    { key: "metric", label: "KPI al que contribuye" },
+    { key: "experimental_focus", label: "Foco experimental: quién, qué y por qué", type: "textarea" },
+    { key: "evidence", label: "Evidencia para priorizar", type: "textarea" },
+    ...iceFields,
   ],
   research: [
     { key: "description", label: "Descripción", type: "textarea" },
@@ -253,11 +258,7 @@ const mvpSchemas: Partial<Record<Kind, Field[]>> = {
     { key: "evidence", label: "Evidencias disponibles", type: "textarea" },
     { key: "source", label: "Fuentes y enlaces", type: "textarea" },
   ],
-  hypothesis: [
-    { key: "belief", label: "¿Qué creemos que es cierto?", type: "textarea" },
-    { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
-    { key: "validation_need", label: "¿Qué necesitamos comprobar?", type: "textarea" },
-  ],
+  hypothesis: schemas.hypothesis,
   research: [
     { key: "description", label: "Descripción", type: "textarea" },
     { key: "audience", label: "Target" },
@@ -326,7 +327,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
- goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Ideas",
+ goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
  mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
@@ -554,9 +555,9 @@ export default function Home() {
             : view === "opportunities"
               ? ["opportunity"]
               : view === "ideas"
-                ? ["idea"]
+                ? ["hypothesis"]
                 : view === "map"
-                  ? ["north_star", "goal", "opportunity", "idea", "experiment"]
+                  ? ["north_star", "goal", "opportunity", "hypothesis", "experiment"]
                   : [];
   const dialog = useRef<HTMLDialogElement>(null);
   const detail = useRef<HTMLDialogElement>(null);
@@ -900,7 +901,7 @@ export default function Home() {
     setCommentText("");
     setSelectedHistory([]);
     setRecordComments([]);
-    if (!selected || !["goal", "opportunity", "idea", "hypothesis", "research", "experiment"].includes(selected.kind) || publicMode) return;
+    if (!selected || !["goal", "opportunity", "hypothesis", "research", "experiment"].includes(selected.kind) || publicMode) return;
     if (demo) {
       setSelectedHistory(activity.filter((entry) => entry.record_id === selected.id));
       setRecordComments(demoComments[selected.id] || []);
@@ -1417,12 +1418,12 @@ export default function Home() {
       .includes(filter.toLowerCase()),
   );
   function parentTag(item: Item) {
-    if (!["opportunity", "idea", "experiment"].includes(item.kind)) return null;
+    if (!["opportunity", "hypothesis", "experiment"].includes(item.kind)) return null;
     const parent = items.find((record) => record.id === item.parent_id);
     if (!parent) return null;
     const parentGoal = parent.kind === "goal";
     const parentOpportunity = parent.kind === "opportunity";
-    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : parent.kind === "idea" ? "idea" : "";
+    const parentStyle = parentGoal ? goalVisualClass(parent) : parentOpportunity ? "opportunity" : parent.kind === "hypothesis" ? "hypothesis" : "";
     return (
       <span
         className={`record-parent-pill ${parentStyle}`.trim()}
@@ -1432,7 +1433,7 @@ export default function Home() {
           <GoalTypeIcon item={parent} size={17} />
         ) : parentOpportunity ? (
           <Search size={17} aria-hidden="true" />
-        ) : parent.kind === "idea" ? (
+        ) : parent.kind === "hypothesis" ? (
           <Lightbulb size={17} aria-hidden="true" />
         ) : (
           <ChevronRight size={17} aria-hidden="true" />
@@ -1458,7 +1459,7 @@ export default function Home() {
   function itemCard(i: Item, inHierarchy = false) {
     return (
       <button className="record-card" key={i.id} onClick={() => setSelected(i)}>
-        {["goal","opportunity","idea"].includes(i.kind) ? (
+        {["goal","opportunity","hypothesis"].includes(i.kind) ? (
           <div className="row goi-title-row">
             {goiTitleTag(i)}
             {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
@@ -1471,7 +1472,7 @@ export default function Home() {
         )}
         {!inHierarchy && parentTag(i)}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
-        {["goal", "opportunity", "idea"].includes(i.kind) && i.owner_id && (
+        {["goal", "opportunity", "hypothesis"].includes(i.kind) && i.owner_id && (
           <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
         )}
         {i.kind === "kr" && (
@@ -1486,15 +1487,15 @@ export default function Home() {
             <Meter value={progress(i.fields)} />
           </>
         )}
-        {i.kind === "idea" && (
+        {i.kind === "hypothesis" && (
           <>
             <span className="small">
               ICE {score(i.fields)} ·{" "}
               {items.filter((x) => x.parent_id === i.id && x.kind === "experiment").length} experimentos
             </span>
             {!inHierarchy && items.some(x => x.parent_id === i.id && x.kind === "experiment") && (
-              <span className="idea-experiment-tags">
-                {items.filter(x => x.parent_id === i.id && x.kind === "experiment").map(x=><span className="idea-experiment-chip" key={x.id}><FlaskConical size={15} aria-hidden="true"/><span>{x.title}</span></span>)}
+              <span className="hypothesis-experiment-tags">
+                {items.filter(x => x.parent_id === i.id && x.kind === "experiment").map(x=><span className="hypothesis-experiment-chip" key={x.id}><FlaskConical size={15} aria-hidden="true"/><span>{x.title}</span></span>)}
               </span>
             )}
           </>
@@ -1516,7 +1517,7 @@ export default function Home() {
       <div className={"tree-branch " + i.kind} key={i.id}>
         {itemCard(i)}
         {children.length > 0 && (
-          <details open={i.kind !== "idea"}>
+          <details open={i.kind !== "hypothesis"}>
             <summary>
               <ChevronRight size={14} />
               {children.length} elementos
@@ -1524,7 +1525,7 @@ export default function Home() {
             <div className="branch-children">{children.map(branch)}</div>
           </details>
         )}
-        {can(i.kind==='goal'?'opportunity':i.kind==='opportunity'?'idea':'experiment','create') && ["goal", "opportunity", "idea"].includes(i.kind) && (
+        {can(i.kind==='goal'?'opportunity':i.kind==='opportunity'?'idea':'experiment','create') && ["goal", "opportunity", "hypothesis"].includes(i.kind) && (
           <button
             className="add-node"
             onClick={() =>
@@ -1542,7 +1543,7 @@ export default function Home() {
             {i.kind === "goal"
               ? "Añadir oportunidad"
               : i.kind === "opportunity"
-                ? "Añadir idea"
+                ? "Añadir hipótesis"
                 : "Diseñar experimento"}
           </button>
         )}
@@ -1874,7 +1875,7 @@ export default function Home() {
                     <BarChart3 size={16} aria-hidden="true" />{viewLabels.input_metrics}
                   </button>
                   <button className={`nav-goi-subsection opportunity ${view === "opportunities" ? "active" : ""}`.trim()} onClick={() => navigateView("opportunities")}><Search size={16} aria-hidden="true" />{viewLabels.opportunities}</button>
-                  <button className={`nav-goi-subsection idea ${view === "ideas" ? "active" : ""}`.trim()} onClick={() => navigateView("ideas")}><Lightbulb size={16} aria-hidden="true" />Ideas</button>
+                  <button className={`nav-goi-subsection hypothesis ${view === "ideas" ? "active" : ""}`.trim()} onClick={() => navigateView("ideas")}><Lightbulb size={16} aria-hidden="true" />Hipótesis</button>
                   <button className={`nav-goi-subsection experiment ${view === "experiments" ? "active" : ""}`.trim()} onClick={() => navigateView("experiments")}><FlaskConical size={16} aria-hidden="true" />Experimentos <span className="nav-count">{experiments.length}</span></button>
                 </div>
               )}
@@ -2017,7 +2018,7 @@ export default function Home() {
                       <Plus size={17} /> Crear
                     </Action>
                     {showCreateMenu && <div className="create-menu">
-                      {(["goal", "opportunity", "idea", "experiment"] as Kind[]).map(k => (
+                      {(["goal", "opportunity", "hypothesis", "experiment"] as Kind[]).map(k => (
                         <button key={k} onClick={() => { setShowCreateMenu(false); create(k); }}>
                           {kinds[k]}
                         </button>
@@ -2149,8 +2150,8 @@ export default function Home() {
                   icon={<Check size={18} />}
                 />
                 <Stat
-                  label="Ideas por explorar"
-                  value={items.filter((i) => i.kind === "idea").length}
+                  label="Hipótesis por validar"
+                  value={items.filter((i) => i.kind === "hypothesis").length}
                   hint="en el árbol de crecimiento"
                   icon={<Lightbulb size={18} />}
                 />
@@ -2199,7 +2200,7 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <h2>Growth Tree · {currentProject.title}</h2>
-                  <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Ideas → Experimentos</p>
+                  <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Hipótesis → Experimentos</p>
                 </div>
                 <Action onClick={() => void load()} disabled={loading}>
                   <RefreshCw size={16} /> Actualizar árbol
@@ -2281,17 +2282,17 @@ export default function Home() {
                 </section>
               )}
               {items.some(item => item.kind === "experiment" &&
-                (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "idea"))) && (
-                <section className="goi-orphaned-panel panel" aria-label="Experimentos sin idea">
+                (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "hypothesis"))) && (
+                <section className="goi-orphaned-panel panel" aria-label="Experimentos sin hipótesis">
                   <div className="section-heading">
                     <div>
-                      <h2>Experimentos sin idea</h2>
-                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una idea de Growth Tree.</p>
+                      <h2>Experimentos sin hipótesis</h2>
+                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una hipótesis del Growth Tree.</p>
                     </div>
                   </div>
                   <div className="cards-grid">
                     {items.filter(item => item.kind === "experiment" &&
-                      (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "idea")))
+                      (!item.parent_id || !items.some(parent => parent.id === item.parent_id && parent.kind === "hypothesis")))
                       .map(item => itemCard(item))}
                   </div>
                 </section>
@@ -2300,7 +2301,7 @@ export default function Home() {
                 <div>
                   <h2>Orden de ejecución</h2>
                   <p>
-                    Prioriza las ideas y experimentos de este proyecto con ICE:
+                    Prioriza las hipótesis y experimentos de este proyecto con ICE:
                     impacto × confianza × facilidad.
                   </p>
                 </div>
@@ -2308,7 +2309,7 @@ export default function Home() {
               <IceGuide />
               <div className="priority-list">
                 {items
-                  .filter((i) => ["idea", "experiment"].includes(i.kind))
+                  .filter((i) => ["hypothesis", "experiment"].includes(i.kind))
                   .sort((a, b) => score(b.fields) - score(a.fields))
                   .map((i, index) => (
                     <button
@@ -2335,7 +2336,7 @@ export default function Home() {
                   <i className="legend-dot opportunity" /> Oportunidad
                 </span>
                 <span>
-                  <i className="legend-dot idea" /> Idea
+                  <i className="legend-dot hypothesis" /> Hipótesis
                 </span>
                 <span>
                   <i className="legend-dot experiment" /> Experimento
@@ -2348,7 +2349,7 @@ export default function Home() {
             <div className="goi-hierarchy-list">
               {(() => {
                 const { target, expanded, roots, children, orphanOpportunities, orphanIdeas } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
-                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin ideas"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
+                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin hipótesis"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
                 // Keep each selected subsection visible with all its ancestors.
                 // Only levels below the selected subsection start collapsed.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
@@ -2399,9 +2400,9 @@ export default function Home() {
                       </section>
                     )}
                     {orphanIdeas.length > 0 && (
-                      <section className="goi-orphans-section" aria-label="Ideas huérfanas">
+                      <section className="goi-orphans-section" aria-label="Hipótesis huérfanas">
                         <div className="goi-orphans-heading">
-                          <h2><Lightbulb size={19} aria-hidden="true" /> Ideas huérfanas <span>({orphanIdeas.length})</span></h2>
+                          <h2><Lightbulb size={19} aria-hidden="true" /> Hipótesis huérfanas <span>({orphanIdeas.length})</span></h2>
                           <p>Sin oportunidad-problema padre. Abre la ficha para asignarle una.</p>
                         </div>
                         {orphanIdeas.map(renderGroup)}
@@ -2839,7 +2840,7 @@ export default function Home() {
         {selected && (
           <div className="detail-content">
             <div className="row">
-              {["goal","opportunity","idea"].includes(selected.kind) ? goiTitleTag(selected) : <span className={"kind " + selected.kind}><IconFor kind={selected.kind}/>{kinds[selected.kind]}</span>}
+              {["goal","opportunity","hypothesis"].includes(selected.kind) ? goiTitleTag(selected) : <span className={"kind " + selected.kind}><IconFor kind={selected.kind}/>{kinds[selected.kind]}</span>}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
@@ -2855,7 +2856,7 @@ export default function Home() {
                 .map((i) => i.title)
                 .join(" / ")}
             </div>
-            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : selected.kind === "hypothesis" ? <h2 className="hypothesis-detail-title"><Lightbulb size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","idea"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
+            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : selected.kind === "hypothesis" ? <h2 className="hypothesis-detail-title"><Lightbulb size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","hypothesis"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
             {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
               {selected.owner_id && (
@@ -2878,7 +2879,7 @@ export default function Home() {
                 Editar ficha
               </Action>
             )}
-            {can(selected.kind,'delete') && !demo && !publicMode && ["project", "experiment", "learning", "goal", "opportunity", "idea", "hypothesis", "research"].includes(selected.kind) && (
+            {can(selected.kind,'delete') && !demo && !publicMode && ["project", "experiment", "learning", "goal", "opportunity", "hypothesis", "research"].includes(selected.kind) && (
               <Action
                 disabled={attachmentsBusy || monitoringBusy}
                 onClick={() => void deleteRecord(selected)}
@@ -2922,7 +2923,7 @@ export default function Home() {
                 {files}
               </> : <><FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />{links}{files}</>}
             </RecordAttachments> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}
-            {["goal", "opportunity", "idea", "hypothesis", "research", "experiment"].includes(selected.kind) && !publicMode && (
+            {["goal", "opportunity", "hypothesis", "research", "experiment"].includes(selected.kind) && !publicMode && (
               <section className="record-activity">
                 <div className="record-activity-head">
                   <div>
@@ -3120,14 +3121,14 @@ export default function Home() {
               {draft.kind === "experiment" && mvpEditor && (
                 <>
                   <label>
-                    Idea en Growth Tree (opcional)
+                    Hipótesis compartida (Growth Tree y MVPs Tree)
                     <select value={draft.parent_id || ""} onChange={e => setDraft({...draft,parent_id:e.target.value || null})}>
-                      <option value="">Experimento sin idea</option>
-                      {items.filter(item => item.kind === "idea").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+                      <option value="">Experimento sin hipótesis</option>
+                      {items.filter(item => item.kind === "hypothesis").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
                     </select>
                   </label>
                   <label>
-                    Hipótesis para MVPs Tree
+                    Hipótesis (compartida entre ambos árboles)
                     <select value={String(draft.fields.mvp_hypothesis_id || "")}
                       onChange={e => setDraft({...draft,fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
                       <option value="">Experimento sin hipótesis</option>
