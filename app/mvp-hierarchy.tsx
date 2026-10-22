@@ -12,9 +12,9 @@ type Props={
  onCreate:(kind:Kind,parent:string|null)=>void;onOpen:(item:Item)=>void;onEdit:(item:Item)=>void;onDelete:(item:Item)=>void;
 };
 const labels:Record<MvpHierarchyView,{title:string,description:string,action:string,kind:Kind}>={
- mvp:{title:"Árbol de validación",description:"Problemas u oportunidades → hipótesis → experimentos o investigación. Todos los niveles aparecen desplegados para mostrar sus relaciones.",action:"Añadir problema u oportunidad",kind:"opportunity"},
+ mvp:{title:"Árbol de validación",description:"Problemas u oportunidades → hipótesis → experimentos o investigación. Los niveles se despliegan al pulsar «Mostrar hijos».",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_problems:{title:"Problemas u Oportunidades",description:"Son la raíz de esta jerarquía. Cada uno puede tener varias hipótesis, además de investigaciones vinculadas.",action:"Añadir problema u oportunidad",kind:"opportunity"},
- mvp_main_hypothesis:{title:"Hipótesis principal",description:"Una hipótesis principal por proyecto, bajo el Problemón. Es el padre predeterminado de los experimentos nuevos.",action:"Crear hipótesis principal",kind:"hypothesis"},
+ mvp_main_hypothesis:{title:"Hipótesis principal",description:"Una hipótesis principal por proyecto, bajo el Problema principal. Es el padre predeterminado de los experimentos nuevos.",action:"Crear hipótesis principal",kind:"hypothesis"},
  mvp_hypotheses:{title:"Hipótesis",description:"Cada hipótesis es hija de un problema u oportunidad y puede comprobarse con investigaciones o experimentos.",action:"Añadir hipótesis",kind:"hypothesis"},
  mvp_experiments:{title:"Experimentos",description:"Los experimentos pueden validar hipótesis; la misma hipótesis se utiliza en Growth Tree y MVPs Tree.",action:"Añadir experimento",kind:"experiment"},
  mvp_research:{title:"Investigación",description:"Entrevistas, encuestas y otras investigaciones vinculables a uno o varios problemas o hipótesis.",action:"Añadir investigación",kind:"research"},
@@ -55,7 +55,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   <span className="mvp-hierarchy-record-icon" style={{color:semanticColor(item.kind)}}>
    <ItemIcon kind={item.kind} problemon={isProblemon(item)}/>
   </span>
-  <span><button type="button" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button></span>
+  <span><button type="button" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button>{(item.kind==="hypothesis"||["impact","confidence","ease"].some(key=>item.fields[key]!==undefined))&&<small className="mvp-hierarchy-ice">ICE {score(item.fields)}</small>}</span>
  </div>;
  const toggleParents=(id:string)=>setOpenParents(previous=>{
   const next=new Set(previous);if(next.has(id))next.delete(id);else next.add(id);return next;
@@ -79,6 +79,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
      
      <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button>
      {description&&<p>{description}</p>}
+     {(item.kind==="experiment"||item.kind==="hypothesis"||["impact","confidence","ease"].some(key=>item.fields[key]!==undefined))&&<span className="mvp-hierarchy-ice">ICE <strong>{score(item.fields)}</strong></span>}
 
     </div>
     {!readOnly&&<div className="mvp-hierarchy-actions">
@@ -86,14 +87,8 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
      {canDelete(item.kind)&&<button title="Eliminar" aria-label={"Eliminar "+item.title} onClick={()=>onDelete(item)}><Trash2 size={16}/></button>}
     </div>}
    </article>
-   {descendants.length>0&&<details className="goi-hierarchy-toggle mvp-hierarchy-toggle" open={hierarchy.expanded.has(item.id)} key={view+":"+item.id}>
-    <summary onClick={event=>{
-      const branch=event.currentTarget.parentElement as HTMLDetailsElement|null;
-      if(!branch)return;
-      const opening=!branch.open;
-      // Match Growth Tree's "Mostrar hijos": one click unfolds the whole branch.
-      branch.querySelectorAll("details.goi-hierarchy-toggle").forEach(el=>{(el as HTMLDetailsElement).open=opening;});
-    }}>
+   {descendants.length>0&&<details className="goi-hierarchy-toggle mvp-hierarchy-toggle" open={false} key={view+":"+item.id}>
+    <summary>
      <ChevronRight size={16} aria-hidden="true"/>
      <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
      <span className="goi-toggle-hide">Ocultar hijos ({descendants.length})</span>
