@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { score } from "@/lib/model";
+import { linkedHypothesis } from "@/lib/mvp-relationships";
 import { Flag, ChevronRight, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import type { Item, Kind } from "@/lib/model";
 import { getMvpHierarchy, type MvpHierarchyView } from "@/lib/mvp-hierarchy";
@@ -26,6 +29,30 @@ function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
 }
 export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
  const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
+ const [openParents,setOpenParents]=useState<Set<string>>(()=>new Set());
+ const allProjectItems=items.filter(item=>item.project_id===project.id);
+ const byId=new Map(allProjectItems.map(item=>[item.id,item]));
+ const experiments=allProjectItems.filter(item=>item.kind==="experiment").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
+ const parentsOf=(experiment:Item):Item[]=>{
+  const path:Item[]=[];const visited=new Set<string>([experiment.id]);
+  let id=linkedHypothesis(experiment);
+  while(id&&!visited.has(id)){
+   visited.add(id);
+   const parent=byId.get(id);
+   if(!parent||!["hypothesis","opportunity"].includes(parent.kind))break;
+   path.unshift(parent);
+   id=parent.parent_id||"";
+  }
+  return path;
+ };
+ const labelOf=(item:Item)=>isProblemon(item)?"Problemón":title[item.kind]||"Elemento padre";
+ const parentRow=(item:Item)=><div key={item.id} className="mvp-upward-parent">
+  <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
+  <span><small>{labelOf(item)}</small><button type="button" onClick={()=>onOpen(item)}>{item.title}</button></span>
+ </div>;
+ const toggleParents=(id:string)=>setOpenParents(previous=>{
+  const next=new Set(previous);if(next.has(id))next.delete(id);else next.add(id);return next;
+ });
  const add=(label:string,kind:Kind,parentId:string|null=null)=>
   !readOnly&&canCreate(kind)&&<button type="button" className="mvp-hierarchy-add" onClick={()=>onCreate(kind,parentId)}><Plus size={14} aria-hidden="true"/>{label}</button>;
  const childActions=(item:Item)=>{
@@ -70,6 +97,40 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
    {!readOnly&&childActions(item)&&<div className="mvp-hierarchy-child-actions">{childActions(item)}</div>}
   </div>;
  };
+ if(view==="mvp_experiments")return <div className="mvp-hierarchy-screen">
+  <section className="mvp-hierarchy-heading panel">
+   <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>Experimentos ({experiments.length})</h2>
+    <p>Ordenados de mayor a menor puntuación ICE. Despliega los padres de cada experimento para ver su jerarquía hacia arriba.</p></div>
+   {add("Añadir experimento","experiment")}
+  </section>
+  <div className="mvp-experiment-ranked-list">
+   {experiments.map((experiment,index)=>{
+    const ancestors=parentsOf(experiment),expanded=openParents.has(experiment.id),ice=score(experiment.fields);
+    return <section key={experiment.id} className="mvp-experiment-ranked-entry">
+     {expanded&&ancestors.length>0&&<div className="mvp-upward-chain" aria-label={"Padres de "+experiment.title}>
+      {ancestors.map(parentRow)}
+     </div>}
+     <article className="mvp-hierarchy-record mvp-hierarchy-experiment mvp-experiment-ranked-card">
+      <span className="mvp-hierarchy-record-icon"><FlaskConical size={17} aria-hidden="true"/></span>
+      <div className="mvp-hierarchy-record-text">
+       <span className="mvp-hierarchy-kind">Experimento · #{index+1}</span>
+       <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(experiment)}>{experiment.title}</button>
+       <span className="mvp-experiment-ice">ICE: <strong>{ice}</strong> <small>(Impacto {String(experiment.fields.impact??"—")} · Confianza {String(experiment.fields.confidence??"—")} · Facilidad {String(experiment.fields.ease??"—")})</small></span>
+      </div>
+      <div className="mvp-experiment-ranked-actions">
+       <button type="button" className="btn" onClick={()=>toggleParents(experiment.id)} aria-expanded={expanded} disabled={!ancestors.length}>
+        <ChevronRight size={16} className={expanded?"mvp-upward-open":""} aria-hidden="true"/>
+        {expanded?"Ocultar padres":"Desplegar padres"} ({ancestors.length})
+       </button>
+       {!readOnly&&canEdit("experiment")&&<button type="button" title="Editar" aria-label={"Editar "+experiment.title} onClick={()=>onEdit(experiment)}><Pencil size={16}/></button>}
+       {!readOnly&&canDelete("experiment")&&<button type="button" title="Eliminar" aria-label={"Eliminar "+experiment.title} onClick={()=>onDelete(experiment)}><Trash2 size={16}/></button>}
+      </div>
+     </article>
+    </section>;
+   })}
+   {!experiments.length&&<div className="mvp-hierarchy-empty panel">Todavía no hay experimentos en este proyecto. {add("Añadir experimento","experiment")}</div>}
+  </div>
+ </div>;
  const group=(item:Item)=><section className="goi-hierarchy-group mvp-hierarchy-group" key={item.id}>{node(item,new Set())}</section>;
  return <div className="mvp-hierarchy-screen">
   <section className="mvp-hierarchy-heading panel">
