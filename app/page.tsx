@@ -21,6 +21,7 @@ import {
   Search,
   Compass,
   Target,
+  Flag,
   BarChart3,
   Users,
   X,
@@ -34,6 +35,8 @@ import { experimentFields, experimentSections, normalizeExperiment } from "@/lib
 import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { MvpExperimentation } from "./mvp-experimentation";
 import { MvpHierarchy } from "./mvp-hierarchy";
+import { ProblemonSection } from "./problemon-section";
+import { getProblemon, isProblemon } from "@/lib/problemon";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
 import { RecordAttachments } from "./record-attachments";
@@ -327,13 +330,15 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
+ problemon:"Problemon", mvp_problemon:"Problemon",
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
  mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
 };
-const mvpViews = ["mvp", "mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
+const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
 const mvpSubsections = [
+ { id:"mvp_problemon", label:"Problemon", icon:Flag, accent:"problemon" },
  { id:"mvp_problems", label:"Problemas u Oportunidades", icon:Search, accent:"problems" },
  { id:"mvp_hypotheses", label:"Hipótesis", icon:Lightbulb, accent:"hypotheses" },
  { id:"mvp_experiments", label:"Experimentos", icon:FlaskConical, accent:"experiments" },
@@ -540,7 +545,7 @@ export default function Home() {
   const items = workspaceItems.filter(
     (i) => i.kind !== "project" && i.project_id === currentProject?.id,
   );
-  const projectScoped = ["map", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai", ...mvpViews].includes(view);
+  const projectScoped = ["map", "problemon", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning", "ai", ...mvpViews].includes(view);
   const availableKinds: Kind[] =
     view === "projects"
       ? ["project"]
@@ -975,7 +980,7 @@ export default function Home() {
     }
     setCommentBusy(false);
   }
-  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics", hypothesisId?: string | null, researchTargetId?: string | null) {
+  function create(kind: Kind, parent_id: string | null = null, goiSection?: "objectives" | "input_metrics", hypothesisId?: string | null, researchTargetId?: string | null, markProblemon=false) {
     if(!can(kind,'create')){tell('No tienes permiso para crear este tipo de ficha.');return;}
     if (!workspace) return;
     if (!demo && !schemaReady) {
@@ -1057,6 +1062,7 @@ export default function Home() {
           ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
           : {}),
         ...(kind === "opportunity" && (mvpViews as readonly string[]).includes(view) ? { opportunity_type: "Problema" } : {}),
+        ...(kind === "opportunity" && markProblemon ? { is_problemon: true } : {}),
         ...(kind === "research" && researchTargetId ? { mvp_links: researchTargetId } : {}),
         ...(kind === "experiment" && (hypothesisId || (resolvedParentId && parent?.kind === "hypothesis")) ? { mvp_hypothesis_id: hypothesisId || resolvedParentId! } : {}),
         ...(kind === "experiment"
@@ -1081,6 +1087,36 @@ export default function Home() {
     // both trees share the same hypothesis parent.
     create(kind, kind === "research" ? null : parent,
       undefined, kind === "experiment" ? parent : null, kind === "research" ? parent : null);
+  }
+  function createProblemon() {
+    if (currentProject && getProblemon(items,currentProject.id)) {
+      tell("Este proyecto ya tiene un Problemon. Edita el actual o quita su designación.");
+      return;
+    }
+    setMvpEditor(true);
+    create("opportunity",null,undefined,null,null,true);
+  }
+  function designateProblemon(item: Item) {
+    if (!can("opportunity","edit") || !currentProject || item.project_id!==currentProject.id) return;
+    if (getProblemon(items,currentProject.id)) {
+      tell("Ya hay un Problemon. Desmarca primero el actual para elegir otro.");
+      return;
+    }
+    setMvpEditor(true);
+    setDraft({...structuredClone(item),fields:{...item.fields,is_problemon:true}});
+    setSelected(null);
+    setError("");
+  }
+  function renderProblemon(compact=false) {
+    if (!currentProject) return null;
+    return <ProblemonSection
+      key={currentProject.id + ":" + (compact?"summary":"section")}
+      compact={compact} project={currentProject} items={items}
+      readOnly={publicMode || (!demo && !editable)}
+      canCreate={can("opportunity","create")} canEdit={can("opportunity","edit")}
+      onCreate={createProblemon} onDesignate={designateProblemon}
+      onOpen={openMvp} onEdit={editMvp}
+    />;
   }
   function editMvp(record: Item) {
     setMvpEditor(true);
@@ -1114,6 +1150,11 @@ export default function Home() {
       record = { ...record, fields: { ...record.fields, goi_section: "objectives" } };
     }
     const problem = validate(record);
+    if (record.kind==="opportunity" && isProblemon(record) &&
+        items.some(item=>item.id!==record.id && isProblemon(item))) {
+      setError("Este proyecto ya tiene un Problemon. Solo se permite uno por proyecto.");
+      return;
+    }
     if (problem) {
       setError(problem);
       return;
@@ -1197,7 +1238,9 @@ export default function Home() {
           .select();
     const r = await q;
     if (r.error) {
-      setError(r.error.message);
+      setError(r.error.code==="23505" && r.error.message.includes("one_problemon_per_project")
+        ? "Este proyecto ya tiene un Problemon. Desmarca su designación antes de elegir otro."
+        : r.error.message);
     } else if (!r.data?.length) {
       setError(
         "Otra persona ha modificado este registro. Cierra el formulario y actualiza antes de editar.",
@@ -1460,6 +1503,7 @@ export default function Home() {
         {["goal","opportunity","hypothesis"].includes(i.kind) ? (
           <div className="row goi-title-row">
             {goiTitleTag(i)}
+            {i.kind === "opportunity" && isProblemon(i) && <span className="problemon-small-tag"><Flag size={13} aria-hidden="true"/>Problemon</span>}
             {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
           </div>
         ) : (
@@ -1639,7 +1683,7 @@ export default function Home() {
                       {f.label}
                       {f.type === "textarea" ? (
                         <textarea
-                          required={f.required}
+                          required={f.required && !(draft.kind==="opportunity" && isProblemon(draft) && f.key==="evidence")}
                           rows={3}
                           value={String(draft.fields[f.key] ?? "")}
                           onChange={(e) =>
@@ -1870,6 +1914,7 @@ export default function Home() {
               )}
               {id === "map" && (
                 <div className="nav-subsections">
+                  <button className={`nav-goi-subsection problemon ${view === "problemon" ? "active" : ""}`.trim()} onClick={() => navigateView("problemon")}><Flag size={16} aria-hidden="true" />Problemon</button>
                   <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => navigateView("goals")}>
                     <Target size={16} aria-hidden="true" />{viewLabels.goals}
                   </button>
@@ -2095,7 +2140,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {currentProject && ["goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view) && (
+              {currentProject && ["problemon", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view) && (
                 <div className="project-filter-north-star">{renderNorthStarBanner(currentProject, true)}</div>
               )}
             </div>
@@ -2107,6 +2152,7 @@ export default function Home() {
               action={can('project','create') ? () => create("project") : undefined}
             />
           )}
+          {(["problemon","mvp_problemon"] as View[]).includes(view) && currentProject && renderProblemon()}
           {view === "mvp" && currentProject && (
             <MvpExperimentation
               project={currentProject} items={items}
@@ -2119,6 +2165,7 @@ export default function Home() {
               onEdit={editMvp}
               onDelete={item => void deleteRecord(item)}
               onEditProject={() => editMvp(currentProject)}
+              problemonSection={renderProblemon(true)}
             />
           )}
           {(["mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as View[]).includes(view) && currentProject && (
@@ -2138,6 +2185,7 @@ export default function Home() {
           )}
           {view === "map" && currentProject && (
             <>
+              {renderProblemon(true)}
               <div className="stats">
                 <Stat
                   label="Experimentos"
@@ -2270,7 +2318,7 @@ export default function Home() {
                   </section>
                 ))}
               </div>
-              {items.some(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id) && (
+              {items.some(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id && !isProblemon(item)) && (
                 <section className="goi-orphaned-panel panel">
                   <div className="section-heading">
                     <div>
@@ -2279,7 +2327,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="cards-grid">
-                    {items.filter(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id).map(item => itemCard(item))}
+                    {items.filter(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id && !isProblemon(item)).map(item => itemCard(item))}
                   </div>
                 </section>
               )}
@@ -3079,6 +3127,19 @@ export default function Home() {
                       </option>
                     ))}
                   </select>
+                </label>
+              )}
+              {draft.kind === "opportunity" && (
+                <label className="check-label full problemon-editor-toggle">
+                  <input type="checkbox" checked={isProblemon(draft)}
+                    disabled={!!currentProject && !!getProblemon(items,currentProject.id) &&
+                      getProblemon(items,currentProject.id)?.id!==draft.id && !isProblemon(draft)}
+                    onChange={event=>setDraft({...draft,
+                      fields:{...draft.fields,is_problemon:event.target.checked}})}
+                  />
+                  <span><strong>Problemon principal del proyecto</strong>
+                    <small>Solo puede haber uno. Desmarcarlo conserva la ficha, sus hijos y sus vínculos.</small>
+                  </span>
                 </label>
               )}
               {draft.kind === "goal" && (
