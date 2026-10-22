@@ -1,4 +1,4 @@
-name: Check Experimental OS
+name: Check Xperiments
 
 on:
   push:
