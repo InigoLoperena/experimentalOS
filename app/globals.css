@@ -3459,3 +3459,65 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .hypothesis-detail-section{display:grid;gap:9px;min-width:0;border-top:1px solid var(--border);padding-top:11px}
 .hypothesis-detail-section h3{color:var(--hypothesis-accent);font-size:13px;font-weight:750;margin:0}
 .hypothesis-detail-section .field-details{margin:0}
+
+/* Problemon: one shared principal problem/opportunity in Growth Tree and MVPs Tree. */
+:root{--problemon-accent:#ff6e89;--problemon-soft:rgba(255,110,137,.12)}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problemon,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon>svg{color:var(--problemon-accent)}
+.sidebar nav .nav-subsections.nav-mvp-subsections .nav-mvp-subsection.problemon.active,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon.active,
+.sidebar nav .nav-subsections .nav-goi-subsection.problemon:hover{
+ background:var(--problemon-soft);border-color:rgba(255,110,137,.5)}
+.problemon-panel{
+ display:grid;gap:14px;min-width:0;border:1px solid rgba(255,110,137,.55);
+ border-radius:14px;padding:18px;background:var(--surface);
+ box-shadow:inset 0 1px 0 rgba(255,110,137,.08)}
+.problemon-panel.problemon-compact{padding:14px;gap:10px}
+.problemon-header,.problemon-heading,.problemon-header-actions{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0}
+.problemon-heading{justify-content:flex-start;align-items:center;flex:1}
+.problemon-heading>div{flex:1;min-width:0}
+.problemon-icon{flex-shrink:0;display:grid;place-items:center;width:42px;height:42px;
+ border-radius:11px;color:var(--problemon-accent);background:var(--problemon-soft);
+ border:1px solid rgba(255,110,137,.38)}
+.problemon-heading .eyebrow{color:var(--problemon-accent);font-size:10px}
+.problemon-heading h2{font-size:19px;margin:2px 0 4px;overflow-wrap:anywhere}
+.problemon-heading h2 small{font-size:12px;font-weight:400;color:var(--muted)}
+.problemon-heading p,.problemon-empty{font-size:12px;line-height:1.55;color:var(--muted);margin:0}
+.problemon-header-actions{justify-content:flex-end}
+.problemon-header-actions .btn{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.problemon-primary{display:grid;gap:6px;padding:13px;
+ border:1px solid rgba(255,110,137,.25);border-radius:10px;background:var(--surface-raised)}
+.problemon-label{display:flex;align-items:center;gap:6px;color:var(--problemon-accent);font-size:11px;font-weight:750}
+.problemon-primary-title{display:block;text-align:left;font-size:16px;font-weight:750;
+ color:var(--ink);background:transparent;border:0;padding:0;overflow-wrap:anywhere}
+.problemon-primary-title:hover{text-decoration:underline}
+.problemon-primary>p{font-size:12px;line-height:1.55;white-space:pre-line}
+.problemon-meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}
+.problemon-create{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:fit-content}
+.problemon-choose{display:grid;gap:8px;max-width:760px}
+.problemon-choose>label{font-size:12px;font-weight:700}
+.problemon-choose>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.problemon-choose select{flex:1;min-width:200px;max-width:470px}
+.problemon-choose small{color:var(--muted);font-size:11px}
+.problemon-tree{display:grid;gap:11px;padding-top:10px;border-top:1px solid var(--border)}
+.problemon-tree h3{font-size:13px}
+.problemon-descendant{display:grid;gap:5px;min-width:0}
+.problemon-child-record{display:flex;align-items:flex-start;gap:10px;text-align:left;
+ padding:10px;background:var(--surface-raised);border:1px solid var(--border);
+ border-radius:8px;font-size:12px;min-width:0}
+.problemon-child-record>span{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.problemon-child-record small{color:var(--muted);font-size:10px}
+.problemon-descendant-hypothesis .problemon-child-record svg{color:var(--hypothesis-accent)}
+.problemon-descendant-experiment .problemon-child-record svg{color:var(--experiment-accent)}
+.problemon-descendant-research .problemon-child-record svg{color:#75c1ff}
+.problemon-children-toggle>summary{font-size:11px}
+.problemon-small-tag{display:inline-flex;align-items:center;gap:5px;color:var(--problemon-accent);
+ border:1px solid rgba(255,110,137,.4);background:var(--problemon-soft);
+ border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700}
+.problemon-editor-toggle{display:flex;gap:10px;align-items:flex-start}
+.problemon-editor-toggle>span{display:grid;gap:3px}
+.problemon-editor-toggle small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+@media(max-width:680px){.problemon-panel{padding:12px}.problemon-header-actions{justify-content:flex-start}
+ .problemon-choose>div{align-items:stretch}.problemon-choose select{min-width:0;width:100%}}
