@@ -330,7 +330,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "method", label: "Cómo utilizar Experimental OS", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
- problemon:"Problemon", mvp_problemon:"Problemon",
+ problemon:"Problemón", mvp_problemon:"Problemón",
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_hypotheses: "Hipótesis",
@@ -338,7 +338,7 @@ const viewLabels: Partial<Record<View, string>> = {
 };
 const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
 const mvpSubsections = [
- { id:"mvp_problemon", label:"Problemon", icon:Flag, accent:"problemon" },
+ { id:"mvp_problemon", label:"Problemón", icon:Flag, accent:"problemon" },
  { id:"mvp_problems", label:"Problemas u Oportunidades", icon:Search, accent:"problems" },
  { id:"mvp_hypotheses", label:"Hipótesis", icon:Lightbulb, accent:"hypotheses" },
  { id:"mvp_experiments", label:"Experimentos", icon:FlaskConical, accent:"experiments" },
@@ -1090,7 +1090,7 @@ export default function Home() {
   }
   function createProblemon() {
     if (currentProject && getProblemon(items,currentProject.id)) {
-      tell("Este proyecto ya tiene un Problemon. Edita el actual o quita su designación.");
+      tell("Este proyecto ya tiene un Problemón. Edita el actual o quita su designación.");
       return;
     }
     setMvpEditor(true);
@@ -1099,7 +1099,7 @@ export default function Home() {
   function designateProblemon(item: Item) {
     if (!can("opportunity","edit") || !currentProject || item.project_id!==currentProject.id) return;
     if (getProblemon(items,currentProject.id)) {
-      tell("Ya hay un Problemon. Desmarca primero el actual para elegir otro.");
+      tell("Ya hay un Problemón. Desmarca primero el actual para elegir otro.");
       return;
     }
     setMvpEditor(true);
@@ -1152,7 +1152,7 @@ export default function Home() {
     const problem = validate(record);
     if (record.kind==="opportunity" && isProblemon(record) &&
         items.some(item=>item.id!==record.id && isProblemon(item))) {
-      setError("Este proyecto ya tiene un Problemon. Solo se permite uno por proyecto.");
+      setError("Este proyecto ya tiene un Problemón. Solo se permite uno por proyecto.");
       return;
     }
     if (problem) {
@@ -1239,7 +1239,7 @@ export default function Home() {
     const r = await q;
     if (r.error) {
       setError(r.error.code==="23505" && r.error.message.includes("one_problemon_per_project")
-        ? "Este proyecto ya tiene un Problemon. Desmarca su designación antes de elegir otro."
+        ? "Este proyecto ya tiene un Problemón. Desmarca su designación antes de elegir otro."
         : r.error.message);
     } else if (!r.data?.length) {
       setError(
@@ -1493,7 +1493,7 @@ export default function Home() {
     const I = i.kind === "goal" ? null : i.kind === "opportunity" ? (isProblemon(i) ? Flag : Search) : Lightbulb;
     return <span className={`goi-title-tag ${visual}`} title={i.title}>
       {i.kind === "goal" ? <GoalTypeIcon item={i} size={17}/> : I ? <I size={17} aria-hidden="true"/> : null}
-      <span>{isProblemon(i) ? "Problemon · " + i.title : i.title}</span>
+      <span>{isProblemon(i) ? "Problemón · " + i.title : i.title}</span>
     </span>;
   }
 
@@ -1503,7 +1503,7 @@ export default function Home() {
         {["goal","opportunity","hypothesis"].includes(i.kind) ? (
           <div className="row goi-title-row">
             {goiTitleTag(i)}
-            {i.kind === "opportunity" && isProblemon(i) && <span className="problemon-small-tag"><Flag size={13} aria-hidden="true"/>Problemon</span>}
+            {i.kind === "opportunity" && isProblemon(i) && <span className="problemon-small-tag"><Flag size={13} aria-hidden="true"/>Problemón</span>}
             {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
           </div>
         ) : (
@@ -1914,7 +1914,7 @@ export default function Home() {
               )}
               {id === "map" && (
                 <div className="nav-subsections">
-                  <button className={`nav-goi-subsection problemon ${view === "problemon" ? "active" : ""}`.trim()} onClick={() => navigateView("problemon")}><Flag size={16} aria-hidden="true" />Problemon</button>
+                  <button className={`nav-goi-subsection problemon ${view === "problemon" ? "active" : ""}`.trim()} onClick={() => navigateView("problemon")}><Flag size={16} aria-hidden="true" />Problemón</button>
                   <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => navigateView("goals")}>
                     <Target size={16} aria-hidden="true" />{viewLabels.goals}
                   </button>
@@ -3137,7 +3137,7 @@ export default function Home() {
                     onChange={event=>setDraft({...draft,
                       fields:{...draft.fields,is_problemon:event.target.checked}})}
                   />
-                  <span><strong>Problemon principal del proyecto</strong>
+                  <span><strong>Problemón principal del proyecto</strong>
                     <small>Solo puede haber uno. Desmarcarlo conserva la ficha, sus hijos y sus vínculos.</small>
                   </span>
                 </label>
