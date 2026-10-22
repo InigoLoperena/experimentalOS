@@ -4,6 +4,7 @@ export const sectionPaths = {
  mvp_problemon: '/experimentacion-mvps/problemon',
  mvp_problems: '/experimentacion-mvps/problemas-oportunidades',
  mvp_hypotheses: '/experimentacion-mvps/hipotesis',
+ mvp_main_hypothesis: '/experimentacion-mvps/hipotesis-principal',
  mvp_experiments: '/experimentacion-mvps/experimentos',
  mvp_research: '/experimentacion-mvps/investigacion',
  experiments: '/goi-tree/experimentos', learning: '/aprendizajes',
