@@ -8,8 +8,7 @@ const byDateThenId = (a: Item, b: Item) =>
   Number(isProblemon(b)) - Number(isProblemon(a)) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
 
 /**
- * For every GOI subsection, show its records and all ancestor levels on arrival.
- * The selected records' descendants are available, but start folded.
+ * Include records, ancestors and descendants in every GOI subsection, with all child branches collapsed on arrival.
  * North Star is implicit: it does not appear as an extra hierarchy node.
  */
 export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
@@ -43,8 +42,7 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
   if (view === "ideas") orphanProblemRecords.forEach(item => included.add(item.id));
   const expanded = new Set<string>();
 
-  // Opening all ancestors makes the selected kind visible by default:
-  // opportunities => goal + opportunities; hypotheses => goal + opportunities + ideas.
+  // Keep ancestors in the hierarchy; users progressively reveal children themselves.
   for (const selected of target) {
     const seen = new Set<string>([selected.id]);
     let child = selected;
@@ -54,7 +52,6 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
       seen.add(parent.id);
       if (VISIBLE_KINDS.has(parent.kind)) {
         included.add(parent.id);
-        expanded.add(parent.id);
       }
       child = parent;
     }
