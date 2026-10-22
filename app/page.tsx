@@ -1606,7 +1606,7 @@ export default function Home() {
                 {draft.kind === "hypothesis" && f.key === "description" && <h3 className="full hypothesis-form-section">Planteamiento</h3>}
                 {draft.kind === "hypothesis" && f.key === "belief" && <h3 className="full hypothesis-form-section">Hipótesis y fundamentos</h3>}
                 {draft.kind === "hypothesis" && f.key === "validation_need" && <h3 className="full hypothesis-form-section">Validación</h3>}
-                {draft.kind === "hypothesis" && f.key === "metric" && <h3 className="full hypothesis-form-section">Indicadores y priorización</h3>
+                {draft.kind === "hypothesis" && f.key === "metric" && <h3 className="full hypothesis-form-section">Indicadores y priorización</h3>}
                 <label
                   key={f.key}
                   className={
@@ -2924,7 +2924,7 @@ export default function Home() {
 
                 {files}
               </> : <>{selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}{links}{files}</>}
-            </RecordAttachments> : {selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}}
+            </RecordAttachments> : selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}
             {["goal", "opportunity", "hypothesis", "research", "experiment"].includes(selected.kind) && !publicMode && (
               <section className="record-activity">
                 <div className="record-activity-head">
