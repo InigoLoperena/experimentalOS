@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import {GlobalDictation} from "./global-dictation";
 export const metadata: Metadata = {
   title: "Xperiments · Experimental Innovation OS",
   description:
@@ -10,7 +9,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}<GlobalDictation/></body>
+      <body>{children}</body>
     </html>
   );
 }
