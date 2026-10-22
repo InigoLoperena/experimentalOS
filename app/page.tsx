@@ -1502,7 +1502,7 @@ export default function Home() {
     const I = i.kind === "goal" ? null : i.kind === "opportunity" ? (isProblemon(i) ? Flag : Search) : Lightbulb;
     return <span className={`goi-title-tag ${visual}`} title={i.title}>
       {i.kind === "goal" ? <GoalTypeIcon item={i} size={17}/> : I ? <I size={17} aria-hidden="true"/> : null}
-      <span>{isProblemon(i) ? "Problemón · " + i.title : i.title}</span>
+      <span>{i.title}</span>
     </span>;
   }
 
@@ -1512,7 +1512,7 @@ export default function Home() {
         {["goal","opportunity","hypothesis"].includes(i.kind) ? (
           <div className="row goi-title-row">
             {goiTitleTag(i)}
-            {i.kind === "opportunity" && isProblemon(i) && <span className="problemon-small-tag"><Flag size={13} aria-hidden="true"/>Problemón</span>}
+            
             {i.kind === "opportunity" && i.fields.focus && <span className="focus">Prioritaria</span>}
           </div>
         ) : (
