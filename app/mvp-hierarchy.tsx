@@ -7,7 +7,7 @@ import type { Item, Kind } from "@/lib/model";
 import { getMvpHierarchy, type MvpHierarchyView } from "@/lib/mvp-hierarchy";
 import { isProblemon } from "@/lib/problemon";
 type Props={
- view:MvpHierarchyView;project:Item;items:Item[];readOnly:boolean;
+ view:MvpHierarchyView;project:Item;items:Item[];readOnly:boolean;treeName?:string;
  canCreate:(kind:Kind)=>boolean;canEdit:(kind:Kind)=>boolean;canDelete:(kind:Kind)=>boolean;
  onCreate:(kind:Kind,parent:string|null)=>void;onOpen:(item:Item)=>void;onEdit:(item:Item)=>void;onDelete:(item:Item)=>void;
 };
@@ -31,13 +31,14 @@ function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
  if(kind==="research")return <Microscope size={17} color={color} aria-hidden="true"/>;
  return <Search size={17} color={color} aria-hidden="true"/>;
 }
-export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
+export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
  const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
  const [openParents,setOpenParents]=useState<Set<string>>(()=>new Set());
  const allProjectItems=items.filter(item=>item.project_id===project.id);
  const byId=new Map(allProjectItems.map(item=>[item.id,item]));
  const mainHypothesis=allProjectItems.find(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis===true);
  const experiments=allProjectItems.filter(item=>item.kind==="experiment").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
+ const hypotheses=allProjectItems.filter(item=>item.kind==="hypothesis").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
  const parentsOf=(experiment:Item):Item[]=>{
   const path:Item[]=[];const visited=new Set<string>([experiment.id]);
   let id=linkedHypothesis(experiment);
@@ -98,6 +99,50 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
    {!readOnly&&childActions(item)&&<div className="mvp-hierarchy-child-actions">{childActions(item)}</div>}
   </div>;
  };
+ if(view==="mvp_hypotheses")return <div className="mvp-hierarchy-screen">
+  <section className="mvp-hierarchy-heading panel">
+   <div><span className="eyebrow">{treeName} · {project.title}</span>
+    <h2>Hipótesis ({hypotheses.length})</h2>
+    <p>Listado de hipótesis ordenado por ICE. Los problemas padres y los experimentos o investigaciones relacionados aparecen solo al desplegar cada ficha.</p>
+   </div>
+   {add("Añadir hipótesis","hypothesis")}
+  </section>
+  <div className="mvp-experiment-ranked-list mvp-hypothesis-ranked-list">
+   {hypotheses.map(hypothesis=>{
+    const parent=byId.get(hypothesis.parent_id||"");
+    const ancestors=parent&&parent.kind==="opportunity"?[parent]:[];
+    const descendants=hierarchy.children(hypothesis.id).filter(child=>child.kind==="experiment"||child.kind==="research")
+      .sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
+    const expanded=openParents.has(hypothesis.id);
+    const count=ancestors.length+descendants.length;
+    return <section className="mvp-experiment-ranked-entry" key={hypothesis.id}>
+     <article className="mvp-hierarchy-record mvp-hierarchy-hypothesis mvp-experiment-ranked-card">
+      <span className="mvp-hierarchy-record-icon"><ItemIcon kind="hypothesis"/></span>
+      <div className="mvp-hierarchy-record-text">
+       <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor("hypothesis")}} onClick={()=>onOpen(hypothesis)}>{hypothesis.title}</button>
+       <span className="mvp-hierarchy-ice">ICE <strong>{score(hypothesis.fields)}</strong></span>
+      </div>
+      <div className="mvp-experiment-ranked-actions">
+       <button type="button" className="btn" aria-expanded={expanded} aria-controls={"hypothesis-relations-"+hypothesis.id}
+        onClick={()=>toggleParents(hypothesis.id)} disabled={!count}>
+        <ChevronRight size={16} className={expanded?"mvp-upward-open":""} aria-hidden="true"/>
+        {expanded?"Ocultar padres e hijos":"Desplegar padres e hijos"} ({count})
+       </button>
+       {!readOnly&&canEdit("hypothesis")&&<button type="button" title="Editar" aria-label={"Editar "+hypothesis.title} onClick={()=>onEdit(hypothesis)}><Pencil size={16}/></button>}
+       {!readOnly&&canDelete("hypothesis")&&<button type="button" title="Eliminar" aria-label={"Eliminar "+hypothesis.title} onClick={()=>onDelete(hypothesis)}><Trash2 size={16}/></button>}
+      </div>
+     </article>
+     {expanded&&count>0&&<div id={"hypothesis-relations-"+hypothesis.id} className="mvp-upward-chain mvp-hypothesis-relations">
+      {ancestors.map(parentRow)}
+      {descendants.map(child=><div key={child.id} className="mvp-hypothesis-child">{node(child,new Set([hypothesis.id]))}</div>)}
+     </div>}
+    </section>;
+   })}
+   {!hypotheses.length&&<div className="mvp-hierarchy-empty panel">
+    <p>Este proyecto todavía no tiene hipótesis.</p>{add("Añadir hipótesis","hypothesis")}
+   </div>}
+  </div>
+ </div>;
  if(view==="mvp_main_hypothesis")return <div className="mvp-hierarchy-screen">
    <section className="mvp-hierarchy-heading panel"><div><span className="eyebrow">MVPs Tree · {project.title}</span>
     <h2>Hipótesis principal</h2><p>La hipótesis principal se vincula por defecto al Problema principal y es el padre predeterminado de nuevos experimentos.</p></div>
