@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, Flag, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Target } from "lucide-react";
 import type {Item} from "@/lib/model";
 import {getMvpHierarchy} from "@/lib/mvp-hierarchy";
-import {getProblemón,getProblemonCandidates} from "@/lib/problemon";
+import {getProblemon,getProblemonCandidates} from "@/lib/problemon";
 
 type Props={
  project:Item;items:Item[];readOnly:boolean;canCreate:boolean;canEdit:boolean;
