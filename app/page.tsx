@@ -358,7 +358,7 @@ function IconFor({ kind }: { kind: Kind }) {
           ? Lightbulb
           : kind === "research"
             ? Microscope
-            : kind === "idea"
+            : kind === "hypothesis"
           ? Lightbulb
           : kind === "opportunity"
             ? Search
@@ -1027,7 +1027,7 @@ export default function Home() {
           .find((item) => item.kind === "goal")
       : null;
     const contextFields: Fields =
-      kind === "idea"
+      kind === "hypothesis"
         ? {
             metric: goal?.fields.metric || "",
             evidence: parent?.fields.evidence || "",
@@ -1048,7 +1048,7 @@ export default function Home() {
       workspace_id: workspace.id,
       project_id: kind === "project" ? null : currentProject!.id,
       kind,
-      parent_id: resolvedParentId,
+      parent_id: kind === "experiment" && hypothesisId ? hypothesisId : resolvedParentId,
       related_id: null,
       title: "",
       owner_id: null,
@@ -1060,14 +1060,14 @@ export default function Home() {
           : {}),
         ...(kind === "opportunity" && (mvpViews as readonly string[]).includes(view) ? { opportunity_type: "Problema" } : {}),
         ...(kind === "research" && researchTargetId ? { mvp_links: researchTargetId } : {}),
-        ...(kind === "experiment" && hypothesisId ? { mvp_hypothesis_id: hypothesisId } : {}),
+        ...(kind === "experiment" && (hypothesisId || (resolvedParentId && parent?.kind === "hypothesis")) ? { mvp_hypothesis_id: hypothesisId || resolvedParentId! } : {}),
         ...(kind === "experiment"
           ? {
               impact: 5,
               confidence: 5,
               ease: 5,
             }
-          : kind === "idea"
+          : kind === "hypothesis"
             ? { impact: 5, confidence: 5, ease: 5 }
             : {}),
       },
@@ -1080,8 +1080,8 @@ export default function Home() {
   function createMvp(kind: Kind, parent: string | null = null) {
     setMvpEditor(true);
     // Research uses a many-to-many link, never GOI's parent_id. Experiments
-    // use an MVP hypothesis field and retain a separate GOI idea parent.
-    create(kind, kind === "experiment" || kind === "research" ? null : parent,
+    // both trees share the same hypothesis parent.
+    create(kind, kind === "research" ? null : parent,
       undefined, kind === "experiment" ? parent : null, kind === "research" ? parent : null);
   }
   function editMvp(record: Item) {
@@ -1525,7 +1525,7 @@ export default function Home() {
             <div className="branch-children">{children.map(branch)}</div>
           </details>
         )}
-        {can(i.kind==='goal'?'opportunity':i.kind==='opportunity'?'idea':'experiment','create') && ["goal", "opportunity", "hypothesis"].includes(i.kind) && (
+        {can(i.kind==='goal'?'opportunity':i.kind==='opportunity'?'hypothesis':'experiment','create') && ["goal", "opportunity", "hypothesis"].includes(i.kind) && (
           <button
             className="add-node"
             onClick={() =>
@@ -1533,7 +1533,7 @@ export default function Home() {
                 i.kind === "goal"
                   ? "opportunity"
                   : i.kind === "opportunity"
-                    ? "idea"
+                    ? "hypothesis"
                     : "experiment",
                 i.id,
               )
@@ -1605,6 +1605,10 @@ export default function Home() {
   const draftFields = (links?: ReactNode) => draft && (mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind]).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" && (![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
+                {draft.kind === "hypothesis" && f.key === "description" && <h3 className="full hypothesis-form-section">Planteamiento</h3>}
+                {draft.kind === "hypothesis" && f.key === "belief" && <h3 className="full hypothesis-form-section">Hipótesis y fundamentos</h3>}
+                {draft.kind === "hypothesis" && f.key === "validation_need" && <h3 className="full hypothesis-form-section">Validación</h3>}
+                {draft.kind === "hypothesis" && f.key === "metric" && <h3 className="full hypothesis-form-section">Indicadores y priorización</h3>
                 <label
                   key={f.key}
                   className={
@@ -2268,7 +2272,7 @@ export default function Home() {
                   </section>
                 ))}
               </div>
-              {items.some(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id) && (
+              {items.some(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id) && (
                 <section className="goi-orphaned-panel panel">
                   <div className="section-heading">
                     <div>
@@ -2277,7 +2281,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="cards-grid">
-                    {items.filter(item => ["opportunity", "idea"].includes(item.kind) && !item.parent_id).map(item => itemCard(item))}
+                    {items.filter(item => ["opportunity", "hypothesis"].includes(item.kind) && !item.parent_id).map(item => itemCard(item))}
                   </div>
                 </section>
               )}
@@ -2348,8 +2352,8 @@ export default function Home() {
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
             <div className="goi-hierarchy-list">
               {(() => {
-                const { target, expanded, roots, children, orphanOpportunities, orphanIdeas } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
-                if (!target.length && !orphanOpportunities.length && !orphanIdeas.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin hipótesis"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
+                const { target, expanded, roots, children, orphanOpportunities, orphanHypotheses } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
+                if (!target.length && !orphanOpportunities.length && !orphanHypotheses.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin hipótesis"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
                 // Keep each selected subsection visible with all its ancestors.
                 // Only levels below the selected subsection start collapsed.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
@@ -2399,13 +2403,13 @@ export default function Home() {
                         {orphanOpportunities.map(renderGroup)}
                       </section>
                     )}
-                    {orphanIdeas.length > 0 && (
+                    {orphanHypotheses.length > 0 && (
                       <section className="goi-orphans-section" aria-label="Hipótesis huérfanas">
                         <div className="goi-orphans-heading">
-                          <h2><Lightbulb size={19} aria-hidden="true" /> Hipótesis huérfanas <span>({orphanIdeas.length})</span></h2>
+                          <h2><Lightbulb size={19} aria-hidden="true" /> Hipótesis huérfanas <span>({orphanHypotheses.length})</span></h2>
                           <p>Sin oportunidad-problema padre. Abre la ficha para asignarle una.</p>
                         </div>
-                        {orphanIdeas.map(renderGroup)}
+                        {orphanHypotheses.map(renderGroup)}
                       </section>
                     )}
                     {roots.map(renderGroup)}
@@ -3118,21 +3122,16 @@ export default function Home() {
                   </select>
                 </label>
               )}
-              {draft.kind === "experiment" && mvpEditor && (
+              {draft.kind === "experiment" && (
                 <>
                   <label>
-                    Hipótesis compartida (Growth Tree y MVPs Tree)
-                    <select value={draft.parent_id || ""} onChange={e => setDraft({...draft,parent_id:e.target.value || null})}>
+                    Hipótesis (compartida entre Growth Tree y MVPs Tree)
+                    <select value={draft.parent_id || String(draft.fields.mvp_hypothesis_id || "")}
+                      onChange={e => setDraft({...draft,parent_id:e.target.value || null,
+                        fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
                       <option value="">Experimento sin hipótesis</option>
-                      {items.filter(item => item.kind === "hypothesis").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    Hipótesis (compartida entre ambos árboles)
-                    <select value={String(draft.fields.mvp_hypothesis_id || "")}
-                      onChange={e => setDraft({...draft,fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
-                      <option value="">Experimento sin hipótesis</option>
-                      {items.filter(item => item.kind === "hypothesis").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+                      {items.filter(item => item.kind === "hypothesis").map(item =>
+                        <option key={item.id} value={item.id}>{item.title}</option>)}
                     </select>
                   </label>
                 </>
@@ -3290,7 +3289,7 @@ function Auth({
       <div className="auth-intro">
         <BrandIdentity />
         <h1>
-          Cada idea merece
+          Cada hipótesis merece
           <br />
           un experimento.
         </h1>
@@ -3504,7 +3503,7 @@ function Method() {
             "North Star",
             "Objetivos + Input Metrics",
             "Oportunidades-problemas",
-            "Ideas",
+            "Hipótesis",
             "Experimentos",
           ].map((label,index)=>(
             <span key={label}>
@@ -3518,7 +3517,7 @@ function Method() {
           dependen los <strong>Objetivos</strong> y las
           <strong> Input Metrics</strong>, situados al mismo nivel. Cada uno
           puede contener oportunidades o problemas; de estos nacen
-          <strong> Ideas</strong> que puedes validar mediante
+          <strong> Hipótesis</strong> que puedes validar mediante
           <strong> Experimentos</strong>. Recorre la jerarquía con sus
           controles de hijos expandibles.
         </p>
