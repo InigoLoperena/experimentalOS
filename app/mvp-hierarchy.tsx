@@ -14,6 +14,7 @@ type Props={
 const labels:Record<MvpHierarchyView,{title:string,description:string,action:string,kind:Kind}>={
  mvp:{title:"Árbol de validación",description:"Problemas u oportunidades → hipótesis → experimentos o investigación. Todos los niveles aparecen desplegados para mostrar sus relaciones.",action:"Añadir problema u oportunidad",kind:"opportunity"},
  mvp_problems:{title:"Problemas u Oportunidades",description:"Son la raíz de esta jerarquía. Cada uno puede tener varias hipótesis, además de investigaciones vinculadas.",action:"Añadir problema u oportunidad",kind:"opportunity"},
+ mvp_main_hypothesis:{title:"Hipótesis principal",description:"Una hipótesis principal por proyecto, bajo el Problemón. Es el padre predeterminado de los experimentos nuevos.",action:"Crear hipótesis principal",kind:"hypothesis"},
  mvp_hypotheses:{title:"Hipótesis",description:"Cada hipótesis es hija de un problema u oportunidad y puede comprobarse con investigaciones o experimentos.",action:"Añadir hipótesis",kind:"hypothesis"},
  mvp_experiments:{title:"Experimentos",description:"Los experimentos pueden validar hipótesis; la misma hipótesis se utiliza en Growth Tree y MVPs Tree.",action:"Añadir experimento",kind:"experiment"},
  mvp_research:{title:"Investigación",description:"Entrevistas, encuestas y otras investigaciones vinculables a uno o varios problemas o hipótesis.",action:"Añadir investigación",kind:"research"},
@@ -32,6 +33,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
  const [openParents,setOpenParents]=useState<Set<string>>(()=>new Set());
  const allProjectItems=items.filter(item=>item.project_id===project.id);
  const byId=new Map(allProjectItems.map(item=>[item.id,item]));
+ const mainHypothesis=allProjectItems.find(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis===true);
  const experiments=allProjectItems.filter(item=>item.kind==="experiment").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
  const parentsOf=(experiment:Item):Item[]=>{
   const path:Item[]=[];const visited=new Set<string>([experiment.id]);
@@ -97,6 +99,14 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
    {!readOnly&&childActions(item)&&<div className="mvp-hierarchy-child-actions">{childActions(item)}</div>}
   </div>;
  };
+ if(view==="mvp_main_hypothesis")return <div className="mvp-hierarchy-screen">
+   <section className="mvp-hierarchy-heading panel"><div><span className="eyebrow">MVPs Tree · {project.title}</span>
+    <h2>Hipótesis principal</h2><p>La hipótesis principal se vincula por defecto al Problemón y es el padre predeterminado de nuevos experimentos.</p></div>
+    {!mainHypothesis&&add("Crear hipótesis principal","hypothesis")}
+   </section>
+   {mainHypothesis?<div className="mvp-hierarchy-list">{node(mainHypothesis,new Set())}</div>:
+    <p className="mvp-hierarchy-empty panel">No hay hipótesis principal. Crea una o designa una editando una hipótesis existente.</p>}
+  </div>;
  if(view==="mvp_experiments")return <div className="mvp-hierarchy-screen">
   <section className="mvp-hierarchy-heading panel">
    <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>Experimentos ({experiments.length})</h2>
@@ -138,7 +148,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
    {add(meta.action,meta.kind)}
   </section>
   <div className="mvp-hierarchy-list">
-   {hierarchy.roots.map(group)}
+   {hierarchy.roots.filter(item=>view!=="mvp_hypotheses" || item.fields.is_main_hypothesis!==true).map(group)}
    {hierarchy.unlinked.length>0&&<section className="goi-orphans-section mvp-hierarchy-unlinked">
      <div className="goi-orphans-heading"><h2>Sin vincular <span>({hierarchy.unlinked.length})</span></h2>
      <p>Estos registros se conservan aunque falte su padre. Puedes asignarlo abriendo la ficha.</p></div>
