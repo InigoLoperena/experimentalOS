@@ -1,4 +1,4 @@
-# Experimental OS
+# Xperiments
 
 Plataforma de experimentación por proyectos. El piloto utiliza el workspace de Imagine Builder; los datos, miembros y permisos están aislados por workspace. Next.js + TypeScript, GitHub y Vercel; Supabase aporta cuentas, sesiones y base de datos. Una cuenta nueva puede crear su propio equipo privado; entrar en un equipo existente requiere invitación. El registro no concede acceso a Imagine Builder.
 
@@ -11,7 +11,7 @@ Consulta [IMPLEMENTACION-MVP.md](IMPLEMENTACION-MVP.md) para las funcionalidades
 - **Aprendizajes:** documentación separada del experimento, con resultados, evidencia, conocimiento y siguientes pasos.
 - **Equipo:** usuarios, roles e invitaciones, sin perfiles de empresa.
 - **GOI Tree:** North Star Metric → Objetivos e Input Metrics (dos categorías hermanas) → Oportunidades-problemas (de Objetivos o Input Metrics) → Ideas → Experimentos.
-- **Cómo utilizar Experimental OS:** explicaciones breves y enlaces a las fuentes.
+- **Cómo utilizar Xperiments:** explicaciones breves y enlaces a las fuentes.
 
 Experimentos, Aprendizajes y GOI Tree tienen un selector común de proyecto. Al cambiarlo, solo aparecen los registros de ese proyecto. Cada proyecto tiene una North Star propia y puede destacar un máximo de cinco oportunidades. No se permiten padres de otro proyecto, ciclos en el árbol ni traslados de registros entre proyectos. Los miembros del equipo mantienen sus roles en todos los proyectos.
 
