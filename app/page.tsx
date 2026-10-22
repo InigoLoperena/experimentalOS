@@ -36,6 +36,7 @@ import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { MvpExperimentation } from "./mvp-experimentation";
 import { MvpHierarchy } from "./mvp-hierarchy";
 import { ProblemonSection } from "./problemon-section";
+import { EditorDictation } from "./editor-dictation";
 import { getProblemon, isProblemon } from "@/lib/problemon";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
@@ -3090,6 +3091,7 @@ export default function Home() {
                   <div className="record-relation"><span>Hijo de</span>{parentTag(draft)}</div>
                 )}
               </div>
+              <EditorDictation/>
               <button
                 type="button"
                 className="icon-button"
