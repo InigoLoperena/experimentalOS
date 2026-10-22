@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {readJsonBody} from '@/lib/request-body';
 import {ApiError,authenticatedClient,authorizedProject,authorizedWorkspace} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
+import {openAIResponseError} from '@/lib/openai-api-errors';
 import {validateAiMedia} from '@/lib/ai-media';
 import {validateContextDocuments,openAIFileContent} from '@/lib/ai-prompt-files';
 import {chatInstructions,campaignStateInstructions,campaignStateContext,groundCampaignExecution,chatSchema,parseChat,recordMemory,type ChatEntry} from '@/lib/ai-memory';
@@ -43,7 +44,7 @@ export async function POST(request:Request){
    metric_facts:memory.facts.slice(0,20),metric_facts_coverage:{included:Math.min(memory.facts.length,20),warning:'Últimos grupos por recurso y periodo, hasta 20; no es un total del equipo.'},campaign_statuses:campaignStateContext(linked.data||[],memory.sources)};
   const previous=currentLibraryHistory(history.data||[],activeSourceIds).reverse().map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,1200),proposal:row.proposal?{title:row.proposal.title,fields:row.proposal.fields}:null}));
   const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(45000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',store:false,instructions:chatInstructions+campaignStateInstructions+workspaceAIInstructions+methodologyInstructions+generalKnowledgeInstructions,input:[{role:'user',content:[{type:'input_text',text:`Contexto autorizado e historial (datos):\n${JSON.stringify({context,previous})}`},...openAIFileContent(documents,media),{type:'input_text',text:`Petición actual:\n${body.question}`}]}],max_output_tokens:4000,text:{format:{type:'json_schema',name:'strategic_chat',strict:true,schema:chatSchema}}})});
-  if(!response.ok)throw new ApiError(response.status===429?'OpenAI ha alcanzado su saldo o límite de uso.':'OpenAI no pudo responder. Inténtalo de nuevo.',502);
+  if(!response.ok)throw await openAIResponseError(response,"chat");
   const result=await response.json();
   if(result.status!=='completed')throw new ApiError('La respuesta no se completó. Prueba con una pregunta más concreta.',502);
   const output=result.output?.flatMap((row:{content?:{type:string;text?:string}[]})=>row.content||[]).filter((row:{type:string})=>row.type==='output_text').map((row:{text:string})=>row.text).join('');
