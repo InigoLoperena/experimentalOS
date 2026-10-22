@@ -28,7 +28,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
   return <div key={item.id} className={"problemon-descendant problemon-descendant-"+item.kind}>
    <button type="button" className="problemon-child-record" onClick={()=>onOpen(item)}>
     <Icon size={16} aria-hidden="true"/>
-    <span><small>{item.kind==="hypothesis"?"Hipótesis":item.kind==="experiment"?"Experimento":item.kind==="research"?"Investigación":"Problema u oportunidad"}</small>{item.title}</span>
+    <span>{item.title}</span>
    </button>
    {nested.length>0&&<details open className="goi-hierarchy-toggle problemon-children-toggle">
     <summary onClick={event=>{
@@ -63,7 +63,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
   </header>
   {selected?<>
    <div className="problemon-primary">
-    <span className="problemon-label"><Target size={15} aria-hidden="true"/> Problemon designado</span>
+    
     <button type="button" className="problemon-primary-title" onClick={()=>onOpen(selected)}>{selected.title}</button>
     {String(selected.fields.description||"").trim()&&<p>{String(selected.fields.description)}</p>}
     <div className="problemon-meta">
