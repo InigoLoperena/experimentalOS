@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {authenticatedClient,authorizedProject,authorizedWorkspace,ApiError} from '@/lib/server-access';
 import {resolvedOpenAIKey} from '@/lib/integration-service';
+import {openAIResponseError} from '@/lib/openai-api-errors';
 import {boundedVoiceForm,validateVoiceWav,voiceModel,voiceMaxBytes} from '@/lib/voice-audio';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -27,8 +28,7 @@ export async function POST(request:Request){
   const input=new FormData();input.set('file',file,'dictado.wav');input.set('model',voiceModel);input.set('response_format','json');
   input.set('prompt',`Xperiments, Experimental OS, ${project?.title.slice(0,200)||'equipo de experimentación'}, Meta Ads, Google Ads, Metricool, Smartlead, Supabase, PostHog, test A/B.`);
   const response=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',cache:'no-store',redirect:'error',signal:AbortSignal.any([AbortSignal.timeout(35000),request.signal]),headers:{Authorization:`Bearer ${key}`},body:input});
-  if(response.status===401||response.status===403)throw new ApiError('La conexión de OpenAI no tiene acceso a la transcripción. Revisa la clave y sus permisos en Integraciones.',503);
-  if(!response.ok)throw new ApiError(response.status===429?'OpenAI ha alcanzado su saldo o límite de uso.':'OpenAI no pudo transcribir el audio. Puedes volver a intentarlo.',502);
+  if(!response.ok)throw await openAIResponseError(response,"transcribe");
   const result=await response.json();
   if(typeof result.text!=='string'||!result.text.trim())throw new ApiError('No se ha reconocido texto. Habla cerca del micrófono y vuelve a grabar.',422);
   if(result.text.length>12000)throw new ApiError('La transcripción es demasiado larga. Graba un audio más corto.',422);
