@@ -34,21 +34,21 @@ function initiallyVisible(view:"goals"|"input_metrics"|"opportunities"|"ideas") 
  return {h,seen};
 }
 
-test("Oportunidades shows each goal and its problems without opening hypotheses",()=>{
+test("Oportunidades keeps all goal children folded on arrival",()=>{
  const {h,seen}=initiallyVisible("opportunities");
- assert.deepEqual(seen,["goal","opportunity","secondOpportunity","input","metricOpportunity"]);
- assert.ok(h.expanded.has("goal"));
- assert.ok(h.expanded.has("input"));
+ assert.deepEqual(seen,["goal","input"]);
+ assert.equal(h.expanded.size,0);
+ assert.deepEqual(h.children("goal").map(item=>item.id),["opportunity","secondOpportunity"]);
  assert.ok(!h.expanded.has("opportunity"));
  assert.ok(!seen.includes("idea"));
  assert.ok(!seen.includes("nsm"));
 });
 
-test("Hipótesis shows ancestor goals and problems plus the hypotheses, but not experiments",()=>{
+test("Hipótesis includes ancestors while keeping nested children hidden initially",()=>{
  const {h,seen}=initiallyVisible("ideas");
- assert.deepEqual(seen,["goal","opportunity","idea","secondIdea"]);
- assert.ok(h.expanded.has("goal")&&h.expanded.has("opportunity"));
- assert.ok(!h.expanded.has("idea"));
+ assert.deepEqual(seen,["goal"]);
+ assert.equal(h.expanded.size,0);
+ assert.deepEqual(h.children("opportunity").map(i=>i.id),["idea","secondIdea"]);
  assert.deepEqual(h.children("idea").map(i=>i.id),["experiment"]);
  assert.equal(new Set(seen).size,seen.length);
 });
@@ -62,10 +62,11 @@ test("Goals and Input Metrics only expand when a reader requests descendants",()
  }
 });
 
-test("native details use the selected hierarchy ancestor expansion by default",async()=>{
+test("native Growth Tree details start folded without recursively opening grandchildren",async()=>{
  const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
  assert.match(page,/getGoiHierarchy\(items, view/);
- assert.match(page,/<details key=\{view \+ ":" \+ item\.id\} className="goi-hierarchy-toggle" open=\{expanded\.has\(item\.id\)\}/);
+ assert.match(page,/<details key=\{view \+ ":" \+ item\.id\} className="goi-hierarchy-toggle">/);
+ assert.doesNotMatch(page,/querySelectorAll\("details.goi-hierarchy-toggle"\)/);
 });
 
 test("Unassigned opportunities appear in their own first-position group on Problems and Hypotheses",()=>{
