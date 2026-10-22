@@ -331,7 +331,7 @@ const nav: { id: View; label: string; icon: typeof Compass | typeof AIBrainIcon 
   { id: "method", label: "Cómo utilizar Xperiments", icon: CircleHelp },
 ];
 const viewLabels: Partial<Record<View, string>> = {
- problemon:"Problemón", mvp_problemon:"Problemón",
+ problemon:"Problema principal", mvp_problemon:"Problema principal",
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_main_hypothesis: "Hipótesis principal", mvp_hypotheses: "Hipótesis",
@@ -339,7 +339,7 @@ const viewLabels: Partial<Record<View, string>> = {
 };
 const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_main_hypothesis", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
 const mvpSubsections = [
- { id:"mvp_problemon", label:"Problemón", icon:Flag, accent:"problemon" },
+ { id:"mvp_problemon", label:"Problema principal", icon:Flag, accent:"problemon" },
  { id:"mvp_problems", label:"Problemas u Oportunidades", icon:Search, accent:"problems" },
  { id:"mvp_main_hypothesis", label:"Hipótesis principal", icon:Lightbulb, accent:"hypotheses" },
  { id:"mvp_hypotheses", label:"Hipótesis", icon:Lightbulb, accent:"hypotheses" },
@@ -1102,7 +1102,7 @@ export default function Home() {
   }
   function createProblemon() {
     if (currentProject && getProblemon(items,currentProject.id)) {
-      tell("Este proyecto ya tiene un Problemón. Edita el actual o quita su designación.");
+      tell("Este proyecto ya tiene un Problema principal. Edita el actual o quita su designación.");
       return;
     }
     setMvpEditor(true);
@@ -1111,7 +1111,7 @@ export default function Home() {
   function designateProblemon(item: Item) {
     if (!can("opportunity","edit") || !currentProject || item.project_id!==currentProject.id) return;
     if (getProblemon(items,currentProject.id)) {
-      tell("Ya hay un Problemón. Desmarca primero el actual para elegir otro.");
+      tell("Ya hay un Problema principal. Desmarca primero el actual para elegir otro.");
       return;
     }
     setMvpEditor(true);
@@ -1164,7 +1164,7 @@ export default function Home() {
     const problem = validate(record);
     if (record.kind==="opportunity" && isProblemon(record) &&
         items.some(item=>item.id!==record.id && isProblemon(item))) {
-      setError("Este proyecto ya tiene un Problemón. Solo se permite uno por proyecto.");
+      setError("Este proyecto ya tiene un Problema principal. Solo se permite uno por proyecto.");
       return;
     }
     if (record.kind==="hypothesis" && record.fields.is_main_hypothesis===true &&
@@ -1256,7 +1256,7 @@ export default function Home() {
     const r = await q;
     if (r.error) {
       setError(r.error.code==="23505" && r.error.message.includes("one_problemon_per_project")
-        ? "Este proyecto ya tiene un Problemón. Desmarca su designación antes de elegir otro."
+        ? "Este proyecto ya tiene un Problema principal. Desmarca su designación antes de elegir otro."
         : r.error.message);
     } else if (!r.data?.length) {
       setError(
@@ -1530,6 +1530,7 @@ export default function Home() {
           </>
         )}
         {!inHierarchy && parentTag(i)}
+        {inHierarchy && i.kind==="opportunity" && ["impact","confidence","ease"].some(key=>i.fields[key]!==undefined) && <span className="small hierarchy-ice">ICE {score(i.fields)}</span>}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
         {["goal", "opportunity", "hypothesis"].includes(i.kind) && i.owner_id && (
           <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
@@ -1576,7 +1577,7 @@ export default function Home() {
       <div className={"tree-branch " + i.kind} key={i.id}>
         {itemCard(i, true)}
         {children.length > 0 && (
-          <details open={i.kind !== "hypothesis"}>
+          <details>
             <summary>
               <ChevronRight size={14} />
               {children.length} elementos
@@ -1932,7 +1933,7 @@ export default function Home() {
               )}
               {id === "map" && (
                 <div className="nav-subsections">
-                  <button className={`nav-goi-subsection problemon ${view === "problemon" ? "active" : ""}`.trim()} style={{color:treeAccentColor("problemon")}} onClick={() => navigateView("problemon")}><Flag size={16} color={treeAccentColor("problemon")} aria-hidden="true" />Problemón</button>
+                  <button className={`nav-goi-subsection problemon ${view === "problemon" ? "active" : ""}`.trim()} style={{color:treeAccentColor("problemon")}} onClick={() => navigateView("problemon")}><Flag size={16} color={treeAccentColor("problemon")} aria-hidden="true" />Problema principal</button>
                   <button className={`nav-goi-subsection objective ${view === "goals" ? "active" : ""}`.trim()} onClick={() => navigateView("goals")}>
                     <Target size={16} aria-hidden="true" />{viewLabels.goals}
                   </button>
@@ -2307,7 +2308,7 @@ export default function Home() {
                         .map((g) => (
                           <section className="goal-column" key={g.id}>
                             {itemCard(g)}
-                            <details open className="goal-content">
+                            <details className="goal-content">
                               <summary>
                                 <ChevronRight size={14} /> Oportunidades-problemas ({items.filter((i) => i.parent_id === g.id && i.kind === "opportunity").length})
                               </summary>
@@ -2416,10 +2417,9 @@ export default function Home() {
           {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
             <div className="goi-hierarchy-list">
               {(() => {
-                const { target, expanded, roots, children, orphanOpportunities, orphanHypotheses } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
+                const { target, roots, children, orphanOpportunities, orphanHypotheses } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
                 if (!target.length && !orphanOpportunities.length && !orphanHypotheses.length) return <Empty title={view === "goals" ? "Sin objetivos" : view === "input_metrics" ? "Sin input metrics" : view === "opportunities" ? "Sin oportunidades" : "Sin hipótesis"} text="Todavía no hay elementos en esta sección del Growth Tree." />;
-                // Keep each selected subsection visible with all its ancestors.
-                // Only levels below the selected subsection start collapsed.
+                // Show roots, keeping every descendant level collapsed until its own toggle is used.
                 const renderNode = (item: Item, visited: Set<string>): ReactNode => {
                   if (visited.has(item.id)) return null;
                   const nextVisited = new Set(visited);
@@ -2429,16 +2429,8 @@ export default function Home() {
                     <div className="goi-hierarchy-node" key={item.id}>
                       {itemCard(item, true)}
                       {descendants.length > 0 && (
-                        <details key={view + ":" + item.id} className="goi-hierarchy-toggle" open={expanded.has(item.id)}>
-                          <summary onClick={(event) => {
-                            // Expand or collapse the entire nested branch, not just its first level.
-                            const branch = event.currentTarget.parentElement as HTMLDetailsElement | null;
-                            if (!branch) return;
-                            const opening = !branch.open;
-                            branch.querySelectorAll("details.goi-hierarchy-toggle").forEach(child => {
-                              (child as HTMLDetailsElement).open = opening;
-                            });
-                          }}>
+                        <details key={view + ":" + item.id} className="goi-hierarchy-toggle">
+                          <summary>
                             <ChevronRight size={16} aria-hidden="true"/>
                             <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
                             <span className="goi-toggle-hide">Ocultar hijos ({descendants.length})</span>
@@ -3156,7 +3148,7 @@ export default function Home() {
                     onChange={event=>setDraft({...draft,
                       fields:{...draft.fields,is_problemon:event.target.checked}})}
                   />
-                  <span><strong>Problemón principal del proyecto</strong>
+                  <span><strong>Problema principal del proyecto</strong>
                     <small>Solo puede haber uno. Desmarcarlo conserva la ficha, sus hijos y sus vínculos.</small>
                   </span>
                 </label>
@@ -3181,7 +3173,7 @@ export default function Home() {
               </label>}
               {draft.kind !== "experiment" && draft.kind !== "goal" && parents[draft.kind] && (
                 <label>
-                  {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : draft.kind==="hypothesis" ? "Padre de la hipótesis (Problemón predeterminado)" : kinds[parents[draft.kind]!] + " al que pertenece"}
+                  {draft.kind === "opportunity" ? "Objetivo o Input Metric al que pertenece" : draft.kind==="hypothesis" ? "Padre de la hipótesis (Problema principal predeterminado)" : kinds[parents[draft.kind]!] + " al que pertenece"}
                   <select
                     value={draft.parent_id || ""}
                     onChange={(e) =>
@@ -3200,7 +3192,7 @@ export default function Home() {
                         <option key={i.id} value={i.id}>
                           {draft.kind === "opportunity" && i.kind === "goal"
                             ? (i.fields.goi_section === "input_metrics" ? "Input Metric: " : "Objetivo: ") + i.title
-                            : draft.kind==="hypothesis" && isProblemon(i) ? "Problemón (predeterminado): "+i.title : i.title}
+                            : draft.kind==="hypothesis" && isProblemon(i) ? "Problema principal (predeterminado): "+i.title : i.title}
                         </option>
                       ))}
                   </select>
