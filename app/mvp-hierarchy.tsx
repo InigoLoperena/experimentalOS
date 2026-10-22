@@ -1,7 +1,8 @@
 "use client";
-import { ChevronRight, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Flag, ChevronRight, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import type { Item, Kind } from "@/lib/model";
 import { getMvpHierarchy, type MvpHierarchyView } from "@/lib/mvp-hierarchy";
+import { isProblemon } from "@/lib/problemon";
 import { linkedHypothesis, linkedResearchIds } from "@/lib/mvp-relationships";
 type Props={
  view:MvpHierarchyView;project:Item;items:Item[];readOnly:boolean;
@@ -17,7 +18,8 @@ const labels:Record<MvpHierarchyView,{title:string,description:string,action:str
 };
 const accents:{[K in Item["kind"]]?:string}={opportunity:"problem",hypothesis:"hypothesis",experiment:"experiment",research:"research"};
 const title:{[K in Item["kind"]]?:string}={opportunity:"Problema u Oportunidad",hypothesis:"Hipótesis",experiment:"Experimento",research:"Investigación"};
-function ItemIcon({kind}:{kind:Kind}){
+function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
+ if(problemon)return <Flag size={17} aria-hidden="true"/>;
  if(kind==="hypothesis")return <Lightbulb size={17} aria-hidden="true"/>;
  if(kind==="experiment")return <FlaskConical size={17} aria-hidden="true"/>;
  if(kind==="research")return <Microscope size={17} aria-hidden="true"/>;
@@ -46,9 +48,9 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
   const description=String(item.fields.description||item.fields.belief||item.fields.context||"").trim();
   return <div className="mvp-hierarchy-node" key={item.id}>
    <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]}>
-    <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind}/></span>
+    <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
     <div className="mvp-hierarchy-record-text">
-     <span className="mvp-hierarchy-kind">{item.kind==="opportunity"&&item.fields.opportunity_type
+     <span className="mvp-hierarchy-kind">{item.kind==="opportunity"&&isProblemon(item) ? "Problemón" : item.kind==="opportunity"&&item.fields.opportunity_type
       ?String(item.fields.opportunity_type):title[item.kind]}</span>
      <button type="button" className="mvp-hierarchy-title" onClick={()=>onOpen(item)}>{item.title}</button>
      {description&&<p>{description}</p>}
