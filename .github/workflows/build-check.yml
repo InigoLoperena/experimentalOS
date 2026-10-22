@@ -7,6 +7,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Avoid redundant checks for superseded commits on the same branch or PR.
+# Keep validation on the newest revision; do not suppress genuine failures.
+concurrency:
+  group: check-xperiments-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
