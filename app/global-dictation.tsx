@@ -1,9 +1,9 @@
 'use client';
 import {useEffect} from 'react';
 import {createRoot, type Root} from 'react-dom/client';
-import {Mic,Square} from 'lucide-react';
+import {Mic} from 'lucide-react';
 
-type SpeechResult={results:ArrayLike<ArrayLike<{transcript:string}>>};
+type SpeechResult={resultIndex:number;results:ArrayLike<ArrayLike<{transcript:string}>>};
 type Recognition={lang:string;continuous:boolean;interimResults:boolean;onresult:((e:SpeechResult)=>void)|null;onerror:(()=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
 type SpeechWindow=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
 function DictationButton({target}:{target:HTMLInputElement|HTMLTextAreaElement}){
@@ -20,7 +20,7 @@ function DictationButton({target}:{target:HTMLInputElement|HTMLTextAreaElement})
   const reset=()=>{(button as HTMLButtonElement & {recognition?:Recognition}).recognition=undefined;button.classList.remove('is-recording');button.setAttribute('aria-label','Dictar texto');button.title='Dictar texto';};
   recognition.onend=reset;recognition.onerror=reset;
   recognition.onresult=e=>{if(!target.isConnected||target.disabled||target.readOnly)return;
-   const transcript=Array.from(e.results).map(result=>result[0]?.transcript||'').join(' ').trim();
+   const transcript=Array.from(e.results).slice(e.resultIndex).map(result=>result[0]?.transcript||'').join(' ').trim();
    if(!transcript)return;
    const proto=target instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
    const setter=Object.getOwnPropertyDescriptor(proto,'value')?.set;
