@@ -8,7 +8,7 @@ type ProviderError={error?:{code?:unknown;type?:unknown}};
 const safeCode=(value:unknown):string|null=>
  typeof value==="string"&&/^[a-z0-9_]{1,80}$/i.test(value)?value:null;
 
-export async function openAIResponseError(response:Response,operation:"chat"|"prepare"|"transcribe"):Promise<ApiError>{
+export async function openAIResponseError(response:Response,operation:"chat"|"prepare"|"transcribe"|"verify"):Promise<ApiError>{
  let parsed:ProviderError|null=null;
  try{parsed=await response.json() as ProviderError;}catch{/* Upstream may return non-JSON gateway errors. */}
  const code=safeCode(parsed?.error?.code),type=safeCode(parsed?.error?.type),tag=code||type;
