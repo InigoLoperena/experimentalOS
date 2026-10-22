@@ -69,8 +69,10 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
     </div>
    </div>
    {!compact&&children.length>0&&<section className="problemon-tree" aria-label="Jerarquía del problema principal">
-    <h3>Hipótesis, experimentos e investigaciones vinculadas</h3>
-    <div className="goi-hierarchy-children">{children.map(item=>renderChild(item,new Set([selected.id])))}</div>
+    <details className="goi-hierarchy-toggle problemon-children-toggle">
+     <summary><ChevronRight size={15} aria-hidden="true"/><span className="goi-toggle-show">Mostrar hijos ({children.length})</span><span className="goi-toggle-hide">Ocultar hijos ({children.length})</span></summary>
+     <div className="goi-hierarchy-children">{children.map(item=>renderChild(item,new Set([selected.id])))}</div>
+    </details>
    </section>}
   </>:<>
    <p className="problemon-empty">Este proyecto todavía no tiene un problema principal. Puedes crear uno o designar una oportunidad existente sin duplicar registros.</p>
