@@ -1,6 +1,7 @@
 "use client";
 import { BarChart3, ExternalLink, FlaskConical, Gift, Layers, Leaf, Lightbulb, Link2, Microscope, Pencil, Users } from "lucide-react";
 import type { Item, Kind } from "@/lib/model";
+import type { ReactNode } from "react";
 import { linkedResearchIds } from "@/lib/mvp-relationships";
 import { MvpHierarchy } from "./mvp-hierarchy";
 
@@ -28,12 +29,13 @@ type Props = {
  onCreate:(kind:Kind,parent:string|null)=>void;
  onOpen:(item:Item)=>void;onEdit:(item:Item)=>void;onDelete:(item:Item)=>void;
  onEditProject:()=>void;
+ problemonSection?:ReactNode;
 };
 const fieldText=(value:unknown)=>String(value??"").trim();
 const lines=(value:unknown)=>fieldText(value).split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
 
 export function MvpExperimentation({
- project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete,onEditProject,
+ project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete,onEditProject,problemonSection,
 }:Props){
  const projectFields=[
   {key:"site_url",label:"Web",icon:<Link2 size={16}/>},
@@ -68,6 +70,7 @@ export function MvpExperimentation({
     </div>)}
    </div>
   </section>
+  {problemonSection}
   <div className="mvp-tree-path" aria-label="Jerarquía de validación">
    <span><Microscope size={16}/> Problemas u Oportunidades</span>
    <span aria-hidden="true">→</span>

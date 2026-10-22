@@ -1,10 +1,11 @@
 import type { Item } from "./model";
+import { isProblemon } from "./problemon";
 
 export type GoiHierarchyView = "goals" | "input_metrics" | "opportunities" | "ideas";
 
 const VISIBLE_KINDS = new Set<Item["kind"]>(["goal", "opportunity", "hypothesis", "experiment"]);
 const byDateThenId = (a: Item, b: Item) =>
-  a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
+  Number(isProblemon(b)) - Number(isProblemon(a)) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
 
 /**
  * For every GOI subsection, show its records and all ancestor levels on arrival.
@@ -22,11 +23,11 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
     !!parent && parent.project_id === item.project_id &&
     (item.kind === "goal" ? parent.kind === "north_star" :
      item.kind === "opportunity" ? parent.kind === "goal" :
-     item.kind === "idea" ? parent.kind === "opportunity" :
+     item.kind === "hypothesis" ? parent.kind === "opportunity" :
      item.kind === "experiment" ? parent.kind === "hypothesis" : false);
   // Orphans are independent records, never deleted or hidden with their old parents.
   const orphanProblemRecords = items.filter(item =>
-    item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")));
+    item.kind === "opportunity" && !isProblemon(item) && !validParent(item, byId.get(item.parent_id || "")));
 
   const childrenIndex = new Map<string, Item[]>();
   for (const item of items) {
@@ -82,10 +83,10 @@ export function getGoiHierarchy(items: Item[], view: GoiHierarchyView) {
   // Remove the classified orphans from the main list: a record is rendered
   // in its orphan section OR the standard hierarchy, never in both.
   const orphanOpportunities = (view === "opportunities" || view === "ideas")
-    ? allRoots.filter(item => item.kind === "opportunity" && !validParent(item, byId.get(item.parent_id || "")))
+    ? allRoots.filter(item => item.kind === "opportunity" && !isProblemon(item) && !validParent(item, byId.get(item.parent_id || "")))
     : [];
   const orphanHypotheses = view === "ideas"
-    ? allRoots.filter(item => item.kind === "idea" && !validParent(item, byId.get(item.parent_id || "")))
+    ? allRoots.filter(item => item.kind === "hypothesis" && !validParent(item, byId.get(item.parent_id || "")))
     : [];
   const orphanIds = new Set([...orphanOpportunities, ...orphanHypotheses].map(item => item.id));
   const roots = allRoots.filter(item => !orphanIds.has(item.id));

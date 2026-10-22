@@ -74,7 +74,7 @@ test("complete migration chain preserves existing teams, invitation-only access 
     const subgoal = await record("goal", goal);
     await assert.rejects(db.query("update records set parent_id=$1 where id=$2", [subgoal, goal]));
     const opportunity = await record("opportunity", goal);
-    const idea = await record("idea", opportunity);
+    const idea = await record("hypothesis", opportunity);
     const experiment = await record("experiment", idea, { posthog_experiment_id: "101", hypothesis: "Prueba", status: "obsolete", impact: 5 });
     const fields = await scalar<Record<string, unknown>>("select fields as value from records where id=$1", [experiment]);
     const code=await scalar("select code as value from experiment_specs where experiment_id=$1",[experiment]);

@@ -46,7 +46,7 @@ test("Oportunidades shows each goal and its problems without opening hypotheses"
 
 test("Hipótesis shows ancestor goals and problems plus the hypotheses, but not experiments",()=>{
  const {h,seen}=initiallyVisible("ideas");
- assert.deepEqual(seen,["goal","opportunity","hypothesis","secondIdea"]);
+ assert.deepEqual(seen,["goal","opportunity","idea","secondIdea"]);
  assert.ok(h.expanded.has("goal")&&h.expanded.has("opportunity"));
  assert.ok(!h.expanded.has("idea"));
  assert.deepEqual(h.children("idea").map(i=>i.id),["experiment"]);
@@ -74,7 +74,7 @@ test("Unassigned opportunities appear in their own first-position group on Probl
   sample("orphanProblem","opportunity"),
   sample("orphanProblemWithMissingParent","opportunity","deletedGoal"),
   sample("ideaUnderOrphanProblem","hypothesis","orphanProblem"),
-  sample("orphanIdea","idea"),
+  sample("orphanIdea","hypothesis"),
   sample("experimentUnderOrphanIdea","experiment","orphanIdea"),
  ];
  for (const view of ["opportunities","ideas"] as const) {

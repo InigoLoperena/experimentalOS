@@ -1,9 +1,10 @@
 import type { Item } from "./model";
+import { isProblemon } from "./problemon";
 import { linkedHypothesis, linkedResearchIds } from "./mvp-relationships";
 
 export type MvpHierarchyView = "mvp" | "mvp_problems" | "mvp_hypotheses" | "mvp_experiments" | "mvp_research";
 const displayKinds = new Set<Item["kind"]>(["opportunity", "hypothesis", "experiment", "research"]);
-const byDateAndTitle=(a:Item,b:Item)=>a.created_at.localeCompare(b.created_at)||a.title.localeCompare(b.title,"es")||a.id.localeCompare(b.id);
+const byDateAndTitle=(a:Item,b:Item)=>Number(isProblemon(b))-Number(isProblemon(a))||a.created_at.localeCompare(b.created_at)||a.title.localeCompare(b.title,"es")||a.id.localeCompare(b.id);
 
 /**
  * A read-only projection of the same records that power GOI Tree.

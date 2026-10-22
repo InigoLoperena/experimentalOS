@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {pathForView,sectionPaths,viewForPath} from '../lib/section-routes';
-test('all 17 sections have distinct, refreshable direct URLs',()=>{
- const urls=Object.values(sectionPaths);assert.equal(urls.length,17);
+test('all 19 sections have distinct, refreshable direct URLs',()=>{
+ const urls=Object.values(sectionPaths);assert.equal(urls.length,19);
  assert.equal(new Set(urls).size,urls.length);
  for(const [view,url] of Object.entries(sectionPaths)){
   assert.equal(viewForPath(url),view);
