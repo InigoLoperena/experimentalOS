@@ -3597,3 +3597,15 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .mvp-hierarchy-ice strong{color:inherit;font-variant-numeric:tabular-nums}
 .problemon-child-record .hierarchy-ice{color:var(--lime,#b7ff4c)}
 .mvp-upward-parent .mvp-hierarchy-ice{color:var(--lime,#b7ff4c)}
+
+/* Flat hypotheses in Growth Tree and MVPs Tree: related parents and children expand below each card. */
+.mvp-hypothesis-ranked-list .mvp-hierarchy-hypothesis{border-color:rgba(255,216,77,.48)}
+.mvp-hypothesis-ranked-list .mvp-upward-chain{margin-top:0;padding-top:10px;padding-bottom:10px;gap:9px}
+.mvp-hypothesis-ranked-list .mvp-hypothesis-child{min-width:0}
+.mvp-hypothesis-ranked-list .mvp-hypothesis-child .mvp-hierarchy-node{gap:4px}
+.mvp-hypothesis-ranked-list .mvp-hierarchy-title{color:var(--hypothesis-accent)}
+.mvp-experiment-ranked-actions .mvp-upward-open{transform:rotate(90deg)}
+@media(max-width:680px){
+ .mvp-hypothesis-ranked-list .mvp-experiment-ranked-actions{width:100%;margin-left:0}
+ .mvp-hypothesis-ranked-list .mvp-upward-chain{margin-left:15px;padding-left:12px}
+}
