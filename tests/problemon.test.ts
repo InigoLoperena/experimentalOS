@@ -12,7 +12,7 @@ const item=(id:string,kind:Kind,projectId:string,parent:string|null=null,fields:
  title:id,fields,owner_id:null,created_at:"2026-10-22",updated_at:"2026-10-22",
  created_by:null,updated_by:null,
 });
-test("Problemon is one existing opportunity shared by both trees without any physical copy",()=>{
+test("Problema principal is one existing opportunity shared by both trees without any physical copy",()=>{
  const main=item("main","opportunity","greenhunt",null,{is_problemon:true,opportunity_type:"Problema"});
  const ordinary=item("ordinary","opportunity","greenhunt");
  const otherProject=item("cross","opportunity","smartjunk",null,{is_problemon:true});
@@ -36,7 +36,7 @@ test("Problemon is one existing opportunity shared by both trees without any phy
  assert.ok(growth.roots.includes(main));
  assert.ok(growth.orphanOpportunities.includes(ordinary));
 });
-test("Problemon has separate Growth and MVP section routes and shared CRUD UI",async()=>{
+test("Problema principal has separate Growth and MVP section routes and shared CRUD UI",async()=>{
  assert.equal(sectionPaths.problemon,"/goi-tree/problemon");
  assert.equal(sectionPaths.mvp_problemon,"/experimentacion-mvps/problemon");
  assert.equal(viewForPath(sectionPaths.problemon),"problemon");
@@ -51,7 +51,7 @@ test("Problemon has separate Growth and MVP section routes and shared CRUD UI",a
  assert.match(page,/is_problemon: true/);
  assert.match(page,/\["problemon","mvp_problemon"\]/);
  assert.match(overview,/problemonSection/);
- assert.match(component,/Designar como Problemon/);
+ assert.match(component,/Designar como problema principal/);
  assert.match(component,/getMvpHierarchy/);
  assert.match(component,/readOnly/);
 });
@@ -61,4 +61,13 @@ test("DB index enforces one marked opportunity per project without rewriting rec
  assert.match(migration,/kind='opportunity'/);
  assert.match(migration,/fields->>'is_problemon'/);
  assert.doesNotMatch(migration,/delete from|update public\.records|drop table|drop policy/i);
+});
+
+test("Principal problem section starts with all children folded and displays ICE on revealed records",async()=>{
+ const component=await readFile(new URL("../app/problemon-section.tsx",import.meta.url),"utf8");
+ assert.match(component,/<details className="goi-hierarchy-toggle problemon-children-toggle">/);
+ assert.doesNotMatch(component,/<details open className="goi-hierarchy-toggle problemon-children-toggle">/);
+ assert.match(component,/score\(item\.fields\)/);
+ assert.match(component,/Problema principal/);
+ assert.match(component,/Mostrar hijos/);
 });
