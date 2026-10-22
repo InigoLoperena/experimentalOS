@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, Flag, FlaskConical, Lightbulb, Microscope, Pencil, Plus, Search, Target } from "lucide-react";
 import type {Item} from "@/lib/model";
 import {getMvpHierarchy} from "@/lib/mvp-hierarchy";
-import {getProblemon,getProblemonCandidates} from "@/lib/problemon";
+import {getProblemon,getProblemonCandidates,isProblemon} from "@/lib/problemon";
 
 type Props={
  project:Item;items:Item[];readOnly:boolean;canCreate:boolean;canEdit:boolean;
@@ -24,11 +24,12 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
   if(seen.has(item.id))return null;
   const visited=new Set(seen);visited.add(item.id);
   const nested=hierarchy.children(item.id);
-  const Icon=item.kind==="hypothesis"?Lightbulb:item.kind==="experiment"?FlaskConical:item.kind==="research"?Microscope:Search;
+  const Icon=item.kind==="hypothesis"?Lightbulb:item.kind==="experiment"?FlaskConical:item.kind==="research"?Microscope:isProblemon(item)?Flag:Search;
+  const color=item.kind==="hypothesis"?"var(--hypothesis-accent)":item.kind==="experiment"?"var(--experiment-accent)":item.kind==="research"?"#75c1ff":"var(--red-text)";
   return <div key={item.id} className={"problemon-descendant problemon-descendant-"+item.kind}>
    <button type="button" className="problemon-child-record" onClick={()=>onOpen(item)}>
-    <Icon size={16} aria-hidden="true"/>
-    <span>{item.title}</span>
+    <Icon size={16} color={color} aria-hidden="true"/>
+    <span style={{color}}>{item.title}</span>
    </button>
    {nested.length>0&&<details open className="goi-hierarchy-toggle problemon-children-toggle">
     <summary onClick={event=>{
