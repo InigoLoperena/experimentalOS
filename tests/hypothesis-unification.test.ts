@@ -50,7 +50,7 @@ test("merged form includes all former idea and MVP fields exactly once",async()=
   assert.ok(fields.includes(key==="impact"||key==="confidence"||key==="ease"?"...iceFields":`key: "${key}"`),"Missing legacy field "+key);
  }
  assert.match(page,/function HypothesisDetails/);
- assert.match(page,/Hipótesis \(compartida entre Growth Tree y MVPs Tree\)/);
+ assert.match(page,/Hipótesis padre \(principal predeterminada; compartida entre Growth Tree y MVPs Tree\)/);
  assert.doesNotMatch(page,/Idea en Growth Tree \(opcional\)/);
  assert.match(model,/experiment: "hypothesis"/);
 });
