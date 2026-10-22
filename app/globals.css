@@ -3542,3 +3542,27 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .mvp-upward-parent small{font-size:11px;opacity:.75}
 .mvp-upward-parent button{border:0;background:transparent;text-align:left;padding:0;color:inherit;font-weight:600;cursor:pointer}
 @media(max-width:650px){.mvp-experiment-ranked-card{flex-wrap:wrap}.mvp-experiment-ranked-actions{width:100%;margin-left:0}}
+
+/* Unified semantic colors in every navigation level and hierarchy */
+.sidebar .nav-subsections .nav-goi-subsection.problemon,
+.sidebar .nav-subsections .nav-goi-subsection.problemon svg,
+.sidebar .nav-subsections .nav-goi-subsection.problems,
+.sidebar .nav-subsections .nav-goi-subsection.problems svg,
+.sidebar .nav-subsections .nav-goi-subsection.opportunity,
+.sidebar .nav-subsections .nav-goi-subsection.opportunity svg{color:var(--problemon-accent,#ff7474)}
+.sidebar .nav-subsections .nav-goi-subsection.hypotheses,
+.sidebar .nav-subsections .nav-goi-subsection.hypotheses svg,
+.sidebar .nav-subsections .nav-goi-subsection.hypothesis,
+.sidebar .nav-subsections .nav-goi-subsection.hypothesis svg{color:var(--hypothesis-accent,#ffd84d)}
+.sidebar .nav-subsections .nav-goi-subsection.experiments,
+.sidebar .nav-subsections .nav-goi-subsection.experiments svg,
+.sidebar .nav-subsections .nav-goi-subsection.experiment,
+.sidebar .nav-subsections .nav-goi-subsection.experiment svg{color:var(--experiment-accent,#83b5ff)}
+.mvp-hierarchy-problem .mvp-hierarchy-title,.mvp-hierarchy-problem .mvp-hierarchy-record-icon,.mvp-upward-parent:has(.mvp-hierarchy-record-icon) {color:var(--problemon-accent,#ff7474)}
+.mvp-hierarchy-hypothesis .mvp-hierarchy-title,.mvp-hierarchy-hypothesis .mvp-hierarchy-record-icon,.problemon-descendant-hypothesis .problemon-child-record span{color:var(--hypothesis-accent,#ffd84d)}
+.mvp-hierarchy-experiment .mvp-hierarchy-title,.mvp-hierarchy-experiment .mvp-hierarchy-record-icon,.problemon-descendant-experiment .problemon-child-record span{color:var(--experiment-accent,#83b5ff)}
+.goi-title-tag.opportunity:has(svg.lucide-flag){color:var(--problemon-accent,#ff7474)}
+.mvp-upward-chain{margin:0 12px 0 28px;padding:12px 0 0 16px;border-left:2px solid #7d92bc}
+.mvp-upward-parent:has(svg.lucide-lightbulb){color:var(--hypothesis-accent,#ffd84d)}
+.mvp-upward-parent:has(svg.lucide-flask-conical){color:var(--experiment-accent,#83b5ff)}
+.mvp-upward-parent button{color:inherit}
