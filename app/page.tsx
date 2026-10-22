@@ -2414,7 +2414,22 @@ export default function Home() {
               </div>
             </>
           )}
-          {(["goals", "input_metrics", "opportunities", "ideas"] as View[]).includes(view) && currentProject && (
+          {view === "ideas" && currentProject && (
+            <MvpHierarchy
+              key={currentProject.id + ":growth-hypotheses"}
+              view="mvp_hypotheses" treeName="Growth Tree"
+              project={currentProject} items={items}
+              readOnly={publicMode || (!demo && !editable)}
+              canCreate={kind => can(kind,"create")}
+              canEdit={kind => can(kind,"edit")}
+              canDelete={kind => can(kind,"delete")}
+              onCreate={createMvp}
+              onOpen={item => {setMvpEditor(false);setSelected(item);}}
+              onEdit={item => {setMvpEditor(false);setDraft(structuredClone(item));setSelected(null);setError("");}}
+              onDelete={item => void deleteRecord(item)}
+            />
+          )}
+          {(["goals", "input_metrics", "opportunities"] as View[]).includes(view) && currentProject && (
             <div className="goi-hierarchy-list">
               {(() => {
                 const { target, roots, children, orphanOpportunities, orphanHypotheses } = getGoiHierarchy(items, view as "goals" | "input_metrics" | "opportunities" | "ideas");
