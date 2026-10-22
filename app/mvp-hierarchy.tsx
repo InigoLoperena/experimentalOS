@@ -87,7 +87,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
      {canDelete(item.kind)&&<button title="Eliminar" aria-label={"Eliminar "+item.title} onClick={()=>onDelete(item)}><Trash2 size={16}/></button>}
     </div>}
    </article>
-   {descendants.length>0&&<details className="goi-hierarchy-toggle mvp-hierarchy-toggle" open={false} key={view+":"+item.id}>
+   {descendants.length>0&&<details className="goi-hierarchy-toggle mvp-hierarchy-toggle" key={view+":"+item.id}>
     <summary>
      <ChevronRight size={16} aria-hidden="true"/>
      <span className="goi-toggle-show">Mostrar hijos ({descendants.length})</span>
@@ -100,7 +100,7 @@ export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canD
  };
  if(view==="mvp_main_hypothesis")return <div className="mvp-hierarchy-screen">
    <section className="mvp-hierarchy-heading panel"><div><span className="eyebrow">MVPs Tree · {project.title}</span>
-    <h2>Hipótesis principal</h2><p>La hipótesis principal se vincula por defecto al Problemón y es el padre predeterminado de nuevos experimentos.</p></div>
+    <h2>Hipótesis principal</h2><p>La hipótesis principal se vincula por defecto al Problema principal y es el padre predeterminado de nuevos experimentos.</p></div>
     {!mainHypothesis&&add("Crear hipótesis principal","hypothesis")}
    </section>
    {mainHypothesis?<div className="mvp-hierarchy-list">{node(mainHypothesis,new Set())}</div>:
