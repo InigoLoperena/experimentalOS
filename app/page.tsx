@@ -451,24 +451,10 @@ function projectLogo(value: unknown, title?: string) {
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
     : "";
 }
-const defaultProjectDescriptions: Record<string, string> = {
-  greenhunt:
-    "Marketplace de economía circular para descubrir y compartir objetos reutilizables, ventas y oportunidades locales. Conecta oferta y demanda para dar una segunda vida a objetos que aún tienen valor.",
-  "greenhunt store":
-    "Tienda de productos y artículos vinculados a la economía circular de Greenhunt. Facilita descubrir y adquirir opciones para dar una nueva vida a los objetos.",
-  greenroute:
-    "Plataforma para optimizar rutas y operaciones de recogida, reduciendo kilómetros, tiempo y costes. Ayuda a los equipos de campo a planificar y ejecutar rutas más eficientes.",
-  smartjunk:
-    "Marketplace de recogida de muebles y objetos donde particulares publican solicitudes y recolectores o empresas pujan por realizarlas. Centraliza la contratación, coordinación y gestión de cada recogida.",
-  booklinks:
-    "Convierte los enlaces mencionados en publicaciones impresas en un listado digital accesible. Permite a los lectores consultar fácilmente todos los recursos de cada publicación.",
-};
+// Do not invent project descriptions: only display text entered by a person
+// or content explicitly applied from an AI proposal and saved by that person.
 function projectDescription(project: Item) {
-  return (
-    String(project.fields.description || "").trim() ||
-    defaultProjectDescriptions[project.title.trim().toLowerCase()] ||
-    "Añade una breve propuesta de valor para explicar en dos líneas qué hace este proyecto y por qué resulta útil."
-  );
+  return String(project.fields.description || "").trim() || "Descripción pendiente de completar.";
 }
 function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "normal" | "small" }) {
   const logo = projectLogo(project.fields.site_url, project.title);
@@ -1040,23 +1026,9 @@ export default function Home() {
           .reverse()
           .find((item) => item.kind === "goal")
       : null;
-    const contextFields: Fields =
-      kind === "hypothesis"
-        ? {
-            metric: goal?.fields.metric || "",
-            evidence: parent?.fields.evidence || "",
-          }
-        : kind === "experiment"
-          ? {
-              context: parent?.fields.description || "",
-              metric: parent?.fields.metric || "",
-            }
-          : kind === "learning"
-            ? {
-                context: parent?.fields.context || "",
-                tags: parent?.fields.tags || "",
-              }
-            : {};
+    // Never inherit free-text fields from parent records automatically.
+    // A linked parent defines the relationship, not consent to copy its text.
+    // Only typed input or a user-requested, explicitly applied AI proposal may fill it.
     setDraft({
       id: crypto.randomUUID(),
       workspace_id: workspace.id,
@@ -1068,7 +1040,6 @@ export default function Home() {
       owner_id: null,
       fields: {
         ...defaults,
-        ...contextFields,
         ...(kind === "goal"
           ? { goi_section: goiSection || (view === "input_metrics" ? "input_metrics" : "objectives") }
           : {}),
