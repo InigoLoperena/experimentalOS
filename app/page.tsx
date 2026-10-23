@@ -2097,9 +2097,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {currentProject && ["problemon", "goals", "input_metrics", "opportunities", "ideas", "experiments", "learning"].includes(view) && (
-                <div className="project-filter-north-star">{renderNorthStarBanner(currentProject, true)}</div>
-              )}
+
             </div>
           )}
           {projectScoped && !currentProject && (
