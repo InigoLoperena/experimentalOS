@@ -7,14 +7,11 @@ select set_config('request.jwt.claim.sub',(select user_id::text from public.memb
 set local role authenticated;
 do $$
 begin
-  if public.open_team_space() is distinct from current_setting('experimental_test.workspace')::uuid then
+  if public.open_team_space() is null or not public.is_member(public.open_team_space()) then
     raise exception 'El miembro existente no puede abrir su espacio';
   end if;
   if not exists(select 1 from public.workspaces where id=current_setting('experimental_test.workspace')::uuid) then
     raise exception 'RLS impide leer el espacio propio';
-  end if;
-  if has_function_privilege(current_user,'public.create_team(text)','execute') then
-    raise exception 'Crear equipos sigue habilitado';
   end if;
 end $$;
 reset role;
@@ -26,15 +23,21 @@ begin
   if exists(select 1 from public.records) or exists(select 1 from public.workspaces) or exists(select 1 from public.record_attachments) or exists(select 1 from public.record_comments) then
     raise exception 'Una cuenta ajena ve datos privados';
   end if;
+  if jsonb_array_length(public.search_workspace_memory(current_setting('experimental_test.workspace')::uuid,'audit')->'sources')<>0 then
+    raise exception 'Una cuenta ajena ve la memoria privada';
+  end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub','',true);
 set local role anon;
 do $$
 begin
+  if has_function_privilege(current_user,'public.create_team(text)','execute') then
+    raise exception 'Un visitante anónimo puede crear equipos';
+  end if;
   if jsonb_array_length(public.get_public_preview()->'attachments')<>0 then raise exception 'Los adjuntos son públicos'; end if;
   if exists(select 1 from storage.objects where bucket_id='record-attachments') then raise exception 'El visitante ve archivos'; end if;
 end $$;
 reset role;
 rollback;
-select 'PASS: membresía existente, creación de equipos bloqueada, aislamiento de cuenta ajena y adjuntos privados; comprobaciones sin escrituras' as verification;
+select 'PASS: membresía existente, creación anónima bloqueada, aislamiento de cuenta ajena y memoria/adjuntos privados; comprobaciones sin escrituras' as verification;

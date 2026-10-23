@@ -1427,6 +1427,11 @@ tbody tr:hover {
 }
 .project-card {
   text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.project-card > .row {
+  flex-wrap: wrap;
 }
 .project-card-head {
   display: flex;
@@ -2182,7 +2187,7 @@ legend {
     padding-top: 10px;
   }
   .cards-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .kr-row {
     flex-direction: column;

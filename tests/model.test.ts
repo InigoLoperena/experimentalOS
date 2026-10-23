@@ -61,7 +61,7 @@ test("legacy experiments can be edited and exported without obsolete constraints
       variants: "invalid JSON",
       method: "A/B aleatorizado",
       project_id: "missing",
-      end: "2020-01-01",
+      end: "2026-10-04",
       cost: -1,
       analyst_id: "missing",
     },
@@ -74,7 +74,7 @@ test("legacy experiments can be edited and exported without obsolete constraints
     start: "2026-10-03",
     impact: 7,
     // MVP experimentation preserves the previously ignored end date.
-    end: "2020-01-01",
+    end: "2026-10-04",
   });
   assert.equal(normalized.project_id, original.project_id);
   assert.equal(normalized.parent_id, original.parent_id);

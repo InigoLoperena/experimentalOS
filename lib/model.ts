@@ -113,7 +113,6 @@ export function validate(
     )
       return "Las puntuaciones ICE deben ser enteros entre 1 y 10.";
   if (
-    item.kind !== "experiment" &&
     f.start &&
     f.end &&
     String(f.end) < String(f.start)

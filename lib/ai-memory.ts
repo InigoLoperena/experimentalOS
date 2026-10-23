@@ -33,7 +33,7 @@ export function selectMemory(sources:MemorySource[],question:string,limit=28000,
 
 export function recordMemory(record:Pick<Item,'id'|'kind'|'title'|'updated_at'|'project_id'|'parent_id'|'fields'>):MemorySource{
   // Integration secrets are stored separately. Exclude configuration IDs and unnecessary provider payloads.
-  const keys=['description','north_star','definition','metric','baseline','current','target','unit','period','source','context','hypothesis','success_criteria','result','conclusion','evidence','learning','decision','next_steps','start','end','tags','channel','focus','experimental_focus','opportunity_type','validation'];
+  const keys=['description','north_star','definition','metric','baseline','current','target','unit','period','source','context','hypothesis','success_criteria','result','conclusion','evidence','learning','decision','next_steps','start','end','tags','channel','focus','experimental_focus','opportunity_type','validation','findings','method','audience','belief','reason','validation_need','targets','value_propositions','monetization_channels','is_problemon','is_main_hypothesis'];
   return {id:record.id,title:record.title,kind:record.kind,date:record.updated_at,project_id:record.kind==='project'?record.id:record.project_id||undefined,excerpt:JSON.stringify({parent_id:record.parent_id,fields:Object.fromEntries(keys.filter(k=>record.fields[k]!==undefined).map(k=>[k,String(record.fields[k]).slice(0,1200)]))}).slice(0,4200)};
 }
 export function knowledgeMemory(row:Knowledge):MemorySource[]{
