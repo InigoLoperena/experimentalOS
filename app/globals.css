@@ -3638,3 +3638,10 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .problemon-compact .problemon-primary{padding:12px}
 .going-peer-heading>div:empty,.section-heading>div:empty{display:none}
 @media(max-width:600px){.problemon-primary .problemon-primary-title{font-size:18px}.page-heading .minimal-section-title{font-size:23px}}
+
+/* Consistent section identity: icon and heading use the same accent as the sidebar. */
+.page-heading .minimal-section-title{display:flex;align-items:center;gap:12px;line-height:1.25}
+.page-heading .minimal-section-title>svg{flex:0 0 auto;color:inherit}
+.ai-intro-header .ai-section-title{display:flex;align-items:center;gap:10px;color:var(--lime)}
+.ai-intro-header .ai-section-title>svg{flex:0 0 auto;color:inherit}
+@media(max-width:600px){.page-heading .minimal-section-title{gap:9px}.page-heading .minimal-section-title>svg{width:23px;height:23px}}
