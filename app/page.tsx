@@ -440,7 +440,7 @@ function projectLogo(value: unknown, title?: string) {
 // Do not invent project descriptions: only display text entered by a person
 // or content explicitly applied from an AI proposal and saved by that person.
 function projectDescription(project: Item) {
-  return String(project.fields.description || "").trim() || "Descripción pendiente de completar.";
+  return String(project.fields.description || "").trim();
 }
 function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "normal" | "small" }) {
   const logo = projectLogo(project.fields.site_url, project.title);
@@ -1315,8 +1315,7 @@ export default function Home() {
   const mvpTreeCount = items.filter(i =>
     ["opportunity", "hypothesis", "research", "experiment"].includes(i.kind)
   ).length;
-  const northStarDescription =
-    "Métrica que mide al mismo tiempo el valor que recibe el usuario y nuestra capacidad para monetizar.";
+  const northStarDescription = "";
   function northStarForProject(project: Item) {
     const stored = workspaceItems.find(
       (i) => i.kind === "north_star" && i.project_id === project.id,
@@ -1354,7 +1353,7 @@ export default function Home() {
           <div className="north-content">
             <span>NORTH STAR METRIC</span>
             <h2>Sin definir</h2>
-            <p>{northStarDescription}</p>
+
           </div>
         </div>
       );
@@ -1369,7 +1368,7 @@ export default function Home() {
         <div className="north-content">
           <span>NORTH STAR METRIC</span>
           <h2>{metric.title}</h2>
-          <p>{northStarDescription}</p>
+          {String(metric.fields.definition||"").trim()&&<p>{String(metric.fields.definition)}</p>}
           {!compact && (
             <span className="north-source">
               {metric.fields.frequency} · {metric.fields.source}
@@ -2083,9 +2082,7 @@ export default function Home() {
                   <ProjectLogo project={currentProject} size="small" />
                   <div className="selected-project-copy">
                     <strong>{currentProject.title}</strong>
-                    <p>
-                      {projectDescription(currentProject)}
-                    </p>
+                    {projectDescription(currentProject) && <p>{projectDescription(currentProject)}</p>}
                     {projectUrl(currentProject.fields.site_url) && (
                       <a
                         className="project-link"
@@ -2184,7 +2181,7 @@ export default function Home() {
                   <div className="north-content">
                     <span>NORTH STAR METRIC</span>
                     <h2>{nsm.title}</h2>
-                    <p>{northStarDescription}</p>
+                    {String(nsm.fields.definition||"").trim()&&<p>{String(nsm.fields.definition)}</p>}
                     <span className="north-source">
                       {nsm.fields.frequency} · {nsm.fields.source}
                     </span>
@@ -2207,9 +2204,7 @@ export default function Home() {
                   action={can('north_star','create') ? () => create("north_star") : undefined}
                 />
               )}
-              <div className="section-heading">
-                <div>
-                </div>
+              <div className="minimal-section-actions">
                 <Action onClick={() => void load()} disabled={loading}>
                   <RefreshCw size={16} /> Actualizar árbol
                 </Action>
@@ -2490,9 +2485,7 @@ export default function Home() {
                       }}
                     >
                       <h2>{p.title}</h2>
-                      <p className="project-description">
-                        {projectDescription(p)}
-                      </p>
+                      {projectDescription(p) && <p className="project-description">{projectDescription(p)}</p>}
                     </button>
                   </div>
                   {projectUrl(p.fields.site_url) && (
