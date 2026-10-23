@@ -157,14 +157,14 @@ const schemas: Record<Kind, Field[]> = {
     { key: "period", label: "Periodo" },
   ],
   hypothesis: [
-    { key: "description", label: "Descripción / propuesta", type: "textarea" },
-    { key: "belief", label: "¿Qué creemos que es cierto?", type: "textarea" },
+    // Shared by MVPs Tree and Growth Tree. Legacy fields not shown here remain
+    // in record.fields when edited; they are not removed from Supabase.
+    { key: "description", label: "Planteamiento", type: "textarea" },
+    { key: "belief", label: "¿Qué creemos?", type: "textarea" },
     { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
-    { key: "validation_need", label: "¿Qué necesitamos comprobar?", type: "textarea" },
-    { key: "metric", label: "KPI al que contribuye" },
-    { key: "experimental_focus", label: "Foco experimental: quién, qué y por qué", type: "textarea" },
-    { key: "evidence", label: "Evidencia para priorizar", type: "textarea" },
-    ...iceFields,
+    { key: "validation_need", label: "¿Qué queremos comprobar?", type: "textarea" },
+    { key: "audience", label: "¿A quién afecta?", type: "textarea" },
+    { key: "evidence", label: "¿Qué pruebas o evidencias buscamos?", type: "textarea" },
   ],
   research: [
     { key: "description", label: "Descripción", type: "textarea" },
@@ -1631,9 +1631,6 @@ export default function Home() {
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 {draft.kind === "hypothesis" && f.key === "description" && <h3 className="full hypothesis-form-section">Planteamiento</h3>}
-                {draft.kind === "hypothesis" && f.key === "belief" && <h3 className="full hypothesis-form-section">Hipótesis y fundamentos</h3>}
-                {draft.kind === "hypothesis" && f.key === "validation_need" && <h3 className="full hypothesis-form-section">Validación</h3>}
-                {draft.kind === "hypothesis" && f.key === "metric" && <h3 className="full hypothesis-form-section">Indicadores y priorización</h3>}
                 <label
                   key={f.key}
                   className={
@@ -3696,25 +3693,15 @@ function PasswordRecovery({ onDone }: { onDone: () => void }) {
 }
 
 /**
- * One shared detail layout for hypotheses in both trees. Former idea fields
- * and MVP hypothesis fields coexist without hiding or repeating any field.
+ * Both trees show the same single Planteamiento section. Previously saved
+ * fields outside the current questionnaire are preserved in record.fields.
  */
 function HypothesisDetails({ record }: { record: Item }) {
-  const groups = [
-    { title: "Planteamiento", keys: ["description"] },
-    { title: "Hipótesis y fundamentos", keys: ["belief", "reason"] },
-    { title: "Validación", keys: ["validation_need"] },
-    { title: "Indicadores y priorización", keys: ["metric", "experimental_focus", "evidence", "impact", "confidence", "ease"] },
-  ];
   return <div className="hypothesis-details">
-    {groups.map(group => {
-      const visible = schemas.hypothesis.filter(f => group.keys.includes(f.key) &&
-        record.fields[f.key] !== undefined && record.fields[f.key] !== "");
-      return visible.length ? <section key={group.title} className="hypothesis-detail-section">
-        <h3>{group.title}</h3>
-        <FieldDetails record={record} fields={visible}/>
-      </section> : null;
-    })}
+    <section className="hypothesis-detail-section">
+      <h3>Planteamiento</h3>
+      <FieldDetails record={record} fields={schemas.hypothesis}/>
+    </section>
   </div>;
 }
 
