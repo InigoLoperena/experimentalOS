@@ -321,7 +321,30 @@ const viewLabels: Partial<Record<View, string>> = {
  goals: "Objetivos", input_metrics: "Input Metrics", opportunities: "Oportunidades-problemas", ideas: "Hipótesis",
  experiments: "Experimentos",
  mvp_problems: "Problemas u Oportunidades", mvp_main_hypothesis: "Hipótesis principal", mvp_hypotheses: "Hipótesis",
- mvp_experiments: "Experimentos · MVPs", mvp_research: "Investigación",
+ mvp_experiments: "Experimentos", mvp_research: "Investigación",
+};
+/** One visual identity for all section titles, matching their menu icons. */
+const sectionHeadings: Record<View,{icon:typeof Compass | typeof AIBrainIcon;color:string}> = {
+ projects:{icon:LayoutGrid,color:"var(--lime)"},
+ mvp:{icon:Microscope,color:"var(--blue-text)"},
+ mvp_problemon:{icon:Flag,color:"var(--red-text)"},
+ mvp_problems:{icon:Search,color:"var(--red-text)"},
+ mvp_main_hypothesis:{icon:Lightbulb,color:"var(--hypothesis-accent)"},
+ mvp_hypotheses:{icon:Lightbulb,color:"var(--hypothesis-accent)"},
+ mvp_experiments:{icon:FlaskConical,color:"var(--experiment-accent)"},
+ mvp_research:{icon:Microscope,color:"#75c1ff"},
+ map:{icon:GitBranch,color:"var(--lime)"},
+ problemon:{icon:Flag,color:"var(--red-text)"},
+ goals:{icon:Target,color:"var(--objective-accent)"},
+ input_metrics:{icon:BarChart3,color:"var(--blue-text)"},
+ opportunities:{icon:Search,color:"var(--red-text)"},
+ ideas:{icon:Lightbulb,color:"var(--hypothesis-accent)"},
+ experiments:{icon:FlaskConical,color:"var(--experiment-accent)"},
+ learning:{icon:BookOpen,color:"var(--blue-text)"},
+ ai:{icon:AIBrainIcon,color:"var(--lime)"},
+ team:{icon:Users,color:"var(--blue-text)"},
+ integrations:{icon:Plug,color:"var(--blue-text)"},
+ method:{icon:CircleHelp,color:"var(--blue-text)"},
 };
 const mvpViews = ["mvp", "mvp_problemon", "mvp_problems", "mvp_main_hypothesis", "mvp_hypotheses", "mvp_experiments", "mvp_research"] as const;
 const mvpSubsections = [
@@ -452,6 +475,7 @@ function ProjectLogo({ project, size = "normal" }: { project: Item; size?: "norm
 }
 export default function Home() {
   const [view, setView] = useState<View>("projects");
+  const CurrentSectionIcon=sectionHeadings[view].icon;
   useEffect(()=>{
     const restore = () => {
       const section=viewForPath(window.location.pathname);
@@ -1935,8 +1959,8 @@ export default function Home() {
           {view !== "ai" && (
           <div className="page-heading">
             <div>
-              <h1 className="minimal-section-title">
-                {(view === "problemon" || view === "mvp_problemon") && <Flag size={24} color="var(--red-text)" aria-hidden="true"/>}
+              <h1 className="minimal-section-title" style={{color:sectionHeadings[view].color}}>
+                <CurrentSectionIcon size={27} aria-hidden="true"/>
                 {viewLabels[view] || nav.find((n) => n.id === view)?.label}
               </h1>           </div>
             <div className="page-heading-actions">
