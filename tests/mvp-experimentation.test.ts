@@ -231,7 +231,7 @@ test("Both MVPs Tree and Growth Tree show hypotheses directly, with parents and 
  ]);
  assert.match(hierarchy,/if\(view==="mvp_hypotheses"\)return/);
  assert.match(hierarchy,/hypotheses\.map\(hypothesis=>/);
- assert.match(hierarchy,/allProjectItems\.filter\(item=>item\.kind==="hypothesis"\)/);
+ assert.match(hierarchy,/allProjectItems\.filter\(item=>item\.kind==="hypothesis"&&item\.fields\.is_main_hypothesis!==true\)/);
  assert.match(hierarchy,/Desplegar padres e hijos/);
  assert.match(hierarchy,/ancestors\.map\(parentRow\)/);
  assert.match(hierarchy,/descendants\.map\(child=>/);
@@ -334,4 +334,51 @@ test("Editing ICE from either tree preserves original experiment content and rel
  assert.equal(nextFields.description,originalFields.description);
  assert.equal(nextFields.result,originalFields.result);
  assert.equal(validate({...experiment,fields:{...nextFields,ease:11}}),"Las puntuaciones ICE deben ser enteros entre 1 y 10.");
+});
+
+test("The principal hypothesis exists only in its own list, preserving its experiment associations",async()=>{
+ const {getMvpHierarchy}=await import("../lib/mvp-hierarchy");
+ const mk=(id:string,kind:Item["kind"],parent_id:string|null=null,fields:Item["fields"]={},project_id="p"):Item=>({
+  id,kind,fields,parent_id,project_id,workspace_id:"w",title:id,related_id:null,owner_id:null,
+  created_by:null,updated_by:null,created_at:"",updated_at:""
+ });
+ const problem=mk("principal-problem","opportunity",null,{is_problemon:true});
+ const main=mk("principal-hypothesis","hypothesis",problem.id,{is_main_hypothesis:true,impact:9,confidence:9,ease:8});
+ const ordinary=mk("ordinary-hypothesis","hypothesis",problem.id,{impact:5,confidence:5,ease:5});
+ const experimental=mk("experiment","experiment",main.id,{mvp_hypothesis_id:main.id});
+ const data=[problem,main,ordinary,experimental,mk("unrelated","hypothesis",null,{},"elsewhere")];
+ const ordinaryList=getMvpHierarchy(data,"mvp_hypotheses","p");
+ assert.deepEqual(ordinaryList.target.map(x=>x.id),["ordinary-hypothesis"]);
+ assert.ok(!ordinaryList.target.includes(main));
+ const principalView=getMvpHierarchy(data,"mvp_main_hypothesis","p");
+ assert.deepEqual(principalView.target.map(x=>x.id),["principal-hypothesis"]);
+ const experimentView=getMvpHierarchy(data,"mvp_experiments","p");
+ assert.equal(experimentView.parents.get("experiment")?.[0]?.id,main.id);
+ assert.ok(experimentView.children(main.id).includes(experimental));
+ const src=await readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8");
+ assert.match(src,/allProjectItems\.filter\(item=>item\.kind==="hypothesis"&&item\.fields\.is_main_hypothesis!==true\)/);
+ assert.match(src,/view==="mvp_hypotheses"/);
+ assert.match(src,/view==="mvp_main_hypothesis"/);
+});
+
+test("Expanded details show one colored title and exactly one parent relation for every record type",async()=>{
+ const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
+ const first=page.indexOf('<div className="detail-content">');
+ const last=page.indexOf('</dialog>',first);
+ assert.ok(first>0&&last>first);
+ const detail=page.slice(first,last);
+ assert.match(page,/function detailTitleTag\(item: Item\)/);
+ assert.match(page,/if \(\["goal", "opportunity", "hypothesis"\]\.includes\(item\.kind\)\) return goiTitleTag\(item\)/);
+ assert.match(page,/if \(item\.kind === "experiment"\) return experimentTag\(item\)/);
+ assert.match(page,/<span className=\{`detail-record-title kind/);
+ assert.equal((detail.match(/detailTitleTag\(selected\)/g)||[]).length,1);
+ assert.match(detail,/className="detail-heading" role="heading" aria-level=\{2\}/);
+ assert.equal((detail.match(/<div className="record-relation"/g)||[]).length,1);
+ assert.doesNotMatch(detail,/className="breadcrumb"/);
+ assert.doesNotMatch(detail,/className="experiment-detail-title"/);
+ assert.doesNotMatch(detail,/className="hypothesis-detail-title"/);
+ assert.doesNotMatch(detail,/<h2>\{selected\.title\}<\/h2>/);
+ assert.match(css,/\.detail-identity-row/);
+ assert.match(css,/\.detail-record-title/);
 });
