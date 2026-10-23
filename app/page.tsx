@@ -270,17 +270,7 @@ const mvpSchemas: Partial<Record<Kind, Field[]>> = {
     { key: "findings", label: "Hallazgos", type: "textarea" },
     { key: "learning", label: "Aprendizaje", type: "textarea" },
   ],
-  experiment: [
-    { key: "description", label: "Descripción", type: "textarea" },
-    { key: "audience", label: "Target" },
-    { key: "metric", label: "North Star Metric principal" },
-    { key: "success_criteria", label: "Criterio de éxito", type: "textarea" },
-    { key: "start", label: "Fecha de inicio", type: "date" },
-    { key: "end", label: "Fecha de finalización", type: "date" },
-    { key: "result", label: "Resultados obtenidos", type: "textarea" },
-    { key: "learning", label: "Aprendizaje", type: "textarea" },
-    { key: "decision", label: "Decisión", type: "select", options: ["", "Continuar", "Iterar", "Descartar", "Investigar más"] },
-  ],
+  // Experiments share schemas.experiment with Growth Tree; no separate MVP form.
 };
 const experimentalBookCover = "/la-empresa-experimental.svg";
 const experimentalBookAmazon = "https://www.amazon.es/gp/product/B0GXPMFM7P/ref=kinw_myk_ro_title";
@@ -1059,7 +1049,7 @@ export default function Home() {
     });
   }
   function createMvp(kind: Kind, parent: string | null = null) {
-    setMvpEditor(true);
+    setMvpEditor(kind !== "experiment");
     // Research uses a many-to-many link, never GOI's parent_id. Experiments
     // both trees share the same hypothesis parent.
     create(kind, kind === "research" ? null : parent,
@@ -1096,13 +1086,13 @@ export default function Home() {
     />;
   }
   function editMvp(record: Item) {
-    setMvpEditor(true);
+    setMvpEditor(record.kind !== "experiment");
     setDraft(structuredClone(record));
     setSelected(null);
     setError("");
   }
   function openMvp(record: Item) {
-    setMvpEditor(true);
+    setMvpEditor(record.kind !== "experiment");
     setSelected(record);
   }
   function openAIProposal(proposal:Preparation){
@@ -1627,7 +1617,7 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && (mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind]).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id" && (![...posthogChannels,'meta_ads','google_ads'].includes(String(draft.fields.channel))||!['impact','confidence','ease'].includes(f.key))).map((f) => (
+  const draftFields = (links?: ReactNode) => draft && (draft.kind === "experiment" ? schemas.experiment : mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind]).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id").map((f) => (
                 <Fragment key={f.key}>
                 {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 {draft.kind === "hypothesis" && f.key === "description" && <h3 className="full hypothesis-form-section">Planteamiento</h3>}
@@ -2941,8 +2931,8 @@ export default function Home() {
             {supportsAttachments(selected.kind) ? <RecordAttachments key={selected.id}
               record={selected} editable={can(selected.kind,'edit')} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === selected.id) : (demoAttachments[selected.id] || [])}
               onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [selected.id]: values }))} onBusy={setAttachmentsBusy}>
-              {({ links, files }) => selected.kind === "experiment" && !mvpEditor ? <>
-                <FieldDetails record={selected} fields={[...posthogChannels,'meta_ads','google_ads'].includes(String(selected.fields.channel))?experimentSections.primary.filter(f=>['context','hypothesis','metric','tags'].includes(f.key)):experimentSections.primary} />
+              {({ links, files }) => selected.kind === "experiment" ? <>
+                <FieldDetails record={selected} fields={experimentSections.primary} />
                 {links}
                 {['meta_ads','google_ads'].includes(String(selected.fields.channel))?<>
                   <p><strong>Canal:</strong> {selected.fields.channel==='meta_ads'?'Meta Ads':'Google Ads'}</p>
@@ -2957,9 +2947,10 @@ export default function Home() {
                   {!publicMode&&['web_app','mobile_ios','mobile_android'].includes(String(selected.fields.channel))&&<PostHogResults experiment={selected} project={currentProject} />}
                   {!publicMode && <ExperimentMonitoring key={selected.id} experiment={selected}
                     editable={can('experiment','edit')} demo={demo} onBusy={setMonitoringBusy}/>}
-                  <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
+
                 </>}
 
+                <section className="experiment-ice"><h3>ICE</h3><FieldDetails record={selected} fields={experimentSections.ice} /></section>
                 {files}
               </> : <>{selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}{links}{files}</>}
             </RecordAttachments> : selected.kind === "hypothesis" ? <HypothesisDetails record={selected} /> : <FieldDetails record={selected} fields={mvpEditor && mvpSchemas[selected.kind] ? mvpSchemas[selected.kind]! : schemas[selected.kind]} />}
