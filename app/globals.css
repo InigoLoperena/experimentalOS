@@ -3618,3 +3618,8 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .detail-record-title{display:inline-flex;align-items:center;gap:9px;min-width:0;max-width:100%;font-size:17px;font-weight:750;line-height:1.4;overflow-wrap:anywhere;}
 .detail-record-title>svg{flex-shrink:0;}
 .detail-record-title>span{min-width:0;overflow-wrap:anywhere;}
+
+/* Hypothesis: one Planteamiento answer guided by five questions. */
+.form-body .hypothesis-question-label{white-space:pre-line;line-height:1.6;color:var(--hypothesis-accent)}
+.form-body .hypothesis-question-label textarea{white-space:pre-wrap;color:var(--ink);line-height:1.5;min-height:160px}
+.hypothesis-detail-section .field-details dt{white-space:pre-line;line-height:1.6;color:var(--hypothesis-accent)}
