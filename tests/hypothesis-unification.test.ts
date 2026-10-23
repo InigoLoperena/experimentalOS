@@ -39,36 +39,38 @@ test("legacy Growth Tree bookmarks still resolve to the unified Hypótesis secti
  assert.equal(viewForPath("/goi-tree/hipotesis"),"ideas");
 });
 
-test("Both trees show exactly one Planteamiento section and five questions for a hypothesis",async()=>{
+test("Hypotheses use one Planteamiento section and one free-text response for all five prompts",async()=>{
  const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  const model=await readFile(new URL("../lib/model.ts",import.meta.url),"utf8");
  assert.match(page,/hypothesis: schemas\.hypothesis/);
- assert.match(page,/function HypothesisDetails/);
  const start=page.indexOf("  hypothesis: [");
  const end=page.indexOf("  research: [",start);
  const fields=page.slice(start,end);
- const names=["description","belief","reason","validation_need","audience","evidence"];
- for(const key of names){
-  assert.ok(fields.includes(`key: "${key}"`),"Missing question: "+key);
-  assert.equal((fields.match(new RegExp('key: "'+key+'"','g'))||[]).length,1);
+ assert.equal((fields.match(/key: "/g)||[]).length,1,"Exactly one input should be shown");
+ assert.match(fields,/key: "description"/);
+ assert.match(fields,/type: "textarea"/);
+ assert.doesNotMatch(fields,/key: "(belief|reason|validation_need|audience|evidence|metric|impact|confidence|ease)"/);
+ assert.doesNotMatch(fields,/label: "Planteamiento"/);
+ const questions=["¿Qué creemos?","¿Por qué lo creemos?","¿Qué queremos comprobar?","¿A quién afecta?","¿Qué pruebas o evidencias buscamos?"];
+ let previous=-1;
+ for(const question of questions){
+  const pos=fields.indexOf(question);
+  assert.ok(pos>previous,"Question missing or out of order: "+question);
+  previous=pos;
  }
- for(const label of ["Planteamiento","¿Qué creemos?","¿Por qué lo creemos?","¿Qué queremos comprobar?","¿A quién afecta?","¿Qué pruebas o evidencias buscamos?"]){
-  assert.ok(fields.includes(`label: "${label}"`),"Missing questionnaire label "+label);
- }
- // Legacy prioritization remains in the stored JSON, but is no longer in
- // the hypothesis questionnaire. This test must not mistake other schemas.
- for(const key of ["metric","experimental_focus","impact","confidence","ease"]){
-  assert.ok(!fields.includes(`key: "${key}"`),"Old prioritization field should not render: "+key);
- }
+ assert.ok(fields.includes("\\n"),"Questions are separated by newlines in one field label");
  const form=page.slice(page.indexOf('  const draftFields ='),page.indexOf('  function',page.indexOf('  const draftFields =')+12));
- assert.match(form,/hypothesis-form-section">Planteamiento<\/h3>/);
- assert.doesNotMatch(form,/hypothesis-form-section">Hipótesis y fundamentos/);
- assert.doesNotMatch(form,/hypothesis-form-section">Validación/);
- assert.doesNotMatch(form,/hypothesis-form-section">Indicadores y priorización/);
- const detail=page.slice(page.indexOf("function HypothesisDetails("),page.indexOf("function FieldDetails("));
- assert.match(detail,/<h3>Planteamiento<\/h3>/);
- assert.match(detail,/fields=\{schemas\.hypothesis\}/);
- assert.doesNotMatch(detail,/Hipótesis y fundamentos|Validación|Indicadores y priorización/);
+ assert.equal((form.match(/hypothesis-form-section">Planteamiento/g)||[]).length,1);
+ assert.match(form,/full hypothesis-question-label/);
+ assert.match(form,/Responde a las cinco preguntas en un solo texto/);
+ assert.match(form,/rows=\{draft.kind === "hypothesis" && f.key === "description" \? 8 : 3\}/);
+ const details=page.slice(page.indexOf("function HypothesisDetails("),page.indexOf("function FieldDetails("));
+ assert.equal((details.match(/<h3>Planteamiento<\/h3>/g)||[]).length,1);
+ assert.match(details,/fields=\{schemas\.hypothesis\}/);
+ assert.doesNotMatch(details,/Hipótesis y fundamentos|Validación|Indicadores y priorización/);
+ assert.match(css,/\.hypothesis-question-label\{white-space:pre-line/);
+ assert.match(css,/\.hypothesis-detail-section \.field-details dt\{white-space:pre-line/);
  assert.match(page,/Hipótesis padre \(principal predeterminada; compartida entre Growth Tree y MVPs Tree\)/);
  assert.match(model,/experiment: "hypothesis"/);
 });
