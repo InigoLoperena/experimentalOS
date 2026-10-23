@@ -21,7 +21,7 @@ export const experimentFields: {
   { key: "end", label: "Fecha de finalización", type: "date" },
   { key: "result", label: "Resultados obtenidos", type: "textarea" },
   { key: "learning", label: "Aprendizaje", type: "textarea" },
-  { key: "decision", label: "Decisión", type: "select", options: ["", "Continuar", "Iterar", "Descartar", "Investigar más"] },
+  { key: "decision", label: "Decisión", type: "select", options: ["", "Continuar", "Iterar", "Escalar", "Descartar", "Investigar más", "Inconcluso"] },
   { key: "tags", label: "Etiquetas (separadas por comas)" },
   { key: "posthog_experiment_id", label: "ID del experimento en PostHog" },
   { key: "impact", label: "Impacto (1–10)", type: "number" },
