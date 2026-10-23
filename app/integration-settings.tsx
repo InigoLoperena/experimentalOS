@@ -44,11 +44,11 @@ export function IntegrationSettings({workspaceId,projects,demo,onSaved,onBusy}:{
   <div className="integration-layout"><nav className="integration-list" aria-label="Proveedores de integraciones">
    {(Object.entries(integrationCatalog) as [IntegrationProvider,typeof integrationCatalog[IntegrationProvider]][]).map(([key,value])=><button type="button" key={key} disabled={busy} className={provider===key?'selected':''} aria-pressed={provider===key} onClick={()=>{setProvider(key);setError('');setMessage('');}}><Plug size={17}/>{value.name}</button>)}
   </nav><div className="panel integration-form">
-   <h2>{integrationCatalog[provider].name}</h2><p>{integrationCatalog[provider].capability}</p>
+   <h2>{integrationCatalog[provider].name}</h2>
    {provider==='meta_ads'&&<MetaConnectionGuide/>}
    {provider==='google_ads'&&<GoogleConnectionGuide/>}
    {provider==='posthog'&&<PosthogConnectionGuide/>}
-   <p className="notice">Una cuenta de {integrationCatalog[provider].name} para todos los proyectos de este espacio de trabajo. Las campañas y resultados siguen asociados a su proyecto y experimento.</p>
+   
    {provider==='openai'&&<p className="small">Límite interno de Xperiments: 5 USD reservados al mes por equipo, independiente del presupuesto o saldo de OpenAI Platform. «Comprobar conexión» genera una respuesta mínima (unos pocos tokens) para detectar problemas de clave, permisos o cuota, sin guardar fichas.</p>}
    {!!alternatives.length&&<details className="monitoring-block"><summary>Conexiones anteriores</summary><p>Conservamos las conexiones existentes. Elige cuál utilizar en todos los proyectos:</p>{alternatives.map(row=><button key={row.id} type="button" className="btn" disabled={busy||!data?.can_configure||row.source!=='encrypted'} onClick={()=>void run({action:'share',provider,connection_id:row.id,expected:row.updated_at}).catch(()=>{})}>{row.config.account_id||row.config.customer_id||projects.find(p=>p.id===row.project_id)?.title||'Cuenta guardada'}</button>)}</details>}
    <p className="integration-status" role="status">{!connection?'Sin configurar':!connection.enabled?'Desactivada para todos los proyectos':failedCheck?'Comprobación fallida':connection.verified_at?'Comprobada anteriormente':integrationCatalog[provider].testable?'Configurada · pendiente de comprobación':'Configurada · funcionalidad API pendiente'}</p>
