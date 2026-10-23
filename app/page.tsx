@@ -160,7 +160,7 @@ const schemas: Record<Kind, Field[]> = {
     // One free-text answer to all five prompts, shared by both trees.
     // Previously stored belief/reason/validation_need/audience/evidence and
     // prioritization fields remain untouched in record.fields on save.
-    { key: "description", label: "¿Qué creemos?\\n¿Por qué lo creemos?\\n¿Qué queremos comprobar?\\n¿A quién afecta?\\n¿Qué pruebas o evidencias buscamos?", type: "textarea" },
+    { key: "description", label: "¿Qué creemos?\n¿Por qué lo creemos?\n¿Qué queremos comprobar?\n¿A quién afecta?\n¿Qué pruebas o evidencias buscamos?", type: "textarea" },
   ],
   research: [
     { key: "description", label: "Descripción", type: "textarea" },
