@@ -43,30 +43,15 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
   </div>;
  };
  return <section className={"problemon-panel"+(compact?" problemon-compact":"")} aria-label={"Problema principal de "+project.title}>
-  <header className="problemon-header">
-   <div className="problemon-heading">
-    <span className="problemon-icon"><Flag size={23} aria-hidden="true"/></span>
-    <div><span className="eyebrow">Problema u oportunidad principal</span>
-     <h2>Problema principal <small>· {project.title}</small></h2>
-     <p>Una única oportunidad principal por proyecto, compartida entre Growth Tree y MVPs Tree.</p>
-    </div>
-   </div>
-   {selected&&<div className="problemon-header-actions">
-    <button type="button" className="btn" onClick={()=>onOpen(selected)}>Abrir ficha</button>
-    {!readOnly&&canEdit&&<button type="button" className="btn" onClick={()=>onEdit(selected)}>
-     <Pencil size={15} aria-hidden="true"/>Editar / cambiar designación
-    </button>}
-   </div>}
-  </header>
   {selected?<>
    <div className="problemon-primary">
-    
-    <button type="button" className="problemon-primary-title" onClick={()=>onOpen(selected)}>{selected.title}</button>
-    {String(selected.fields.description||"").trim()&&<p>{String(selected.fields.description)}</p>}
-    <div className="problemon-meta">
-     <span>{children.filter(item=>item.kind==="hypothesis").length} hipótesis vinculadas</span>
-     <span>{String(selected.fields.opportunity_type||"Problema u oportunidad")}</span>
+    <div className="problemon-primary-row">
+     <button type="button" className="problemon-primary-title" onClick={()=>onOpen(selected)}>
+      <Flag size={21} color="var(--red-text)" aria-hidden="true"/><span>{selected.title}</span>
+     </button>
+     {!readOnly&&canEdit&&<button type="button" className="icon-button" title="Editar problema principal" aria-label="Editar problema principal" onClick={()=>onEdit(selected)}><Pencil size={17}/></button>}
     </div>
+    {String(selected.fields.description||"").trim()&&<p>{String(selected.fields.description)}</p>}
    </div>
    {!compact&&children.length>0&&<section className="problemon-tree" aria-label="Jerarquía del problema principal">
     <details className="goi-hierarchy-toggle problemon-children-toggle">
@@ -75,7 +60,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
     </details>
    </section>}
   </>:<>
-   <p className="problemon-empty">Este proyecto todavía no tiene un problema principal. Puedes crear uno o designar una oportunidad existente sin duplicar registros.</p>
+
    {!readOnly&&canCreate&&<button type="button" className="btn primary problemon-create" onClick={onCreate}>
     <Plus size={16} aria-hidden="true"/>Crear problema principal
    </button>}
@@ -88,7 +73,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
      <button type="button" className="btn" disabled={!candidate} onClick={()=>{if(candidate)onDesignate(candidate);}}>
       Designar como problema principal
      </button></div>
-    <small>Su identificador, comentarios, archivos y relaciones seguirán siendo los mismos.</small>
+
    </div>}
   </>}
  </section>;
