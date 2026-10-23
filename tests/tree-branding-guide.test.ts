@@ -44,7 +44,7 @@ test("Hypothesis is consistently yellow with lightbulb in navigation, tree, stag
    ".kind.hypothesis{color:var(--hypothesis-accent)"
  ])assert.ok(css.includes(line),"Missing yellow style: "+line);
  assert.match(page,/kind === "hypothesis"\s*\? Lightbulb/);
- assert.match(page,/className="hypothesis-detail-title"/);
+ assert.match(page,/detailTitleTag\(selected\)/);\n assert.match(page,/if \(\["goal", "opportunity", "hypothesis"\]\.includes\(item\.kind\)\) return goiTitleTag\(item\)/);\n assert.match(css,/\.goi-title-tag\.hypothesis\{color:var\(--hypothesis-accent\)/);
  assert.match(page,/draft.kind === "hypothesis" && <Lightbulb/);
  assert.match(mvp,/<Lightbulb size=\{16\} aria-hidden="true"\/> Hipótesis/);
  assert.match(hierarchy,/kind==="hypothesis"\)return <Lightbulb/);
