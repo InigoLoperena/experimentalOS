@@ -38,7 +38,7 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
  const byId=new Map(allProjectItems.map(item=>[item.id,item]));
  const mainHypothesis=allProjectItems.find(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis===true);
  const experiments=allProjectItems.filter(item=>item.kind==="experiment").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
- const hypotheses=allProjectItems.filter(item=>item.kind==="hypothesis").sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
+ const hypotheses=allProjectItems.filter(item=>item.kind==="hypothesis"&&item.fields.is_main_hypothesis!==true).sort((a,b)=>score(b.fields)-score(a.fields)||a.title.localeCompare(b.title,"es"));
  const researchRecords=allProjectItems.filter(item=>item.kind==="research")
   .sort((a,b)=>b.created_at.localeCompare(a.created_at)||a.title.localeCompare(b.title,"es"));
  const researchParentsOf=(research:Item):Item[]=>{
