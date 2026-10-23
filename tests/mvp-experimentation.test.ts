@@ -47,7 +47,8 @@ test("MVPs Tree displays the shared GOI records in a visible hierarchical overvi
  assert.match(page,/items=\{items\}/);
  assert.match(page,/onCreate=\{createMvp\}/);
  assert.match(page,/onDelete=\{item => void deleteRecord\(item\)\}/);
- assert.match(component,/MVPs Tree/);
+ assert.match(component,/className="mvp-workspace"/);
+ assert.doesNotMatch(component,/mvp-project-summary|mvp-tree-path/);
  assert.match(component,/<MvpHierarchy/);
  assert.match(component,/view="mvp"/);
  assert.doesNotMatch(component,/Ver hipótesis/);
