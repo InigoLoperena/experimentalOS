@@ -44,7 +44,11 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
  // list it among ordinary problems and opportunities.
  const target=local.filter(item=>
   (desiredKind===null || item.kind===desiredKind) &&
-  (view!=="mvp_problems" || !isProblemon(item)));
+  (view!=="mvp_problems" || !isProblemon(item)) &&
+  // The principal hypothesis has its own tab, just like the principal problem.
+  // Keep both in the graph for linked experiments and ancestor expansion.
+  (view!=="mvp_hypotheses" || item.fields.is_main_hypothesis!==true) &&
+  (view!=="mvp_main_hypothesis" || item.fields.is_main_hypothesis===true));
  const included=new Set(target.map(item=>item.id));
  const expanded=new Set<string>();
  // Include all ancestors, but keep every child branch folded on arrival.
