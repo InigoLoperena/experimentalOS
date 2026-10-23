@@ -3609,3 +3609,12 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
  .mvp-hypothesis-ranked-list .mvp-experiment-ranked-actions{width:100%;margin-left:0}
  .mvp-hypothesis-ranked-list .mvp-upward-chain{margin-left:15px;padding-left:12px}
 }
+
+/* Expanded record detail: a single title in the header and one parent relation. */
+.detail-identity-row{align-items:flex-start;justify-content:space-between;gap:14px;min-width:0;}
+.detail-identity-row .detail-heading{display:block;flex:1;min-width:0;overflow-wrap:anywhere;}
+.detail-identity-row>.icon-button{flex-shrink:0;}
+.detail-identity-row .goi-title-tag,.detail-identity-row .experiment-identity{max-width:100%;font-size:17px;line-height:1.35;overflow-wrap:anywhere;}
+.detail-record-title{display:inline-flex;align-items:center;gap:9px;min-width:0;max-width:100%;font-size:17px;font-weight:750;line-height:1.4;overflow-wrap:anywhere;}
+.detail-record-title>svg{flex-shrink:0;}
+.detail-record-title>span{min-width:0;overflow-wrap:anywhere;}
