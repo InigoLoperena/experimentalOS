@@ -1020,12 +1020,6 @@ export default function Home() {
         .map((f) => [f.key, f.options?.[0] || ""]),
     );
     const parent = items.find((item) => item.id === resolvedParentId);
-    const goal = parent
-      ? ancestors(parent, items)
-          .slice()
-          .reverse()
-          .find((item) => item.kind === "goal")
-      : null;
     // Never inherit free-text fields from parent records automatically.
     // A linked parent defines the relationship, not consent to copy its text.
     // Only typed input or a user-requested, explicitly applied AI proposal may fill it.
@@ -3098,6 +3092,7 @@ export default function Home() {
               </button>
             </div>
             <div className="form-body">
+              <p className="small full" role="note">Los textos nuevos quedan vacíos. La IA solo rellena una ficha cuando le pides una propuesta y pulsas expresamente «Rellenar formulario para revisar».</p>
               <label className="full">
                 Nombre
                 <input
