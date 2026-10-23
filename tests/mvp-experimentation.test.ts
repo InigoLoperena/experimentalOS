@@ -284,3 +284,54 @@ test("Research shows every investigation directly, with expandable and deduplica
  assert.equal(projection.parents.has("cross"),false);
  assert.ok(projection.target.every(item=>item.project_id==="p"));
 });
+
+test("Growth Tree and MVPs Tree use the same experiment fields, editable ICE and save path",async()=>{
+ const [page,model]=await Promise.all([
+  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  import("../lib/experiments")
+ ]);
+ const expected=[
+  "context","description","hypothesis","audience","metric","success_criteria",
+  "secondary_metrics","traffic_plan","risks","start","end","result","learning",
+  "decision","tags","impact","confidence","ease"
+ ];
+ const fields=model.experimentFields.map(field=>field.key);
+ for(const field of expected)assert.ok(fields.includes(field),`Missing experiment field ${field}`);
+ assert.equal(new Set(fields).size,fields.length,"No duplicate fields in shared editor");
+ const ice=["impact","confidence","ease"];
+ for(const key of ice) {
+  const field=model.experimentFields.find(f=>f.key===key);
+  assert.equal(field?.type,"number");
+  assert.ok(model.experimentSections.ice.some(f=>f.key===key));
+ }
+ assert.match(page,/experiment: experimentFields/);
+ // The old MVP-only experiment schema hid ICE and common Growth fields.
+ assert.doesNotMatch(page,/experiment:\s*\[\s*\{ key: "description", label: "Descripción"/);
+ assert.match(page,/draft\.kind === "experiment" \? schemas\.experiment/);
+ assert.match(page,/setMvpEditor\(kind !== "experiment"\)/);
+ assert.match(page,/setMvpEditor\(record\.kind !== "experiment"\)/);
+ assert.doesNotMatch(page,/selected\.kind === "experiment" && !mvpEditor/);
+ assert.match(page,/selected\.kind === "experiment" \? <>/);
+ assert.match(page,/<FieldDetails record=\{selected\} fields=\{experimentSections\.primary\} \/>/);
+ assert.match(page,/<FieldDetails record=\{selected\} fields=\{experimentSections\.ice\} \/>/);
+ assert.match(page,/draft\.kind !== "experiment" \|\| f\.key !== "posthog_experiment_id"/);
+ assert.doesNotMatch(page,/\!\['impact','confidence','ease'\]\.includes\(f\.key\)/);
+ assert.match(page,/record\.kind==='experiment' \? supabase!\.rpc\('save_experiment_preparation'/);
+ assert.match(page,/await load\(\)/);
+});
+
+test("Editing ICE from either tree preserves original experiment content and relationships",()=>{
+ const originalFields={
+  context:"Own context",description:"Own description",audience:"Users",hypothesis:"Test",
+  metric:"Clicks",success_criteria:"10 clicks",result:"Qualitative results",
+  decision:"Iterar",mvp_hypothesis_id:"hypothesis-id",impact:5,confidence:5,ease:5
+ };
+ const experiment={...record("experiment",originalFields),id:"existing"} as Item;
+ const nextFields={...experiment.fields,impact:9,confidence:8,ease:7};
+ assert.equal(validate({...experiment,fields:nextFields}),null);
+ assert.equal(nextFields.mvp_hypothesis_id,"hypothesis-id");
+ assert.deepEqual(normalizeExperiment({...experiment,fields:nextFields}).fields,nextFields);
+ assert.equal(nextFields.description,originalFields.description);
+ assert.equal(nextFields.result,originalFields.result);
+ assert.equal(validate({...experiment,fields:{...nextFields,ease:11}}),"Las puntuaciones ICE deben ser enteros entre 1 y 10.");
+});
