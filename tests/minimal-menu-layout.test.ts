@@ -12,8 +12,8 @@ test("All app sections have one page title without redundant laboratory captions
  const heading=page.slice(start,end);
  assert.match(heading,/className="minimal-section-title"/);
  assert.equal((heading.match(/<h1/g)||[]).length,1);
- assert.match(heading,/view === "problemon" \|\| view === "mvp_problemon"/);
- assert.match(heading,/<Flag size=\{24\}/);
+ assert.match(heading,/style=\{\{color:sectionHeadings\[view\]\.color\}\}/);
+ assert.match(heading,/<CurrentSectionIcon size=\{27\} aria-hidden="true"\/>/);
  assert.doesNotMatch(heading,/ESTRATEGIA EN ACCIÓN|LABORATORIO/);
  assert.doesNotMatch(heading,/<p>/);
  assert.doesNotMatch(page,/Growth Tree · \{currentProject\.title\}/);
@@ -63,4 +63,40 @@ test("Project descriptions are only displayed when saved by a user",async()=>{
  assert.doesNotMatch(page,/Descripción pendiente de completar/);
  assert.doesNotMatch(page,/const northStarDescription/);
  assert.doesNotMatch(page,/project-filter-north-star/);
+});
+
+test("Every menu section has its matching color, icon and title (Experimentos without MVPs)",async()=>{
+ const [page,css,ai,routes]=await Promise.all([
+  read("app/page.tsx"),read("app/globals.css"),
+  read("app/strategic-ai.tsx"),read("lib/section-routes.ts"),
+ ]);
+ const block=page.slice(page.indexOf("const sectionHeadings:"),page.indexOf("const mvpViews ="));
+ assert.match(block,/Record<View,\{icon:typeof Compass \| typeof AIBrainIcon;color:string\}>/);
+ const routeKeys=[...routes.matchAll(/^\s*(\w+):\s*'\//gm)].map(m=>m[1]);
+ assert.ok(routeKeys.length>=20);
+ const entryKeys=[...block.matchAll(/^\s*(\w+):\{icon:/gm)].map(m=>m[1]);
+ for(const key of routeKeys)assert.ok(entryKeys.includes(key),"Missing colored title for "+key);
+ assert.equal(new Set(entryKeys).size,entryKeys.length);
+ const expected=[
+  ['mvp_problemon','Flag','--red-text'],['problemon','Flag','--red-text'],
+  ['mvp_problems','Search','--red-text'],['opportunities','Search','--red-text'],
+  ['mvp_main_hypothesis','Lightbulb','--hypothesis-accent'],
+  ['mvp_hypotheses','Lightbulb','--hypothesis-accent'],['ideas','Lightbulb','--hypothesis-accent'],
+  ['mvp_experiments','FlaskConical','--experiment-accent'],['experiments','FlaskConical','--experiment-accent'],
+  ['mvp_research','Microscope','#75c1ff'],['goals','Target','--objective-accent'],
+  ['input_metrics','BarChart3','--blue-text'],
+ ];
+ for(const [section,icon,color] of expected){
+  const line=block.split("\n").find(x=>x.trim().startsWith(section+':'));
+  assert.ok(line,"Missing section "+section);
+  assert.ok(line.includes("icon:"+icon),"Incorrect icon for "+section);
+  assert.ok(line.includes(color),"Incorrect color for "+section);
+ }
+ assert.match(page,/mvp_experiments: "Experimentos", mvp_research: "Investigación"/);
+ assert.doesNotMatch(page,/Experimentos · MVPs/);
+ assert.match(page,/const CurrentSectionIcon=sectionHeadings\[view\]\.icon/);
+ assert.match(page,/className="minimal-section-title" style=\{\{color:sectionHeadings\[view\]\.color\}\}/);
+ assert.match(css,/\.page-heading \.minimal-section-title>svg/);
+ assert.match(ai,/className="ai-section-title"><AIBrainIcon/);
+ assert.match(css,/\.ai-intro-header \.ai-section-title\{.*color:var\(--lime\)/);
 });
