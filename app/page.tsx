@@ -1964,8 +1964,6 @@ export default function Home() {
                 {workspaces.map(space => <option key={space.id} value={space.id}>{space.name || "Espacio de trabajo"}</option>)}
               </select>
             </label> : <span>{workspace?.name || "Espacio de trabajo"}</span>}
-            <ChevronRight size={14} />
-            <strong>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</strong>
           </div>
           <div>
             {publicMode
@@ -2013,28 +2011,10 @@ export default function Home() {
           {view !== "ai" && (
           <div className="page-heading">
             <div>
-              <span className="eyebrow">
-                {view === "map" ? "ESTRATEGIA EN ACCIÓN" : "LABORATORIO"}
-              </span>
-              <h1>{viewLabels[view] || nav.find((n) => n.id === view)?.label}</h1>
-              <p>
-                {view === "map"
-                  ? "La arquitectura de información diseñada para maximizar la generación de hipótesis de Growth con la máxima calidad, contexto, fundamento y orden."
-                  : (mvpViews as readonly string[]).includes(view)
-                    ? "Problemas, hipótesis, investigaciones y experimentos vinculados en el mismo proyecto, con fichas compartidas con Growth Tree."
-                    : view === "experiments"
-                    ? "Documenta qué vas a probar y cómo sabrás si funciona."
-                    : view === "learning"
-                      ? "Guarda lo que ocurrió, lo que aprendiste y qué harás después."
-                      : view === "team"
-                        ? "Gestiona las personas y sus permisos en el sistema."
-                        : view === "integrations"
-                          ? "Configura las cuentas y conexiones de tus proyectos en un único lugar."
-                        : view === "projects"
-                          ? "Cada proyecto tiene su propio Growth Tree, experimentos y aprendizajes."
-                          : "Una guía sencilla para empezar a trabajar."}
-              </p>
-            </div>
+              <h1 className="minimal-section-title">
+                {(view === "problemon" || view === "mvp_problemon") && <Flag size={24} color="var(--red-text)" aria-hidden="true"/>}
+                {viewLabels[view] || nav.find((n) => n.id === view)?.label}
+              </h1>           </div>
             <div className="page-heading-actions">
               {(view === "projects" || view === "map") && <ExperimentalBookBanner />}
               {publicMode && <PublicViewBanner onSignup={() => requestAuth("signup")} />}
@@ -2229,8 +2209,6 @@ export default function Home() {
               )}
               <div className="section-heading">
                 <div>
-                  <h2>Growth Tree · {currentProject.title}</h2>
-                  <p>North Star Metric → Objetivos e Input Metrics (mismo nivel) → Oportunidades-problemas → Hipótesis → Experimentos</p>
                 </div>
                 <Action onClick={() => void load()} disabled={loading}>
                   <RefreshCw size={16} /> Actualizar árbol
@@ -2250,7 +2228,6 @@ export default function Home() {
                             : <Target size={20} aria-hidden="true" />}
                           {section.title}
                         </h3>
-                        <p>Hijos directos de North Star Metric</p>
                       </div>
                       {can("goal", "create") && nsm && (
                         <Action onClick={() => create("goal", null, section.key)}>
@@ -2303,7 +2280,6 @@ export default function Home() {
                   <div className="section-heading">
                     <div>
                       <h2>Sin vincular · Elementos sin padre</h2>
-                      <p>Conservados aunque se haya eliminado su elemento padre. Abre cada ficha para reasignarla cuando quieras.</p>
                     </div>
                   </div>
                   <div className="cards-grid">
@@ -2317,7 +2293,6 @@ export default function Home() {
                   <div className="section-heading">
                     <div>
                       <h2>Experimentos sin hipótesis</h2>
-                      <p>Experimentos compartidos con MVPs Tree que aún no están vinculados a una hipótesis del Growth Tree.</p>
                     </div>
                   </div>
                   <div className="cards-grid">
@@ -2330,10 +2305,6 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <h2>Orden de ejecución</h2>
-                  <p>
-                    Prioriza las hipótesis y experimentos de este proyecto con ICE:
-                    impacto × confianza × facilidad.
-                  </p>
                 </div>
               </div>
               <IceGuide />
@@ -2371,7 +2342,6 @@ export default function Home() {
                 <span>
                   <i className="legend-dot experiment" /> Experimento
                 </span>
-                <span>Haz clic en un elemento para ver su ficha</span>
               </div>
             </>
           )}
@@ -2430,7 +2400,6 @@ export default function Home() {
                       <section className="goi-orphans-section" aria-label="Oportunidades-problemas huérfanos">
                         <div className="goi-orphans-heading">
                           <h2><Search size={19} aria-hidden="true" /> Oportunidades-problemas huérfanos <span>({orphanOpportunities.length})</span></h2>
-                          <p>Sin objetivo o Input Metric padre. Abre la ficha para asignarle uno.</p>
                         </div>
                         {orphanOpportunities.map(renderGroup)}
                       </section>
@@ -2439,7 +2408,6 @@ export default function Home() {
                       <section className="goi-orphans-section" aria-label="Hipótesis huérfanas">
                         <div className="goi-orphans-heading">
                           <h2><Lightbulb size={19} aria-hidden="true" /> Hipótesis huérfanas <span>({orphanHypotheses.length})</span></h2>
-                          <p>Sin oportunidad-problema padre. Abre la ficha para asignarle una.</p>
                         </div>
                         {orphanHypotheses.map(renderGroup)}
                       </section>
@@ -2484,15 +2452,6 @@ export default function Home() {
                           >
                             {experimentTag(e)}
                             {parentTag(e)}
-                            <span className="experiment-list-summary">
-                              <strong>Contexto</strong> {e.fields.context || "Sin contexto documentado"}
-                            </span>
-                            <span className="experiment-list-summary">
-                              <strong>Hipótesis</strong> {e.fields.hypothesis || "Sin hipótesis documentada"}
-                            </span>
-                            <span>
-                              {e.fields.metric || "Métrica pendiente"}
-                            </span>
                           </button>
                         </td>
                         <td>
@@ -2530,7 +2489,6 @@ export default function Home() {
                         setFilter("");
                       }}
                     >
-                      <span className="eyebrow">PROYECTO</span>
                       <h2>{p.title}</h2>
                       <p className="project-description">
                         {projectDescription(p)}
@@ -2617,7 +2575,6 @@ export default function Home() {
                       className="plain-heading"
                       onClick={() => setSelected(item)}
                     >
-                      <span className="eyebrow">APRENDIZAJE</span>
                       <h2>{item.title}</h2>
                     </button>
                     {item.parent_id && (
@@ -2657,7 +2614,7 @@ export default function Home() {
             </div>
           )}
           {view === "team" && publicMode && (
-            <div className="panel"><h2>Equipo</h2><p>La configuración, los miembros y las invitaciones del equipo son privados. Puedes consultar el trabajo de cada proyecto en las demás secciones.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
+            <div className="panel"><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
           )}
           {view === "team" && !publicMode && (
             <>
@@ -2665,7 +2622,6 @@ export default function Home() {
                 <div className="section-heading">
                   <div>
                     <h2>Nombre del equipo</h2>
-                    <p>Este nombre se muestra en los enlaces de invitación.</p>
                   </div>
                 </div>
                 {role === "owner" && !demo ? (
@@ -2700,7 +2656,6 @@ export default function Home() {
                   <h2>Miembros del equipo</h2>
                   <span>{members.length} personas</span>
                 </div>
-                <p className="small">El superadministrador gestiona las APIs y el equipo. Para un Editor, abre «Permisos» y elige qué puede crear, editar o eliminar. Un Editor nuevo comienza con acceso de consulta hasta que le concedas esas acciones.</p>
                 {members.map((m) => (
                   <Fragment key={m.user_id}><div className="member-row">
                     <Avatar name={m.name} photo={m.avatar_url} />
@@ -2762,11 +2717,6 @@ export default function Home() {
               {role === "owner" && (
                 <div className="panel invite-panel">
                   <h2>Invitar a una persona</h2>
-                  <p>
-                    El enlace es de un solo uso y caduca en 7 días. Al abrirlo,
-                    la persona verá que está invitada a <strong>{workspace.name || "este equipo"}</strong>,
-                    podrá crear su cuenta y entrará directamente en el equipo.
-                  </p>
                   <div className="row">
                     <select
                       aria-label="Rol de la invitación"
@@ -2850,7 +2800,7 @@ export default function Home() {
           {view === "method" && <Method />}
           {view === 'ai' && <StrategicAI key={`${workspace.id}:${user?.id||'demo'}`} workspace={workspace} project={currentProject} disabled={demo||publicMode} canImport={can('learning','create')} canEdit={can('learning','edit')} canDelete={can('learning','delete')} canCreate={can('experiment','create')} onProposal={openAIProposal}/>}
           {view === 'integrations' && publicMode && (
-            <div className="panel"><h2>Integraciones</h2><p>Las conexiones, credenciales y configuraciones de servicios externos son privadas. Inicia sesión para gestionar las conexiones de tu equipo.</p><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
+            <div className="panel"><button className="btn primary" onClick={() => requestAuth("signup")}>Crear mi espacio gratis</button></div>
           )}
           {view === 'integrations' && !publicMode && <IntegrationSettings key={`${workspace.id}:${user?.id||'demo'}`} workspaceId={workspace.id} projects={projects} demo={demo||publicMode} onSaved={load} onBusy={setIntegrationBusy}/>}
           <footer className="footer">
