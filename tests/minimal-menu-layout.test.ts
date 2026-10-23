@@ -72,7 +72,8 @@ test("Every menu section has its matching color, icon and title (Experimentos wi
  ]);
  const block=page.slice(page.indexOf("const sectionHeadings:"),page.indexOf("const mvpViews ="));
  assert.match(block,/Record<View,\{icon:typeof Compass \| typeof AIBrainIcon;color:string\}>/);
- const routeKeys=[...routes.matchAll(/^\s*(\w+):\s*'\//gm)].map(m=>m[1]);
+ const pathMap=routes.slice(routes.indexOf("export const sectionPaths"),routes.indexOf("} as const;"));
+ const routeKeys=[...pathMap.matchAll(/\b(\w+):\s*'\//g)].map(m=>m[1]);
  assert.ok(routeKeys.length>=20);
  const entryKeys=[...block.matchAll(/^\s*(\w+):\{icon:/gm)].map(m=>m[1]);
  for(const key of routeKeys)assert.ok(entryKeys.includes(key),"Missing colored title for "+key);
