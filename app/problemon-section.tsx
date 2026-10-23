@@ -19,7 +19,7 @@ export function ProblemonSection({project,items,readOnly,canCreate,canEdit,compa
  const [candidateId,setCandidateId]=useState("");
  useEffect(()=>setCandidateId(""),[project.id,selected?.id]);
  const candidate=candidates.find(item=>item.id===candidateId);
- const hierarchy=getMvpHierarchy(items,"mvp_problems",project.id);
+ const hierarchy=getMvpHierarchy(items,"mvp",project.id);
  const children=selected?hierarchy.children(selected.id):[];
  const renderChild=(item:Item,seen:Set<string>):ReactNode=>{
   if(seen.has(item.id))return null;
