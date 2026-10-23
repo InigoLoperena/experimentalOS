@@ -1315,81 +1315,6 @@ export default function Home() {
   const mvpTreeCount = items.filter(i =>
     ["opportunity", "hypothesis", "research", "experiment"].includes(i.kind)
   ).length;
-  const northStarDescription = "";
-  function northStarForProject(project: Item) {
-    const stored = workspaceItems.find(
-      (i) => i.kind === "north_star" && i.project_id === project.id,
-    );
-    const projectMetric = String(project.fields.north_star || "").trim();
-    if (stored) return stored;
-    if (!projectMetric) return undefined;
-    return {
-      id: `project-north-star-${project.id}`,
-      workspace_id: project.workspace_id,
-      project_id: project.id,
-      kind: "north_star" as Kind,
-      parent_id: null,
-      related_id: null,
-      title: projectMetric,
-      owner_id: project.owner_id,
-      fields: {
-        definition: northStarDescription,
-        metric: projectMetric,
-        source: project.fields.analytics_url || project.fields.posthog_host || "",
-        frequency: "",
-      },
-      created_at: project.created_at,
-      updated_at: project.updated_at,
-      created_by: project.created_by,
-      updated_by: project.updated_by,
-    } as Item;
-  }
-  function renderNorthStarBanner(project: Item, compact = false) {
-    const metric = northStarForProject(project);
-    if (!metric) {
-      return (
-        <div className={"north-star north-star-empty" + (compact ? " compact" : "")}>
-          <div className="north-icon"><Compass size={compact ? 20 : 28} /></div>
-          <div className="north-content">
-            <span>NORTH STAR METRIC</span>
-            <h2>Sin definir</h2>
-
-          </div>
-        </div>
-      );
-    }
-    const stored = metric.id.startsWith("project-north-star-") ? null : metric;
-    return (
-      <button
-        className={"north-star" + (compact ? " compact" : "")}
-        onClick={() => setSelected(stored || project)}
-      >
-        <div className="north-icon"><Compass size={compact ? 20 : 28} /></div>
-        <div className="north-content">
-          <span>NORTH STAR METRIC</span>
-          <h2>{metric.title}</h2>
-          {String(metric.fields.definition||"").trim()&&<p>{String(metric.fields.definition)}</p>}
-          {!compact && (
-            <span className="north-source">
-              {metric.fields.frequency} · {metric.fields.source}
-            </span>
-          )}
-        </div>
-        {!compact && (
-          <div className="north-value">
-            <strong>
-              {metric.fields.current ?? "—"}
-              <small> / {metric.fields.target ?? "—"}</small>
-            </strong>
-            <span>
-              {metric.fields.unit} · {progress(metric.fields)}% del recorrido
-            </span>
-            <Meter value={progress(metric.fields)} />
-          </div>
-        )}
-      </button>
-    );
-  }
   const storedNsm = items.find((i) => i.kind === "north_star");
   const projectNorthStar = String(currentProject?.fields.north_star || "").trim();
   const nsm = storedNsm || (currentProject && projectNorthStar ? {
@@ -1402,7 +1327,7 @@ export default function Home() {
     title: projectNorthStar,
     owner_id: currentProject.owner_id,
     fields: {
-      definition: northStarDescription,
+      definition: "",
       metric: projectNorthStar,
       source: currentProject.fields.analytics_url || currentProject.fields.posthog_host || "",
       frequency: "",
