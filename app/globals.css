@@ -3623,3 +3623,18 @@ button.mvp-link-chip:hover{background:rgba(var(--lane-rgb),.24)}
 .form-body .hypothesis-question-label{white-space:pre-line;line-height:1.6;color:var(--hypothesis-accent)}
 .form-body .hypothesis-question-label textarea{white-space:pre-wrap;color:var(--ink);line-height:1.5;min-height:160px}
 .hypothesis-detail-section .field-details dt{white-space:pre-line;line-height:1.6;color:var(--hypothesis-accent)}
+
+/* Minimal section layout: headings occur once, at page level; no descriptive subheaders. */
+.page-heading .minimal-section-title{display:flex;align-items:center;gap:11px;min-width:0;overflow-wrap:anywhere;margin:0}
+.minimal-section-actions,.mvp-section-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:0}
+.minimal-section-actions:empty,.mvp-section-actions:empty{display:none}
+.mvp-hierarchy-screen>.mvp-section-actions{margin:0 0 -3px}
+.problemon-primary-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.problemon-primary-row>.icon-button{flex-shrink:0}
+.problemon-primary .problemon-primary-title{display:inline-flex;align-items:center;gap:10px;max-width:100%;font-size:21px;line-height:1.35;font-weight:750;color:var(--red-text);overflow-wrap:anywhere}
+.problemon-primary .problemon-primary-title svg{flex-shrink:0}
+.problemon-primary>p{font-size:14px;line-height:1.5;white-space:pre-wrap;margin:4px 0 0;color:var(--ink)}
+.problemon-panel{gap:10px}
+.problemon-compact .problemon-primary{padding:12px}
+.going-peer-heading>div:empty,.section-heading>div:empty{display:none}
+@media(max-width:600px){.problemon-primary .problemon-primary-title{font-size:18px}.page-heading .minimal-section-title{font-size:23px}}
