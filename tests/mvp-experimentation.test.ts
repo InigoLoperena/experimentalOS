@@ -327,7 +327,7 @@ test("Editing ICE from either tree preserves original experiment content and rel
   decision:"Iterar",mvp_hypothesis_id:"hypothesis-id",impact:5,confidence:5,ease:5
  };
  const experiment={...record("experiment",originalFields),id:"existing"} as Item;
- const nextFields={...experiment.fields,impact:9,confidence:8,ease:7};
+ const nextFields:Item["fields"]={...experiment.fields,impact:9,confidence:8,ease:7};
  assert.equal(validate({...experiment,fields:nextFields}),null);
  assert.equal(nextFields.mvp_hypothesis_id,"hypothesis-id");
  assert.deepEqual(normalizeExperiment({...experiment,fields:nextFields}).fields,nextFields);
