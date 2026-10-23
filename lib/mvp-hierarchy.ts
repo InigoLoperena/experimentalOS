@@ -39,7 +39,12 @@ export function getMvpHierarchy(items:Item[], view:MvpHierarchyView, projectId?:
   view==="mvp"?null:view==="mvp_problems"?"opportunity":view==="mvp_hypotheses"?"hypothesis":
   view==="mvp_experiments"?"experiment":view==="mvp_main_hypothesis"?"hypothesis":"research";
  // Overview includes every linked and unlinked node, even experiments without an idea.
- const target=local.filter(item=>desiredKind===null || item.kind===desiredKind);
+ // The principal problem has its own dedicated tab. Keep it in the shared
+ // graph so hypothesis/experiment parent links still work elsewhere, but do not
+ // list it among ordinary problems and opportunities.
+ const target=local.filter(item=>
+  (desiredKind===null || item.kind===desiredKind) &&
+  (view!=="mvp_problems" || !isProblemon(item)));
  const included=new Set(target.map(item=>item.id));
  const expanded=new Set<string>();
  // Include all ancestors, but keep every child branch folded on arrival.
