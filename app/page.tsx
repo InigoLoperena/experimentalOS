@@ -2880,7 +2880,7 @@ export default function Home() {
         {selected && (
           <div className="detail-content">
             <div className="row detail-identity-row">
-              {detailTitleTag(selected)}
+              <span className="detail-heading" role="heading" aria-level={2}>{detailTitleTag(selected)}</span>
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
