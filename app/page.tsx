@@ -157,14 +157,10 @@ const schemas: Record<Kind, Field[]> = {
     { key: "period", label: "Periodo" },
   ],
   hypothesis: [
-    // Shared by MVPs Tree and Growth Tree. Legacy fields not shown here remain
-    // in record.fields when edited; they are not removed from Supabase.
-    { key: "description", label: "Planteamiento", type: "textarea" },
-    { key: "belief", label: "¿Qué creemos?", type: "textarea" },
-    { key: "reason", label: "¿Por qué lo creemos?", type: "textarea" },
-    { key: "validation_need", label: "¿Qué queremos comprobar?", type: "textarea" },
-    { key: "audience", label: "¿A quién afecta?", type: "textarea" },
-    { key: "evidence", label: "¿Qué pruebas o evidencias buscamos?", type: "textarea" },
+    // One free-text answer to all five prompts, shared by both trees.
+    // Previously stored belief/reason/validation_need/audience/evidence and
+    // prioritization fields remain untouched in record.fields on save.
+    { key: "description", label: "¿Qué creemos?\\n¿Por qué lo creemos?\\n¿Qué queremos comprobar?\\n¿A quién afecta?\\n¿Qué pruebas o evidencias buscamos?", type: "textarea" },
   ],
   research: [
     { key: "description", label: "Descripción", type: "textarea" },
@@ -1634,7 +1630,9 @@ export default function Home() {
                 <label
                   key={f.key}
                   className={
-                    f.type === "textarea"
+                    draft.kind === "hypothesis" && f.key === "description"
+                      ? "full hypothesis-question-label"
+                      : f.type === "textarea"
                       ? "full"
                       : f.type === "checkbox"
                         ? "check-label full"
@@ -1664,7 +1662,8 @@ export default function Home() {
                       {f.type === "textarea" ? (
                         <textarea
                           required={f.required && !(draft.kind==="opportunity" && isProblemon(draft) && f.key==="evidence")}
-                          rows={3}
+                          rows={draft.kind === "hypothesis" && f.key === "description" ? 8 : 3}
+                          placeholder={draft.kind === "hypothesis" && f.key === "description" ? "Responde a las cinco preguntas en un solo texto." : undefined}
                           value={String(draft.fields[f.key] ?? "")}
                           onChange={(e) =>
                             setDraft({
