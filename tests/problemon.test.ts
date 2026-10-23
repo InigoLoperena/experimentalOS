@@ -71,3 +71,28 @@ test("Principal problem section starts with all children folded and displays ICE
  assert.match(component,/Problema principal/);
  assert.match(component,/Mostrar hijos/);
 });
+
+test("Problemas u oportunidades only lists ordinary records, never the principal problem",()=>{
+ const principal=item("principal","opportunity","p",null,{is_problemon:true,opportunity_type:"Problema"});
+ const problem=item("problem","opportunity","p",null,{opportunity_type:"Problema"});
+ const opportunity=item("opportunity","opportunity","p",null,{opportunity_type:"Oportunidad"});
+ const hypothesis=item("hypothesis","hypothesis","p","principal");
+ const experiment=item("experiment","experiment","p","hypothesis",{mvp_hypothesis_id:"hypothesis"});
+ const anotherProject=item("foreign","opportunity","q");
+ const rows=[principal,problem,opportunity,hypothesis,experiment,anotherProject];
+ const ordinary=getMvpHierarchy(rows,"mvp_problems","p");
+ assert.deepEqual(ordinary.target.map(r=>r.id),["problem","opportunity"]);
+ assert.deepEqual(ordinary.roots.map(r=>r.id),["problem","opportunity"]);
+ assert.ok(!ordinary.roots.some(isProblemon));
+ assert.ok(!ordinary.target.some(isProblemon));
+ // The original record and its descendants remain accessible in the other views.
+ const overview=getMvpHierarchy(rows,"mvp","p");
+ assert.ok(overview.roots.includes(principal));
+ const hypotheses=getMvpHierarchy(rows,"mvp_hypotheses","p");
+ assert.ok(hypotheses.roots.includes(principal));
+ assert.deepEqual(hypotheses.children("principal").map(r=>r.id),["hypothesis"]);
+ assert.deepEqual(hypotheses.children("hypothesis").map(r=>r.id),["experiment"]);
+ const onlyPrincipal=getMvpHierarchy([principal,hypothesis,experiment],"mvp_problems","p");
+ assert.deepEqual(onlyPrincipal.target,[]);
+ assert.deepEqual(onlyPrincipal.roots,[]);
+});
