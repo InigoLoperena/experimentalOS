@@ -19,7 +19,8 @@ test("Creating hypothesis/experiment/research/problem/goal must never inherit pa
 test("Unknown project descriptions cannot silently become invented marketing copy",async()=>{
  const page=await source("app/page.tsx");
  assert.doesNotMatch(page,/defaultProjectDescriptions/);
- assert.match(page,/Descripción pendiente de completar\./);
+ assert.doesNotMatch(page,/Descripción pendiente de completar\./);
+ assert.match(page,/return String\(project\.fields\.description \|\| ""\)\.trim\(\)/);
 });
 
 test("AI content is only transferred into a record by an explicit UI action",async()=>{
