@@ -1459,6 +1459,16 @@ export default function Home() {
   function experimentTag(experiment: Item) {
     return <span className="experiment-identity" title={experiment.title}><FlaskConical size={15} aria-hidden="true"/><span>{experiment.title}</span></span>;
   }
+  // All expanded record types use exactly one identity in the detail header.
+  // The relationship to a parent is rendered separately once, never in a breadcrumb.
+  function detailTitleTag(item: Item) {
+    if (["goal", "opportunity", "hypothesis"].includes(item.kind)) return goiTitleTag(item);
+    if (item.kind === "experiment") return experimentTag(item);
+    return <span className={`detail-record-title kind ${item.kind}`} title={item.title}>
+      <IconFor kind={item.kind}/>
+      <span>{item.title}</span>
+    </span>;
+  }
 
   function goiTitleTag(i: Item) {
     const visual = i.kind === "goal" ? goalVisualClass(i) : i.kind;
@@ -2869,8 +2879,8 @@ export default function Home() {
       >
         {selected && (
           <div className="detail-content">
-            <div className="row">
-              {["goal","opportunity","hypothesis"].includes(selected.kind) ? goiTitleTag(selected) : <span className={"kind " + selected.kind}><IconFor kind={selected.kind}/>{kinds[selected.kind]}</span>}
+            <div className="row detail-identity-row">
+              {detailTitleTag(selected)}
               <button
                 className="icon-button"
                 aria-label="Cerrar ficha"
@@ -2880,13 +2890,6 @@ export default function Home() {
                 <X />
               </button>
             </div>
-            <div className="breadcrumb">
-              {ancestors(selected, items)
-                .slice(0, -1)
-                .map((i) => i.title)
-                .join(" / ")}
-            </div>
-            {selected.kind === "experiment" ? <h2 className="experiment-detail-title"><FlaskConical size={22} aria-hidden="true"/>{selected.title}</h2> : selected.kind === "hypothesis" ? <h2 className="hypothesis-detail-title"><Lightbulb size={22} aria-hidden="true"/>{selected.title}</h2> : ["goal","opportunity","hypothesis"].includes(selected.kind) ? null : <h2>{selected.title}</h2>}
             {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
               {selected.owner_id && (
