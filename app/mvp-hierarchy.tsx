@@ -31,7 +31,7 @@ function ItemIcon({kind,problemon=false}:{kind:Kind;problemon?:boolean}){
  if(kind==="research")return <Microscope size={17} color={color} aria-hidden="true"/>;
  return <Search size={17} color={color} aria-hidden="true"/>;
 }
-export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
+export function MvpHierarchy({view,project,items,readOnly,canCreate,canEdit,canDelete,onCreate,onOpen,onEdit,onDelete}:Props){
  const hierarchy=getMvpHierarchy(items,view,project.id),meta=labels[view];
  const [openParents,setOpenParents]=useState<Set<string>>(()=>new Set());
  const allProjectItems=items.filter(item=>item.project_id===project.id);
@@ -92,14 +92,12 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
   if(visited.has(item.id))return null;
   const next=new Set(visited);next.add(item.id);
   const descendants=hierarchy.children(item.id);
-  const description=String(item.fields.description||item.fields.belief||item.fields.context||"").trim();
   return <div className="mvp-hierarchy-node" key={item.id}>
    <article className={"mvp-hierarchy-record mvp-hierarchy-"+accents[item.kind]+(isProblemon(item)?" mvp-hierarchy-problemon":"")}>
     <span className="mvp-hierarchy-record-icon"><ItemIcon kind={item.kind} problemon={isProblemon(item)}/></span>
     <div className="mvp-hierarchy-record-text">
      
      <button type="button" className="mvp-hierarchy-title" style={{color:semanticColor(item.kind)}} onClick={()=>onOpen(item)}>{item.title}</button>
-     {description&&<p>{description}</p>}
      {(item.kind==="experiment"||item.kind==="hypothesis"||["impact","confidence","ease"].some(key=>item.fields[key]!==undefined))&&<span className="mvp-hierarchy-ice">ICE <strong>{score(item.fields)}</strong></span>}
 
     </div>
@@ -120,13 +118,7 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
   </div>;
  };
  if(view==="mvp_hypotheses")return <div className="mvp-hierarchy-screen">
-  <section className="mvp-hierarchy-heading panel">
-   <div><span className="eyebrow">{treeName} · {project.title}</span>
-    <h2>Hipótesis ({hypotheses.length})</h2>
-    <p>Listado de hipótesis ordenado por ICE. Los problemas padres y los experimentos o investigaciones relacionados aparecen solo al desplegar cada ficha.</p>
-   </div>
-   {add("Añadir hipótesis","hypothesis")}
-  </section>
+  <div className="mvp-section-actions">{add("Añadir hipótesis","hypothesis")}</div>
   <div className="mvp-experiment-ranked-list mvp-hypothesis-ranked-list">
    {hypotheses.map(hypothesis=>{
     const parent=byId.get(hypothesis.parent_id||"");
@@ -164,13 +156,7 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
   </div>
  </div>;
  if(view==="mvp_research")return <div className="mvp-hierarchy-screen">
-  <section className="mvp-hierarchy-heading panel">
-   <div><span className="eyebrow">MVPs Tree · {project.title}</span>
-    <h2>Investigación ({researchRecords.length})</h2>
-    <p>Listado de investigaciones del proyecto. Despliega los padres para consultar las hipótesis y problemas vinculados.</p>
-   </div>
-   {add("Añadir investigación","research")}
-  </section>
+  <div className="mvp-section-actions">{add("Añadir investigación","research")}</div>
   <div className="mvp-experiment-ranked-list mvp-research-ranked-list">
    {researchRecords.map(research=>{
     const ancestors=researchParentsOf(research);
@@ -205,19 +191,12 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
   </div>
  </div>;
  if(view==="mvp_main_hypothesis")return <div className="mvp-hierarchy-screen">
-   <section className="mvp-hierarchy-heading panel"><div><span className="eyebrow">MVPs Tree · {project.title}</span>
-    <h2>Hipótesis principal</h2><p>La hipótesis principal se vincula por defecto al Problema principal y es el padre predeterminado de nuevos experimentos.</p></div>
-    {!mainHypothesis&&add("Crear hipótesis principal","hypothesis")}
-   </section>
+   <div className="mvp-section-actions">{!mainHypothesis&&add("Crear hipótesis principal","hypothesis")}</div>
    {mainHypothesis?<div className="mvp-hierarchy-list">{node(mainHypothesis,new Set())}</div>:
     <p className="mvp-hierarchy-empty panel">No hay hipótesis principal. Crea una o designa una editando una hipótesis existente.</p>}
   </div>;
  if(view==="mvp_experiments")return <div className="mvp-hierarchy-screen">
-  <section className="mvp-hierarchy-heading panel">
-   <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>Experimentos ({experiments.length})</h2>
-    <p>Ordenados de mayor a menor puntuación ICE. Despliega los padres de cada experimento para ver su jerarquía hacia abajo.</p></div>
-   {add("Añadir experimento","experiment")}
-  </section>
+  <div className="mvp-section-actions">{add("Añadir experimento","experiment")}</div>
   <div className="mvp-experiment-ranked-list">
    {experiments.map((experiment,index)=>{
     const ancestors=parentsOf(experiment),expanded=openParents.has(experiment.id),ice=score(experiment.fields);
@@ -247,15 +226,12 @@ export function MvpHierarchy({view,project,items,readOnly,treeName="MVPs Tree",c
  </div>;
  const group=(item:Item)=><section className="goi-hierarchy-group mvp-hierarchy-group" key={item.id}>{node(item,new Set())}</section>;
  return <div className="mvp-hierarchy-screen">
-  <section className="mvp-hierarchy-heading panel">
-   <div><span className="eyebrow">MVPs Tree · {project.title}</span><h2>{meta.title}</h2><p>{meta.description}</p></div>
-   {add(meta.action,meta.kind)}
-  </section>
+  <div className="mvp-section-actions">{add(meta.action,meta.kind)}</div>
   <div className="mvp-hierarchy-list">
    {hierarchy.roots.map(group)}
    {hierarchy.unlinked.length>0&&<section className="goi-orphans-section mvp-hierarchy-unlinked">
      <div className="goi-orphans-heading"><h2>Sin vincular <span>({hierarchy.unlinked.length})</span></h2>
-     <p>Estos registros se conservan aunque falte su padre. Puedes asignarlo abriendo la ficha.</p></div>
+</div>
      {hierarchy.unlinked.map(group)}
    </section>}
    {!hierarchy.target.length&&<div className="mvp-hierarchy-empty panel">
