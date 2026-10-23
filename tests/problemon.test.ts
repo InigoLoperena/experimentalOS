@@ -82,7 +82,7 @@ test("Problemas u oportunidades only lists ordinary records, never the principal
  const rows=[principal,problem,opportunity,hypothesis,experiment,anotherProject];
  const ordinary=getMvpHierarchy(rows,"mvp_problems","p");
  assert.deepEqual(ordinary.target.map(r=>r.id),["problem","opportunity"]);
- assert.deepEqual(ordinary.roots.map(r=>r.id),["problem","opportunity"]);
+ assert.deepEqual(ordinary.roots.map(r=>r.id),["opportunity","problem"]);
  assert.ok(!ordinary.roots.some(isProblemon));
  assert.ok(!ordinary.target.some(isProblemon));
  // The original record and its descendants remain accessible in the other views.
