@@ -38,7 +38,7 @@ test("The MVP experiment editor never discards GOI, PostHog, or new MVP results 
 
 test("MVPs Tree displays the shared GOI records in a visible hierarchical overview",async()=>{
  const [page,component,hierarchy,migration] = await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../supabase/migrations/20261021163000_mvp_experimentation.sql",import.meta.url),"utf8")
@@ -90,7 +90,7 @@ test("MVPs Tree reuses GOI's hierarchical disclosures and restricts edits in rea
   readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
  ]);
  assert.match(component,/<MvpHierarchy/);
  assert.match(component,/readOnly=\{readOnly\}/);
@@ -142,7 +142,7 @@ test("MVP subsection hierarchy preserves the same shared records, parents, desce
 });
 test("MVP subsections retain separate editable forms and navigation alongside GOI",async()=>{
  const [page,hierarchy,css]=await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/globals.css",import.meta.url),"utf8")
  ]);
@@ -205,7 +205,7 @@ test("MVPs Tree overview preserves nested levels without opening children by def
 
 test("Experiments live only under MVPs Tree and GOI Tree with a unified purple accent",async()=>{
  const [page,css,routes]=await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   import("../lib/section-routes")
  ]);
@@ -226,7 +226,7 @@ test("Experiments live only under MVPs Tree and GOI Tree with a unified purple a
 
 test("Both MVPs Tree and Growth Tree show hypotheses directly, with parents and children collapsed per row",async()=>{
  const [page,hierarchy,styles]=await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-hierarchy.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
  ]);
@@ -288,7 +288,7 @@ test("Research shows every investigation directly, with expandable and deduplica
 
 test("Growth Tree and MVPs Tree use the same experiment fields, editable ICE and save path",async()=>{
  const [page,model]=await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   import("../lib/experiments")
  ]);
  const expected=[
@@ -364,7 +364,7 @@ test("The principal hypothesis exists only in its own list, preserving its exper
 });
 
 test("Expanded details show one colored title and exactly one parent relation for every record type",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  const first=page.indexOf('<div className="detail-content">');
  const last=page.indexOf('</dialog>',first);

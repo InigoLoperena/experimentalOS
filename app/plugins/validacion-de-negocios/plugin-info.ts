@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMetadata } from '@/lib/public-site';
 
 export const pluginPath = '/plugins/validacion-de-negocios';
 export const pluginEmail = 'hello@xperiments.site';
@@ -13,12 +14,7 @@ export const pluginPages = [
 ] as const;
 
 export function pluginMetadata(title: string, description: string, path: string): Metadata {
-  const url = `https://xperiments.site${path}`;
-  return {
-    title: `${title} · Validación de negocios`, description,
-    alternates: { canonical: url },
-    openGraph: { title: `${title} · Validación de negocios`, description, url, locale: 'es_AR', type: 'website' },
-  };
+  return publicMetadata({ title: `${title} · Validación de negocios`, description, path });
 }
 
 export function supportMailto(subject: string) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {viewForPath,pathForView} from '../lib/section-routes';
 
-test('root and /proyectos resolve to public projects',()=>{
+test('workspace route mapper preserves its historical root alias and explicit project URL',()=>{
  assert.equal(viewForPath('/'), 'projects');
  assert.equal(viewForPath('/proyectos'), 'projects');
  assert.equal(pathForView('projects'), '/proyectos');
@@ -19,7 +19,7 @@ test('public SQL exposes an allowlisted project summary without other records or
  assert.doesNotMatch(sql,/set enabled\s*=\s*true/i);
 });
 test('anonymous views include all project navigation while hiding private integrations',async()=>{
- const page=await readFile(new URL('../app/page.tsx',import.meta.url),'utf8');
+ const page=await readFile(new URL('../app/workspace-app.tsx',import.meta.url),'utf8');
  assert.match(page,/\{nav\.map\(\(\{ id, label, icon: I \}\) => \(/);
  assert.match(page,/!publicMode && <PostHogProjectPanel/);
  assert.match(page,/view === "team" && !publicMode/);

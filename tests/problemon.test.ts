@@ -42,7 +42,7 @@ test("Problema principal has separate Growth and MVP section routes and shared C
  assert.equal(viewForPath(sectionPaths.problemon),"problemon");
  assert.equal(viewForPath(sectionPaths.mvp_problemon),"mvp_problemon");
  const [page,component,overview]=await Promise.all([
-  readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+  readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/problemon-section.tsx",import.meta.url),"utf8"),
   readFile(new URL("../app/mvp-experimentation.tsx",import.meta.url),"utf8"),
  ]);

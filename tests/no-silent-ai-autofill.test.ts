@@ -5,7 +5,7 @@ import {readFile} from "node:fs/promises";
 const source=(relative:string)=>readFile(new URL("../"+relative,import.meta.url),"utf8");
 
 test("Creating hypothesis/experiment/research/problem/goal must never inherit parent text",async()=>{
- const page=await source("app/page.tsx");
+ const page=await source("app/workspace-app.tsx");
  assert.doesNotMatch(page,/const contextFields\s*:/);
  assert.doesNotMatch(page,/\.\.\.contextFields/);
  assert.doesNotMatch(page,/metric:\s*goal\?\.fields\.metric/);
@@ -17,14 +17,14 @@ test("Creating hypothesis/experiment/research/problem/goal must never inherit pa
 });
 
 test("Unknown project descriptions cannot silently become invented marketing copy",async()=>{
- const page=await source("app/page.tsx");
+ const page=await source("app/workspace-app.tsx");
  assert.doesNotMatch(page,/defaultProjectDescriptions/);
  assert.doesNotMatch(page,/Descripción pendiente de completar\./);
  assert.match(page,/return String\(project\.fields\.description \|\| ""\)\.trim\(\)/);
 });
 
 test("AI content is only transferred into a record by an explicit UI action",async()=>{
- const page=await source("app/page.tsx");
+ const page=await source("app/workspace-app.tsx");
  const assistant=await source("app/experiment-assistant.tsx");
  const strategic=await source("app/strategic-ai.tsx");
  // Proposals are presented before any field is applied; they are not saved
@@ -39,7 +39,7 @@ test("AI content is only transferred into a record by an explicit UI action",asy
 });
 
 test("Demonstration records stay local and do not auto-populate real workspaces",async()=>{
- const page=await source("app/page.tsx");
+ const page=await source("app/workspace-app.tsx");
  assert.match(page,/if \(demo\) \{/);
  assert.match(page,/setItems\(structuredClone\(demoItems\)\.map\(normalizeExperiment\)\)/);
 });

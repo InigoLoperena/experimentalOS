@@ -40,7 +40,7 @@ test("legacy Growth Tree bookmarks still resolve to the unified Hypótesis secti
 });
 
 test("Hypotheses use one Planteamiento section and one free-text response for all five prompts",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  const model=await readFile(new URL("../lib/model.ts",import.meta.url),"utf8");
  assert.match(page,/hypothesis: schemas\.hypothesis/);
@@ -76,7 +76,7 @@ test("Hypotheses use one Planteamiento section and one free-text response for al
 });
 
 test("Saving an edited hypothesis keeps all historical values not exposed in the new questionnaire",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  assert.match(page,/setDraft\(\{\.\.\.draft,\s*fields:\s*\{/);
  assert.match(page,/\.\.\.draft\.fields/);
  assert.match(page,/fields: record\.fields,/);

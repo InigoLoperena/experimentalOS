@@ -63,7 +63,7 @@ test("Goals and Input Metrics only expand when a reader requests descendants",()
 });
 
 test("native Growth Tree details start folded without recursively opening grandchildren",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  assert.match(page,/getGoiHierarchy\(items, view/);
  assert.match(page,/<details key=\{view \+ ":" \+ item\.id\} className="goi-hierarchy-toggle">/);
  assert.doesNotMatch(page,/querySelectorAll\("details.goi-hierarchy-toggle"\)/);
@@ -101,7 +101,7 @@ test("Orphaned opportunity cards appear in Hipótesis even if no ideas exist yet
 });
 
 test("Orphan groups precede regular GOI branches in both subsection views",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  const start=page.indexOf('aria-label="Oportunidades-problemas huérfanos"');
  const ideas=page.indexOf('aria-label="Hipótesis huérfanas"');
  const regular=page.indexOf("{roots.map(renderGroup)}");

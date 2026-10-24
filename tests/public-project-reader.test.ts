@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {viewForPath,pathForView} from '../lib/section-routes';
 
-test('anonymous landing and deep links support public read-only sections',()=>{
+test('workspace route mapper and deep links support the existing public read-only sections',()=>{
  assert.equal(viewForPath('/'), 'projects');
  for(const view of ['projects','experiments','learning','map','goals','input_metrics','opportunities','ideas','ai','method'] as const)
   assert.equal(viewForPath(pathForView(view)),view);
@@ -24,7 +24,7 @@ test('public SQL publishes all project record kinds, never private data',async()
 });
 
 test('public UI includes sidebar and keeps controls and services private',async()=>{
- const page=await readFile(new URL('../app/page.tsx',import.meta.url),'utf8');
+ const page=await readFile(new URL('../app/workspace-app.tsx',import.meta.url),'utf8');
  assert.match(page,/\{nav\.map\(\(\{ id, label, icon: I \}\) => \(/);
  assert.match(page,/view === "team" && !publicMode/);
  assert.match(page,/view === 'integrations' && !publicMode/);
@@ -40,7 +40,7 @@ test('a visitor can refresh each recognized section URL',async()=>{
 });
 
 test('logged-out readers browse the real workspace, not the editable demo fixtures',async()=>{
- const page=await readFile(new URL('../app/page.tsx',import.meta.url),'utf8');
+ const page=await readFile(new URL('../app/workspace-app.tsx',import.meta.url),'utf8');
  assert.match(page,/Explorar proyectos reales · solo lectura/);
  assert.doesNotMatch(page,/onDemo=\{\(\) => \{ setAuthRequested\(false\); setDemo\(true\); \}\}/);
  assert.match(page,/onDemo=\{\(\) => \{[\s\S]*?getPublicPreview\(supabase!\)/);

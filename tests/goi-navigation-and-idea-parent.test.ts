@@ -11,7 +11,7 @@ test("GOI Tree sidebar uses one blue selected state for every subsection",async(
 });
 
 test("Hypothesis parent opportunity has red magnifying-glass label in cards and expanded details",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
  assert.match(page,/const parentOpportunity = parent\.kind === "opportunity"/);
  assert.match(page,/parentOpportunity \? "opportunity"/);

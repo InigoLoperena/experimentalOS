@@ -21,7 +21,7 @@ test("Database migration detaches parents without deleting children or weakening
 });
 
 test("Delete warning preserves descendants and orphan records remain visible in GOI tree",async()=>{
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  assert.match(page,/childrenToPreserve = workspaceItems\.filter\(item => item\.parent_id === record\.id\)/);
  assert.match(page,/Elementos sin padre/);
  assert.match(page,/Sin padre \(puedes asignarlo más adelante\)/);

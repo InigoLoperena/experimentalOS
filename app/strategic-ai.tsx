@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
+import Image from 'next/image';
 import {FileUp,FlaskConical} from 'lucide-react';
 import {AIBrainIcon} from './ai-brain-icon';
 import {MethodologyLibrary} from './methodology-library';
@@ -78,7 +79,7 @@ export function StrategicAI({workspace,project,disabled,canImport,canEdit,canDel
      <p className="ai-chat-intro">Una IA que aprende de todos tus experimentos, hipótesis y aprendizajes y utiliza la metodología Growth Tree para enfocar el crecimiento en la estrategia. Importa información y contexto relevante de tus proyectos, cualitativo o cuantitativo, en archivos CSV, PDF, DOCX o TXT para hacerla más inteligente.</p>
      <a className="ai-research-guide-link" href="/guia-investigacion" target="_blank" rel="noopener noreferrer">Consejos para investigar mercados, problemas, soluciones e importar información útil</a>
     </div>
-    <img className="ai-project-mascot" src="/einstein-project-ia-hd.png" width={1254} height={1254} decoding="async" alt="Einstein con una bombilla y una probeta"/>
+    <Image className="ai-project-mascot" src="/einstein-project-ia-hd.png" width={1254} height={1254} sizes="(max-width: 800px) 150px, 190px" quality={85} alt="Einstein con una bombilla y una probeta"/>
    </div>
    <button className="btn ai-import-toggle" disabled={locked||loading} aria-expanded={showImport} aria-controls="workspace-ai-import" onClick={()=>setShowImport(v=>!v)}>
     <FileUp size={17}/>{showImport?'Cerrar importación':canImport?'Importar información':'Ver información importada'}

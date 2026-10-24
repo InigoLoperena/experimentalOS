@@ -1,17 +1,19 @@
-import type { Metadata } from "next";
+import { publicMetadata } from "@/lib/public-site";
+import { PublicSiteShell } from "../public-site-shell";
 
-export const metadata: Metadata = {
+export const metadata = publicMetadata({
   title: "Política de privacidad · Xperiments",
   description: "Tratamiento de datos, integraciones y derechos de privacidad en Xperiments.",
-};
+  path: "/privacy-policy",
+});
 
 export default function PrivacyPolicy() {
   return (
-    <main className="privacy-page">
+    <PublicSiteShell><main id="contenido" className="privacy-page">
       <a href="/">← Volver a Xperiments</a>
       <h1>Política de privacidad</h1>
       <p>Última actualización: 16 de octubre de 2026.</p>
-      <p>Esta política describe el uso de datos en Xperiments (Experimental OS), una herramienta para preparar, monitorizar y documentar experimentos. El servicio es gestionado por Imagine Builder. Para consultas sobre privacidad, escribe a <a href="mailto:hello@greenhunt.net">hello@greenhunt.net</a>.</p>
+      <p>Esta política describe el uso de datos en Xperiments (Experimental OS), una herramienta para preparar, monitorizar y documentar experimentos. El servicio es gestionado por Imagine Builder. Para consultas sobre privacidad, escribe a <a href="mailto:hello@xperiments.site">hello@xperiments.site</a>.</p>
 
       <h2>Datos que tratamos</h2>
       <p>Tratamos los datos de cuenta y perfil que facilitas, tu pertenencia al equipo y permisos, y los proyectos, hipótesis, experimentos, resultados, aprendizajes y archivos que introduces. También tratamos la configuración y credenciales de las integraciones que autorizas, sus identificadores y las métricas que solicitas importar. Los servicios de alojamiento pueden registrar datos técnicos de solicitudes, como dirección IP y errores, para operar y proteger el servicio.</p>
@@ -43,6 +45,6 @@ export default function PrivacyPolicy() {
 
       <h2>Tus derechos y cambios</h2>
       <p>Puedes solicitar acceso, corrección, eliminación o una copia de tus datos, y plantear restricciones u objeciones al tratamiento según la normativa aplicable. También puedes revocar permisos de las integraciones. Contacta con hello@greenhunt.net para ejercer estos derechos o resolver dudas. Publicaremos aquí los cambios de esta política con su fecha de actualización.</p>
-    </main>
+    </main></PublicSiteShell>
   );
 }

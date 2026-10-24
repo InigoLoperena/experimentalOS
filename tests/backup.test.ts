@@ -78,7 +78,7 @@ test("CSV skips input metrics, separates explicitly tagged problems and sorts wi
 });
 
 test("CSV route uses records-only query and never includes a full ZIP", async () => {
- const page=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ const page=await readFile(new URL("../app/workspace-app.tsx",import.meta.url),"utf8");
  const dialog=await readFile(new URL("../app/backup-dialog.tsx",import.meta.url),"utf8");
  const service=await readFile(new URL("../lib/backup-service.ts",import.meta.url),"utf8");
  assert.match(page,/if \(format === "csv"\)/);

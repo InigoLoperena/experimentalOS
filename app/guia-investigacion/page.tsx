@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
+import { publicMetadata } from "@/lib/public-site";
+import { PublicSiteShell } from "../public-site-shell";
 
-export const metadata: Metadata = {
+export const metadata = publicMetadata({
   title: "Investigar e importar información útil para tu IA · Xperiments",
   description: "Investiga mercados, problemas y soluciones. Prepara información cualitativa y cuantitativa en CSV, PDF, DOCX y TXT para dar contexto a la IA de tu espacio y diseñar hipótesis y experimentos.",
-};
+  path: "/guia-investigacion",
+});
 
 export default function ResearchGuide() {
   return (
-    <main className="research-guide">
+    <PublicSiteShell><main id="contenido" className="research-guide">
       <nav className="research-top"><a href="/ia">← Volver a IA</a><span>GUÍA PRÁCTICA · INVESTIGACIÓN Y CONTEXTO</span></nav>
       <header className="research-hero">
         <p className="eyebrow">DE LA INVESTIGACIÓN A MEJORES EXPERIMENTOS</p>
@@ -192,6 +194,6 @@ Proyecto ejemplo,2026-10-13,visitantes,landing,registros,8,80,personas,Analytics
         <p className="research-end-note">Esta guía es un procedimiento de investigación, no datos sobre tu mercado concreto. Su calidad depende de documentar evidencias comprobables, respetar la privacidad y aprender de pruebas reales.</p>
         <a href="/ia" className="research-back">← Volver a IA</a>
       </section>
-    </main>
+    </main></PublicSiteShell>
   );
 }

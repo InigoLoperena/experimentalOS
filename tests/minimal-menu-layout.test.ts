@@ -5,7 +5,7 @@ import {readFile} from "node:fs/promises";
 const read=(path:string)=>readFile(new URL("../"+path,import.meta.url),"utf8");
 
 test("All app sections have one page title without redundant laboratory captions or introductory copy",async()=>{
- const page=await read("app/page.tsx");
+ const page=await read("app/workspace-app.tsx");
  const start=page.indexOf('<div className="page-heading">');
  const end=page.indexOf('{error && !draft',start);
  assert.ok(start!==-1&&end>start);
@@ -22,7 +22,7 @@ test("All app sections have one page title without redundant laboratory captions
 
 test("Principal problem is a single large flagged title with only stored description and optional child toggle",async()=>{
  const [component,css,page]=await Promise.all([
-  read("app/problemon-section.tsx"),read("app/globals.css"),read("app/page.tsx")
+  read("app/problemon-section.tsx"),read("app/globals.css"),read("app/workspace-app.tsx")
  ]);
  assert.doesNotMatch(component,/className="problemon-header"|className="problemon-meta"/);
  assert.doesNotMatch(component,/Problema u oportunidad principal|Una única oportunidad principal/);
@@ -56,7 +56,7 @@ test("MVPs Tree subsections and overview do not repeat page titles or explain th
 });
 
 test("Project descriptions are only displayed when saved by a user",async()=>{
- const page=await read("app/page.tsx");
+ const page=await read("app/workspace-app.tsx");
  assert.match(page,/return String\(project\.fields\.description \|\| ""\)\.trim\(\)/);
  assert.match(page,/projectDescription\(currentProject\) && <p>/);
  assert.match(page,/projectDescription\(p\) && <p className="project-description">/);
@@ -67,7 +67,7 @@ test("Project descriptions are only displayed when saved by a user",async()=>{
 
 test("Every menu section has its matching color, icon and title (Experimentos without MVPs)",async()=>{
  const [page,css,ai,routes]=await Promise.all([
-  read("app/page.tsx"),read("app/globals.css"),
+  read("app/workspace-app.tsx"),read("app/globals.css"),
   read("app/strategic-ai.tsx"),read("lib/section-routes.ts"),
  ]);
  const block=page.slice(page.indexOf("const sectionHeadings:"),page.indexOf("const mvpViews ="));

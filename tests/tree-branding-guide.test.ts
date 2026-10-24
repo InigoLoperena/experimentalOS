@@ -6,7 +6,7 @@ const get=(path:string)=>readFile(new URL("../"+path,import.meta.url),"utf8");
 
 test("Growth Tree is the only visible tree name, while stable GOI routes stay usable", async()=>{
  const [page,hierarchy,ai,guide,layout,routes]=await Promise.all([
-  get("app/page.tsx"),get("app/mvp-hierarchy.tsx"),
+  get("app/workspace-app.tsx"),get("app/mvp-hierarchy.tsx"),
   get("app/strategic-ai.tsx"),get("app/guia-investigacion/page.tsx"),
   get("app/layout.tsx"),import("../lib/section-routes"),
  ]);
@@ -22,7 +22,7 @@ test("Growth Tree is the only visible tree name, while stable GOI routes stay us
 });
 
 test("MVPs Tree counter covers shared problems, hypotheses, investigations and experiments once per project",async()=>{
- const page=await get("app/page.tsx");
+ const page=await get("app/workspace-app.tsx");
  assert.match(page,/const mvpTreeCount = items\.filter\(i =>\s*\["opportunity", "hypothesis", "research", "experiment"\]\.includes\(i\.kind\)/);
  assert.match(page,/id === "mvp" && \(\s*<span className="nav-count"/);
  assert.match(page,/\{mvpTreeCount\}/);
@@ -32,7 +32,7 @@ test("MVPs Tree counter covers shared problems, hypotheses, investigations and e
 
 test("Hypothesis is consistently yellow with lightbulb in navigation, tree, stage, details and edit form",async()=>{
  const [page,css,mvp,hierarchy]=await Promise.all([
-  get("app/page.tsx"),get("app/globals.css"),
+  get("app/workspace-app.tsx"),get("app/globals.css"),
   get("app/mvp-experimentation.tsx"),get("app/mvp-hierarchy.tsx"),
  ]);
  assert.match(css,/:root\{--hypothesis-accent:#ffd84d/);
@@ -54,7 +54,7 @@ test("Hypothesis is consistently yellow with lightbulb in navigation, tree, stag
 });
 
 test("How to use guide teaches MVPs Tree second and Growth Tree third, with shared records and follow-up steps",async()=>{
- const page=await get("app/page.tsx");
+ const page=await get("app/workspace-app.tsx");
  const guide=page.slice(page.indexOf("function Method() {"),page.indexOf("function IceGuide() {"));
  const titles=[
   "1. Empieza por un proyecto",

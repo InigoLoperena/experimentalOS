@@ -1,10 +1,17 @@
 import type { ReactNode } from 'react';
 import { pluginEditor, pluginEmail, pluginPages, pluginPath } from './plugin-info';
+import { PublicSiteFooter } from '../../public-site-shell';
+import { SITE_URL, jsonLd } from '@/lib/public-site';
 
 export function PluginPage({ path, eyebrow, title, intro, children }: {
   path: string; eyebrow: string; title: string; intro: string; children: ReactNode;
 }) {
   return <div className="business-plugin-site">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd({'@context':'https://schema.org','@graph':[
+      {'@type':'WebPage',name:title,description:intro,url:`${SITE_URL}${path}`,inLanguage:'es',publisher:{'@type':'Person',name:pluginEditor,email:pluginEmail}},
+      {'@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Xperiments',item:SITE_URL},{'@type':'ListItem',position:2,name:'Validación de negocios',item:`${SITE_URL}${pluginPath}`},...(path!==pluginPath?[{'@type':'ListItem',position:3,name:pluginPages.find(page=>page.path===path)?.label||title,item:`${SITE_URL}${path}`}]:[])]},
+      ...(path===pluginPath?[{'@type':'SoftwareApplication',name:'Validación de negocios',description:intro,url:`${SITE_URL}${pluginPath}`,applicationCategory:'BusinessApplication',operatingSystem:'ChatGPT',isAccessibleForFree:true,publisher:{'@type':'Person',name:pluginEditor,email:pluginEmail}}]:[]),
+    ]})}}/>
     <a className="business-plugin-skip" href="#plugin-content">Saltar al contenido</a>
     <header className="business-plugin-header">
       <a href="/" className="business-plugin-brand" aria-label="Xperiments, inicio">
@@ -27,5 +34,6 @@ export function PluginPage({ path, eyebrow, title, intro, children }: {
       <a href={`mailto:${pluginEmail}`}>{pluginEmail}</a>
       <a href="/">Volver a Xperiments</a>
     </footer>
+    <PublicSiteFooter/>
   </div>;
 }
