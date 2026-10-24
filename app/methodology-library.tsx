@@ -5,7 +5,7 @@ export function MethodologyLibrary() {
   return <details className="methodology-library">
     <summary aria-label="Ver libros, descripciones y enlaces de Amazon">
       <span className="methodology-library-copy">
-        <span>La IA de Experiments consulta conocimientos metodológicos de referencia y los combina con la memoria privada de tu espacio para ayudarte a formular hipótesis y diseñar experimentos que validen tu propuesta de valor y modelo de negocio.</span>
+        <span>La IA de Experiments tiene los conocimientos de los mejores libros que te ayudarán a formular hipótesis y diseñar experimentos, a hacerte las preguntas correctas para validar tu propuesta de valor y modelo de negocio.</span>
       </span>
       <span className="methodology-cover-preview">{methodologyBooks.slice(0,3).map(book =>
         <img key={book.id} src={book.cover} width={book.coverWidth} height={book.coverHeight} decoding="async" alt={`Portada de ${book.title}`}/>

@@ -2843,13 +2843,13 @@ nav button,
 .ai-flow-arrow { padding:12px 0; color:var(--blue-text); }
 .ai-diagram figcaption { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:18px; color:var(--lime); font-size:13px; }
 .methodology-library { margin-bottom:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); overflow:hidden; }
-.methodology-library > summary { display:flex; align-items:center; gap:18px; padding:10px 16px; cursor:pointer; list-style:none; }
+.methodology-library > summary { display:flex; align-items:center; gap:28px; padding:22px 24px; cursor:pointer; list-style:none; }
 .methodology-library > summary::-webkit-details-marker { display:none; }
 .methodology-library > summary:focus-visible { outline:2px solid var(--lime); outline-offset:-3px; border-radius:var(--radius); }
 .methodology-library-copy { flex:1; min-width:0; }
-.methodology-library-copy > span { display:block; font-size:12px; color:var(--muted); line-height:1.5; }
-.methodology-cover-preview { display:flex; align-items:center; gap:7px; flex-shrink:0; }
-.methodology-cover-preview img { width:auto; height:54px; border-radius:3px; box-shadow:0 2px 7px #0004; }
+.methodology-library-copy > span { display:block; font-size:17px; color:var(--ink); line-height:1.65; text-wrap:pretty; }
+.methodology-cover-preview { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+.methodology-cover-preview img { width:auto; height:104px; border-radius:3px; box-shadow:0 3px 10px #0004; }
 .methodology-library-body { padding:16px; border-top:1px solid var(--border); }
 .methodology-books { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:14px; }
 .methodology-book { display:flex; align-items:flex-start; gap:14px; padding:16px; border:1px solid var(--border); background:var(--field); border-radius:10px; }
@@ -2861,9 +2861,10 @@ nav button,
 .methodology-book small { display:block; font-size:11px; color:var(--muted); }
 .methodology-book a { display:inline-flex; align-items:center; gap:5px; margin-top:10px; font-size:12px; text-underline-offset:3px; }
 @media(max-width:600px){
- .methodology-library > summary { padding:12px; gap:10px; flex-wrap:wrap; }
+ .methodology-library > summary { padding:18px; gap:18px; flex-wrap:wrap; }
  .methodology-library-copy { flex-basis:100%; }
- .methodology-cover-preview img { height:46px; }
+ .methodology-library-copy > span { font-size:16px; }
+ .methodology-cover-preview img { height:90px; }
  .methodology-library-body { padding:12px; }
  .methodology-book { padding:12px; }
  .methodology-book > img { width:70px; }
@@ -2883,9 +2884,6 @@ nav button,
 .ai-import { display:grid; gap:13px; margin-top:20px; }.ai-import label { display:grid; gap:7px; font-size:13px; }.ai-import input,.ai-import select,.ai-import textarea { width:100%; }.ai-import .ai-reviewed { display:flex; align-items:center; }.ai-reviewed input { width:auto; }
 .ai-knowledge-list { margin-top:18px; }.ai-knowledge-list article { padding:14px 0; border-top:1px solid var(--border); overflow-wrap:anywhere; }.ai-knowledge-list strong,.ai-knowledge-list small { display:block; }.ai-knowledge-list small { color:var(--muted); margin:6px 0; }.ai-knowledge-list span { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--blue-text); }.ai-knowledge-list .btn { padding:6px; }
 .ai-source-preview { padding:16px; margin-top:12px; border:1px solid var(--border); border-radius:10px; }.ai-source-preview pre { max-height:300px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
-.strategic-ai .ai-intro-header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.strategic-ai .ai-project-mascot { float:none; width:80px; margin:0; flex-shrink:0; }
-.strategic-ai .ai-intro-copy .ai-chat-intro { font-size:14px; line-height:1.5; color:var(--muted); }
 .ai-import-toggle { margin-bottom:16px; }
 .ai-library-panel { padding:16px; margin-bottom:18px; border:1px solid var(--border); border-radius:10px; background:var(--field); }
 .ai-library-panel > .ai-import { margin-top:0; }
@@ -3011,35 +3009,39 @@ nav button,
 .ai-drop-overlay{position:absolute;inset:0;z-index:12;display:grid;place-items:center;border-radius:21px;background:var(--surface);color:var(--lime);pointer-events:none;font-weight:700}
 .ai-compose-error{margin:0 12px 10px}
 .ai-chat .ai-messages:empty{display:none}
-.ai-chat .ai-chat-intro{margin-bottom:16px}
 @media(max-width:500px){.ai-compose-line textarea{font-size:13px}.ai-compose-actions{gap:0}.ai-file-chip span{max-width:140px}}
 
-/* Einstein in the project AI panel, not in the application's main header. */
+/* Keep the introduction and its high-resolution mascot aligned without clipping copy. */
 .ai-intro-header {
- display:flow-root;
- margin-bottom:14px;
+ display:grid;
+ grid-template-columns:minmax(0,1fr) 190px;
+ align-items:center;
+ gap:28px;
+ margin-bottom:18px;
 }
 .ai-intro-copy { min-width:0; }
-.ai-intro-copy h2 { display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:21px; }
+.ai-intro-copy h2 { display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:24px; }
 .ai-intro-copy .ai-brain-icon {color:var(--blue-text);flex-shrink:0}
-.ai-intro-copy .ai-chat-intro {max-width:none;width:auto;margin:0;font-size:16px;line-height:1.65;color:var(--ink)}
+.ai-intro-copy .ai-chat-intro {max-width:none;width:auto;margin:0;font-size:18px;line-height:1.65;color:var(--ink);text-wrap:pretty}
 .ai-project-mascot {
  display:block;
- float:right;
- width:clamp(115px,14vw,165px);
+ width:190px;
+ max-width:100%;
  height:auto;
- margin:0 0 8px 16px;
+ margin:0;
  object-fit:contain;
  pointer-events:none;
  background:transparent;
 }
 @media(max-width:800px) {
- .ai-project-mascot{width:120px;margin-left:12px}
+ .ai-intro-header{grid-template-columns:minmax(0,1fr) 150px;gap:20px}
+ .ai-intro-copy .ai-chat-intro{font-size:17px}
 }
 @media(max-width:480px) {
- .ai-intro-copy h2{font-size:18px}
- .ai-project-mascot{width:88px;margin-left:8px}
- .ai-intro-copy .ai-chat-intro{font-size:14px;line-height:1.55}
+ .ai-intro-header{grid-template-columns:minmax(0,1fr);gap:16px}
+ .ai-intro-copy h2{font-size:21px}
+ .ai-intro-copy .ai-chat-intro{font-size:16px;line-height:1.65}
+ .ai-project-mascot{width:150px;justify-self:center}
 }
 
 /* GOI Tree: opportunity/problem = red; idea = yellow (label and icon). */
