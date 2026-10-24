@@ -19,7 +19,7 @@
 .public-text-link:hover { text-decoration:underline; text-underline-offset:5px; }
 .public-caption { margin-top:17px; font-size:11px; color:var(--muted); }
 .landing-hero { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:center; gap:60px; padding:62px 0 64px; }
-.landing-hero h1 { margin:21px 0 24px; font-size:clamp(38px,3.6vw,54px); line-height:1.12; letter-spacing:-2px; color:var(--red); }
+.landing-hero h1 { margin:21px 0 24px; font-size:clamp(38px,3.6vw,54px); line-height:1.12; letter-spacing:-2px; color:var(--brand-blue); }
 .landing-hero h1>span { color:var(--ink); }
 .landing-definition { font-size:17px; line-height:1.8; max-width:560px; }
 .experiment-preview { border:1px solid #3c527c; background:linear-gradient(135deg,#203253,var(--surface)); border-radius:16px; padding:0 23px 22px; box-shadow:0 28px 80px #0003; transform:rotate(1deg); }
@@ -48,7 +48,7 @@
 .landing-flow svg { color:#617497; }
 .landing-flow strong { color:var(--lime); }
 .landing-section { padding:86px 0; }
-.landing-section-heading h2 { margin-top:16px; font-size:36px; letter-spacing:-1.3px; line-height:1.22; color:var(--red); }
+.landing-section-heading h2 { margin-top:16px; font-size:36px; letter-spacing:-1.3px; line-height:1.22; color:var(--brand-blue); }
 .landing-section-heading h2>span { color:var(--ink); }
 .landing-section-heading>p:not(.public-eyebrow) { max-width:580px; margin-top:20px; font-size:16px; line-height:1.8; }
 .landing-section-heading>.public-text-link { margin-top:24px; color:var(--blue-text); }
@@ -89,7 +89,7 @@
 .public-footer nav>a { color:var(--muted); text-decoration:none; font-size:12px; }
 .public-footer nav>a:hover { color:var(--ink); text-decoration:underline; }
 .public-document { max-width:900px; padding-top:65px; padding-bottom:70px; }
-.public-document h1 { margin:18px 0 24px; color:var(--red); font-size:42px; }
+.public-document h1 { margin:18px 0 24px; color:var(--brand-blue); font-size:42px; }
 .public-lead { font-size:18px; line-height:1.8; }
 .public-document section { margin-top:42px; }
 .public-document h2 { margin-bottom:15px; color:var(--ink); font-size:24px; }

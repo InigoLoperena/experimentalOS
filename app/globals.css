@@ -12,6 +12,7 @@
   --surface-raised: #1c2e55;
   --field: #101b36;
   --blue-text: #8abcff;
+  --brand-blue: var(--blue-text);
   --red-text: #ff8585;
   --green-tint: #1b3042;
   --blue-tint: #172c50;
@@ -189,7 +190,7 @@ select {
 .product-title {
   display: block;
   max-width: 100%;
-  color: #fa3654;
+  color: var(--brand-blue);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
@@ -2656,7 +2657,7 @@ nav button,
   flex-direction: column;
   align-items: flex-start;
   background: #0b1530;
-  color: #fa3654;
+  color: var(--brand-blue);
   border-radius: 8px;
   padding: 12px 13px 13px;
   margin: -10px 0 18px;
@@ -2675,7 +2676,7 @@ nav button,
 .meta-previews{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}.meta-previews figure{margin:0;max-width:280px}.meta-previews img{max-width:100%;height:auto;border-radius:10px}.meta-previews figcaption{font-size:12px;color:var(--muted);margin-top:8px}
 /* Public privacy notice, available without a session. */
 .privacy-page { max-width: 860px; margin: 0 auto; padding: 40px 24px 64px; line-height: 1.7; overflow-wrap: anywhere; }
-.privacy-page h1 { color: var(--red); font-size: clamp(1.8rem, 5vw, 2.6rem); }
+.privacy-page h1 { color: var(--brand-blue); font-size: clamp(1.8rem, 5vw, 2.6rem); }
 .privacy-page h2 { color: var(--lime); margin-top: 32px; font-size: 1.25rem; }
 .privacy-page p { margin: 16px 0; }
 
@@ -2941,14 +2942,14 @@ nav button,
 .research-guide a{text-underline-offset:3px}
 .research-guide a:hover{color:var(--lime)}
 .research-hero{padding:36px 32px;background:var(--surface);border-radius:18px;border:1px solid var(--border);margin-bottom:30px}
-.research-hero h1{font-size:clamp(27px,4.5vw,43px);line-height:1.15;color:var(--red);letter-spacing:-1px;margin:10px 0 18px}
+.research-hero h1{font-size:clamp(27px,4.5vw,43px);line-height:1.15;color:var(--brand-blue);letter-spacing:-1px;margin:10px 0 18px}
 .research-hero>p:not(.eyebrow){font-size:16px;color:var(--ink);max-width:780px}
 .research-principle{padding:14px 18px;margin-top:24px;background:var(--field);border-left:3px solid var(--lime);border-radius:8px;font-size:14px}
 .research-index{display:flex;flex-wrap:wrap;gap:10px 18px;margin:16px 0 38px;padding:20px;border:1px solid var(--border);border-radius:12px}
 .research-index strong{width:100%;color:var(--ink)}
 .research-index a{font-size:13px;white-space:nowrap}
 .research-guide section{padding:25px 0;border-top:1px solid var(--border);scroll-margin-top:20px}
-.research-guide h2{font-size:clamp(21px,3.2vw,27px);color:var(--red);margin:0 0 18px}
+.research-guide h2{font-size:clamp(21px,3.2vw,27px);color:var(--brand-blue);margin:0 0 18px}
 .research-guide h3{font-size:17px;margin:22px 0 10px;color:var(--ink)}
 .research-guide p{margin:11px 0;color:var(--ink)}
 .research-guide li{margin:8px 0;color:var(--ink)}
@@ -3073,11 +3074,11 @@ nav button,
 .business-plugin-nav a[aria-current="page"]{background:var(--lime);color:var(--charcoal)}
 .business-plugin-hero{padding:46px 0 20px;max-width:900px}
 .business-plugin-hero .eyebrow{color:var(--lime);font-size:12px;letter-spacing:1.5px;font-weight:700}
-.business-plugin-hero h1{font-size:clamp(32px,5vw,50px);color:var(--red);letter-spacing:-1.3px;margin:15px 0 18px;overflow-wrap:anywhere}
+.business-plugin-hero h1{font-size:clamp(32px,5vw,50px);color:var(--brand-blue);letter-spacing:-1.3px;margin:15px 0 18px;overflow-wrap:anywhere}
 .business-plugin-hero>p:last-child{color:var(--muted);font-size:18px;line-height:1.7}
 .business-plugin-main{min-width:0;padding:0}
 .business-plugin-section{padding:28px 0;border-top:1px solid var(--border);margin-top:16px;scroll-margin-top:18px}
-.business-plugin-section h2{color:var(--red-text);font-size:23px;margin-bottom:16px}
+.business-plugin-section h2{color:var(--brand-blue);font-size:23px;margin-bottom:16px}
 .business-plugin-section h3{font-size:18px;margin:14px 0 10px}
 .business-plugin-section p+p{margin-top:15px}
 .business-plugin-section p,.business-plugin-section li{line-height:1.8;overflow-wrap:anywhere}

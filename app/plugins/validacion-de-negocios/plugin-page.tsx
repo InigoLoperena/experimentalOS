@@ -15,7 +15,7 @@ export function PluginPage({ path, eyebrow, title, intro, children }: {
     <a className="business-plugin-skip" href="#plugin-content">Saltar al contenido</a>
     <header className="business-plugin-header">
       <a href="/" className="business-plugin-brand" aria-label="Xperiments, inicio">
-        <img src="/logo.svg" width={695} height={258} alt="Xperiments" />
+        <img src="/logo.svg?v=light-blue-20261024" width={695} height={258} alt="Xperiments" />
       </a>
       <a className="business-plugin-name" href={pluginPath}>Validación de negocios<span>Complemento para ChatGPT</span></a>
     </header>

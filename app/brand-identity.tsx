@@ -3,7 +3,7 @@ export function BrandIdentity() {
     <span className="brand-identity">
       <img
         className="xperiments-logo"
-        src="/logo.svg"
+        src="/logo.svg?v=light-blue-20261024"
         width={695}
         height={258}
         alt="Xperiments"

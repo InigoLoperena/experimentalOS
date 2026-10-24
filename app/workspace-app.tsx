@@ -1722,7 +1722,7 @@ export default function Home() {
             <div className="guest-logo-wrap">
               <img
                 className="xperiments-logo guest-logo"
-                src="/logo.svg"
+                src="/logo.svg?v=light-blue-20261024"
                 width={695}
                 height={258}
                 alt="Xperiments"
@@ -1803,7 +1803,7 @@ export default function Home() {
             navigateView(publicMode?"projects":"map");
           }}
         >
-          <img className="xperiments-logo" src="/logo.svg" width={695} height={258} alt="Xperiments · Experimental Innovation OS" />
+          <img className="xperiments-logo" src="/logo.svg?v=light-blue-20261024" width={695} height={258} alt="Xperiments · Experimental Innovation OS" />
         </a>
         <div className="sidebar-product-identity" aria-label="Experimental Innovation OS">
           <span>Experimental</span>
