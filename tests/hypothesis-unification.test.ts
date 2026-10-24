@@ -71,7 +71,7 @@ test("Hypotheses use one Planteamiento section and one free-text response for al
  assert.doesNotMatch(details,/Hipótesis y fundamentos|Validación|Indicadores y priorización/);
  assert.match(css,/\.hypothesis-question-label\{white-space:pre-line/);
  assert.match(css,/\.hypothesis-detail-section \.field-details dt\{white-space:pre-line/);
- assert.match(page,/Hipótesis padre \(principal predeterminada; compartida entre Growth Tree y MVPs Tree\)/);
+ assert.match(page,/Hipótesis padre/);
  assert.match(model,/experiment: "hypothesis"/);
 });
 

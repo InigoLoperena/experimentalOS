@@ -7,7 +7,7 @@ import {emptyGoogleAds} from '@/lib/google-ads-options';
 import {GooglePlayFields} from './google-play-fields';
 import {posthogChannels} from '@/lib/posthog-options';
 
-export function ExperimentExecution({draft,disabled,onChange}:{draft:Item;disabled:boolean;onChange:(draft:Item)=>void}){
+export function ExperimentExecution({draft,disabled,onChange,channelOnly=false}:{draft:Item;disabled:boolean;onChange:(draft:Item)=>void;channelOnly?:boolean}){
   let plan:ExecutionPlan=emptyExecution();
   try{if(draft.fields.execution_config){const value=JSON.parse(String(draft.fields.execution_config));if(value&&typeof value==='object'&&Array.isArray(value.variants))plan={...plan,...value};}}catch{}
   function update(value:ExecutionPlan){onChange({...draft,fields:{...draft.fields,execution_config:JSON.stringify(value)}});}
@@ -15,7 +15,7 @@ export function ExperimentExecution({draft,disabled,onChange}:{draft:Item;disabl
     <label>Canal principal<select disabled={disabled} value={String(draft.fields.channel||'')} onChange={e=>onChange({...draft,fields:{...draft.fields,channel:e.target.value}})}><option value="">Seleccionar canal…</option>{Object.entries(channels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
     <p className="small">Un canal principal, varias variantes y campañas. Puedes preparar el experimento antes de conectar la plataforma.</p>
     {posthogChannels.includes(String(draft.fields.channel))&&<p className="small">Describe las dos variantes y qué quieres medir en «Preparar con IA». Envía el borrador a PostHog para revisarlo allí. La activación y la implementación de las variantes en tu web/app son pasos posteriores.</p>}
-    {draft.fields.channel && ![...posthogChannels,'meta_ads','google_ads','smartlead'].includes(String(draft.fields.channel)) && <details key={String(draft.fields.channel)} open><summary>Configuración de {channels[draft.fields.channel as keyof typeof channels]}</summary>
+    {!channelOnly && draft.fields.channel && ![...posthogChannels,'meta_ads','google_ads','smartlead'].includes(String(draft.fields.channel)) && <details key={String(draft.fields.channel)} open><summary>Configuración de {channels[draft.fields.channel as keyof typeof channels]}</summary>
       {draft.fields.channel==='google_play'&&<GooglePlayFields value={plan.play} disabled={disabled} onChange={play=>update({...plan,play})}/>}
       {draft.fields.channel==='meta_ads'&&<fieldset className="monitoring-block monitoring-grid" disabled={disabled}><legend>Parámetros de Meta para revisión</legend><label>Enlace del anuncio<input type="text" maxLength={2000} value={plan.destination??''} onChange={e=>update({...plan,destination:e.target.value===''?null:e.target.value})}/></label>
 <label>Inversión diaria total en Meta<input type="number" min="0" max="1000000" step="0.01" value={plan.daily_budget??''} onChange={e=>update({...plan,daily_budget:e.target.value===''?null:Number(e.target.value)})}/></label>

@@ -90,6 +90,30 @@ try {
   await page.getByRole('button', { name: 'Hipótesis QA', exact: true }).waitFor();
   checks.push('Authenticated fixture opens its workspace and selected project');
   for (const path of Object.values(sectionPaths)) { await navigate(path); checks.push(`Direct route ${path}`); }
+  await navigate('/goi-tree/experimentos');
+  assert.equal(await page.getByRole('columnheader', { name: 'Responsable', exact: true }).count(), 0);
+  assert.ok(!(await page.getByRole('textbox', { name: 'Buscar experimentos', exact: true }).getAttribute('placeholder')).includes('responsable'));
+  assert.equal(await page.locator('.record-owner').count(), 0);
+  await navigate('/experimentacion-mvps/hipotesis-principal');
+  await page.getByRole('button', { name: 'Editar Hipótesis QA', exact: true }).click();
+  const hypothesisEditor = page.locator('dialog.edit-dialog[open]');
+  assert.equal(await hypothesisEditor.getByRole('combobox', { name: 'Responsable', exact: true }).count(), 0);
+  await hypothesisEditor.locator('textarea').first().fill('Hipótesis revisada sin reasignación');
+  await hypothesisEditor.getByRole('button', { name: 'Guardar ficha', exact: true }).click();
+  await hypothesisEditor.waitFor({ state: 'hidden' });
+  assert.equal(records.find(r => r.kind === 'hypothesis').owner_id, user.id);
+  assert.equal(writes, 1);
+  await navigate('/experimentacion-mvps/experimentos');
+  await page.getByRole('button', { name: 'Editar Experimento QA', exact: true }).click();
+  const assignedEditor = page.locator('dialog.edit-dialog[open]');
+  assert.equal(await assignedEditor.getByRole('combobox', { name: 'Responsable', exact: true }).count(), 0);
+  await assignedEditor.getByRole('textbox', { name: 'Contexto', exact: true }).fill('Contexto revisado sin reasignación');
+  await assignedEditor.getByRole('button', { name: 'Guardar ficha', exact: true }).click();
+  await assignedEditor.waitFor({ state: 'hidden' });
+  assert.equal(records.find(r => r.title === 'Experimento QA').owner_id, user.id);
+  assert.equal(records.find(r => r.title === 'Experimento QA').fields.hypothesis, 'Hipótesis propia');
+  assert.equal(writes, 2);
+  checks.push('Assignment is absent from lists/forms and editing preserves existing experiment/hypothesis owners');
   await navigate('/experimentacion-mvps/experimentos');
   assert.equal(await page.getByRole('button', { name: 'Solo otro proyecto', exact: true }).count(), 0);
   await page.getByRole('button', { name: 'Desplegar padres (2)', exact: true }).click();
@@ -98,17 +122,32 @@ try {
   checks.push('Experiment ancestors expand with project-scoped shared IDs');
   await page.getByRole('button', { name: 'Añadir experimento', exact: true }).first().click();
   const editor = page.locator('dialog.edit-dialog[open]');
+  assert.equal(await editor.getByRole('combobox', { name: 'Responsable', exact: true }).count(), 0);
+  const firstSections = await editor.locator('.form-body').evaluate(body => Array.from(body.children).filter(element => element.matches('label, .experiment-form-ice')).slice(0,3).map(element => element.textContent.trim()));
+  assert.equal(firstSections[0], 'Nombre');
+  assert.ok(firstSections[1].startsWith('ICE'));
+  assert.ok(firstSections[2].startsWith('Hipótesis padre'));
+  assert.equal(await editor.getByRole('heading', { name: 'ICE', exact: true }).count(), 1);
+  for (const name of ['Hipótesis', 'Fecha de inicio', 'Fecha de finalización', 'Métricas secundarias', 'Audiencia y asignación de tráfico', 'Riesgos', 'Resultados obtenidos', 'Aprendizaje', 'Decisión', 'Etiquetas (separadas por comas)']) {
+    assert.equal(await editor.getByLabel(name, { exact: true }).count(), 0, `Hidden field still shown: ${name}`);
+  }
+  assert.equal(await editor.getByRole('combobox', { name: 'Hipótesis padre', exact: true }).count(), 1);
+  for (const name of ['Contexto', 'Descripción', 'Target', 'Métrica principal', 'Criterio de éxito']) await editor.getByRole('textbox', { name, exact: true }).waitFor();
+  const channelSelect = editor.getByRole('combobox', { name: 'Canal principal', exact: true });
+  for (const channel of ['meta_ads', 'google_ads', 'smartlead', 'metricool', 'google_play', 'posthog']) {
+    await channelSelect.selectOption(channel);
+    assert.equal(await editor.locator('summary').filter({ hasText: /^Configuración de / }).count(), 0, `Advanced form shown for ${channel}`);
+    await editor.getByText('Preparar con IA', { exact: true }).waitFor();
+  }
+  await channelSelect.selectOption('');
+  checks.push('Experiment editor has only the requested fields, with ICE immediately after Name');
   await editor.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Experimento nuevo QA');
   await editor.getByRole('textbox', { name: 'Contexto', exact: true }).fill('Contexto escrito por una persona');
-  await editor.getByRole('textbox', { name: 'Hipótesis', exact: true }).fill('Hipótesis nueva');
+  await editor.getByRole('textbox', { name: 'Descripción', exact: true }).fill('Descripción de la prueba');
+  await editor.getByRole('textbox', { name: 'Target', exact: true }).fill('Personas de prueba');
   await editor.getByRole('textbox', { name: 'Métrica principal', exact: true }).fill('Clics');
-  await editor.getByRole('textbox', { name: 'Fecha de inicio', exact: true }).fill('2026-10-23');
-  await editor.getByRole('textbox', { name: 'Fecha de finalización', exact: true }).fill('2026-10-22');
-  await editor.getByRole('button', { name: 'Guardar ficha', exact: true }).click();
-  await editor.getByRole('alert').filter({ hasText: 'La fecha final debe ser posterior al inicio.' }).waitFor();
-  assert.equal(writes, 0, 'Invalid dates were saved');
-  await editor.getByRole('textbox', { name: 'Fecha de finalización', exact: true }).fill('2026-10-24');
-  checks.push('Invalid experiment dates are rejected before a write');
+  await editor.evaluate(dialog => { dialog.scrollTop = 0; });
+  await editor.screenshot({ path: fileURLToPath(new URL('simplified-experiment-form.png', output)) });
   await editor.getByRole('textbox', { name: 'Contexto', exact: true }).click();
   await editor.getByRole('button', { name: 'Dictar texto', exact: true }).click();
   await page.evaluate(() => window.qaDictation.onresult({ resultIndex: 0, results: [[{ transcript: 'contenido dictado' }]] }));
@@ -131,6 +170,7 @@ try {
   assert.equal(edited.parent_id, '66666666-6666-4666-8666-666666666666');
   checks.push('Editing ICE preserves experiment content and its shared hypothesis parent');
   await detail.getByRole('button', { name: 'Documentar aprendizaje', exact: true }).click();
+  assert.equal(await editor.getByRole('combobox', { name: 'Responsable', exact: true }).count(), 0);
   await editor.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Aprendizaje nuevo QA');
   await editor.getByRole('textbox', { name: 'Qué aprendimos', exact: true }).fill('Conclusión pendiente de revisión');
   await editor.getByRole('button', { name: 'Guardar ficha', exact: true }).click();
@@ -139,6 +179,7 @@ try {
   checks.push('Documenting a learning preserves its experiment association');
   await navigate('/experimentacion-mvps/investigacion');
   await page.getByRole('button', { name: 'Añadir investigación', exact: true }).first().click();
+  assert.equal(await editor.getByRole('combobox', { name: 'Responsable', exact: true }).count(), 0);
   await editor.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Investigación nueva QA');
   await editor.getByRole('textbox', { name: 'Hallazgos', exact: true }).fill('Hallazgo de entrevista');
   await editor.getByRole('button', { name: 'Guardar ficha', exact: true }).click();

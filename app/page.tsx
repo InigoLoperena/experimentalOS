@@ -31,12 +31,13 @@ import {
   Plug,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { experimentFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
+import { experimentFields, experimentEditorFields, experimentSections, normalizeExperiment } from "@/lib/experiments";
 import { getGoiHierarchy } from "@/lib/goi-hierarchy";
 import { MvpExperimentation } from "./mvp-experimentation";
 import { MvpHierarchy } from "./mvp-hierarchy";
 import { ProblemonSection } from "./problemon-section";
 import { EditorDictation } from "./editor-dictation";
+import { recordAssignmentVisible } from "@/lib/ui-features";
 import { getProblemon, isProblemon } from "@/lib/problemon";
 import { demoItems, demoMembers, demoActivity } from "@/lib/demo";
 import { Avatar, ProfileDialog, type PersonalProfile } from "./profile-settings";
@@ -1368,7 +1369,7 @@ export default function Home() {
       i.fields.hypothesis,
       i.fields.context,
       i.fields.tags,
-      author(i.owner_id),
+      recordAssignmentVisible ? author(i.owner_id) : "",
     ]
       .join(" ")
       .toLowerCase()
@@ -1441,7 +1442,7 @@ export default function Home() {
         {!inHierarchy && parentTag(i)}
         {inHierarchy && i.kind==="opportunity" && ["impact","confidence","ease"].some(key=>i.fields[key]!==undefined) && <span className="small hierarchy-ice">ICE {score(i.fields)}</span>}
         {i.kind === "goal" && i.fields.goi_section === "input_metrics" && <span className="small">Actual: {i.fields.current ?? "—"} · Meta: {i.fields.target ?? "—"} {i.fields.unit || ""}</span>}
-        {["goal", "opportunity", "hypothesis"].includes(i.kind) && i.owner_id && (
+        {recordAssignmentVisible && ["goal", "opportunity", "hypothesis"].includes(i.kind) && i.owner_id && (
           <span className="small record-owner">Responsable: {author(i.owner_id)}</span>
         )}
         {i.kind === "kr" && (
@@ -1471,7 +1472,7 @@ export default function Home() {
         )}
         {i.kind === "experiment" && (
           <div className="row">
-            {i.owner_id && <span className="small">{author(i.owner_id)}</span>}
+            {recordAssignmentVisible && i.owner_id && <span className="small">{author(i.owner_id)}</span>}
             <span className="small">ICE {score(i.fields)}</span>
           </div>
         )}
@@ -1571,9 +1572,8 @@ export default function Home() {
     setMembers(prev => prev.map(member => member.user_id === (demo ? "demo-user" : user?.id) ? { ...member, ...next } : member));
     tell("Perfil actualizado");
   }
-  const draftFields = (links?: ReactNode) => draft && (draft.kind === "experiment" ? schemas.experiment : mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind]).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id").map((f) => (
+  const draftFields = (fields?: Field[]) => draft && (fields || (draft.kind === "experiment" ? experimentEditorFields : mvpEditor && mvpSchemas[draft.kind] ? mvpSchemas[draft.kind]! : schemas[draft.kind])).filter(f => draft.kind !== "experiment" || f.key !== "posthog_experiment_id").map((f: Field) => (
                 <Fragment key={f.key}>
-                {draft.kind === "experiment" && f.key === "impact" && <h3 className="full experiment-ice-title">ICE</h3>}
                 {draft.kind === "hypothesis" && f.key === "description" && <h3 className="full hypothesis-form-section">Planteamiento</h3>}
                 <label
                   key={f.key}
@@ -1676,7 +1676,6 @@ export default function Home() {
                     </>
                   )}
                 </label>
-                {draft.kind === "experiment" && f.key === "tags" && <><div className="full">{links}</div><ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft}/>{!publicMode && <ExperimentAssistant key={`${draft.id}-${String(draft.fields.channel||'')}`} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}</>}
                 </Fragment>
               ));
   const profileEditor = showProfile ? <ProfileDialog profile={profile} ready={profileReady} onSave={saveProfile} onClose={() => setShowProfile(false)} /> : null;
@@ -2367,7 +2366,7 @@ export default function Home() {
                   <Search size={17} />
                   <input
                     aria-label="Buscar experimentos"
-                    placeholder="Buscar por nombre, responsable, hipótesis o etiquetas…"
+                    placeholder={recordAssignmentVisible ? "Buscar por nombre, responsable, hipótesis o etiquetas…" : "Buscar por nombre, hipótesis o etiquetas…"}
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                   />
@@ -2378,7 +2377,7 @@ export default function Home() {
                   <thead>
                     <tr>
                       <th>Experimento</th>
-                      <th>Responsable</th>
+                      {recordAssignmentVisible && <th>Responsable</th>}
                       <th>ICE</th>
                       <th>Fecha de inicio</th>
                       <th>Etiquetas</th>
@@ -2396,9 +2395,9 @@ export default function Home() {
                             {parentTag(e)}
                           </button>
                         </td>
-                        <td>
+                        {recordAssignmentVisible && <td>
                           {e.owner_id ? author(e.owner_id) : "—"}
-                        </td>
+                        </td>}
                         <td>
                           <strong>{score(e.fields)}</strong>
                         </td>
@@ -2778,7 +2777,7 @@ export default function Home() {
             </div>
             {selected.parent_id && items.some(i => i.id === selected.parent_id) && <div className="record-relation"><span>Hijo de</span>{parentTag(selected)}</div>}
             <div className="row detail-meta">
-              {selected.owner_id && (
+              {recordAssignmentVisible && selected.owner_id && (
                 <span>Responsable: {author(selected.owner_id)}</span>
               )}
               {selected.kind !== "experiment" && selected.fields.status && (
@@ -2983,7 +2982,11 @@ export default function Home() {
                   }
                 />
               </label>
-              {draft.kind !== "project" && (
+              {draft.kind === "experiment" && <section className="full experiment-form-ice" aria-labelledby="experiment-form-ice-title">
+                <h3 id="experiment-form-ice-title">ICE</h3>
+                <div className="experiment-form-ice-grid">{draftFields(experimentSections.ice)}</div>
+              </section>}
+              {recordAssignmentVisible && draft.kind !== "project" && (
                 <label>
                   Responsable
                   <select
@@ -3062,7 +3065,7 @@ export default function Home() {
               {draft.kind === "experiment" && (
                 <>
                   <label>
-                    Hipótesis padre (principal predeterminada; compartida entre Growth Tree y MVPs Tree)
+                    Hipótesis padre
                     <select value={draft.parent_id || String(draft.fields.mvp_hypothesis_id || "")}
                       onChange={e => setDraft({...draft,parent_id:e.target.value || null,
                         fields:{...draft.fields,mvp_hypothesis_id:e.target.value}})}>
@@ -3113,7 +3116,10 @@ export default function Home() {
                 record={draft} editable={can(draft.kind,'edit') && !saving} demo={demo} prefetched={publicMode} values={publicMode ? publicAttachments.filter(a => a.record_id === draft.id) : (demoAttachments[draft.id] || [])}
                 persisted={allItems.some(item => item.id === draft.id)}
                 onDemoChange={values => setDemoAttachments(prev => ({ ...prev, [draft.id]: values }))} onBusy={setAttachmentsBusy}>
-                {({ links, files }) => <>{draftFields(links)}{draft.kind !== "experiment" && <div className="full">{links}</div>}<div className="full">{files}</div></>}
+                {({ links, files }) => <>{draftFields()}<div className="full">{links}</div>{draft.kind === "experiment" && <>
+                  <ExperimentExecution draft={draft} disabled={saving||assistantBusy} onChange={setDraft} channelOnly/>
+                  {!publicMode && <ExperimentAssistant key={`${draft.id}-${String(draft.fields.channel||'')}`} draft={draft} files={draftFiles} onFiles={setDraftFiles} allowAttachments={can('experiment','edit')} disabled={saving || attachmentsBusy} demo={demo} onApply={setDraft} onBusy={setAssistantBusy}/>}
+                </>}<div className="full">{files}</div></>}
               </RecordAttachments> : draftFields()}
               {error && (
                 <div role="alert" className="error full">

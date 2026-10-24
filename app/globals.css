@@ -1433,6 +1433,14 @@ tbody tr:hover {
 .project-card > .row {
   flex-wrap: wrap;
 }
+.experiment-form-ice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.experiment-form-ice h3 {
+  margin: 0 0 12px;
+}
 .project-card-head {
   display: flex;
   flex-direction: column;

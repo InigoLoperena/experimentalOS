@@ -308,7 +308,8 @@ test("Growth Tree and MVPs Tree use the same experiment fields, editable ICE and
  assert.match(page,/experiment: experimentFields/);
  // The old MVP-only experiment schema hid ICE and common Growth fields.
  assert.doesNotMatch(page,/experiment:\s*\[\s*\{ key: "description", label: "Descripción"/);
- assert.match(page,/draft\.kind === "experiment" \? schemas\.experiment/);
+ assert.match(page,/draft\.kind === "experiment" \? experimentEditorFields/);
+ assert.deepEqual(model.experimentEditorFields.map(field=>field.key),["context","description","audience","metric","success_criteria"]);
  assert.match(page,/setMvpEditor\(kind !== "experiment"\)/);
  assert.match(page,/setMvpEditor\(record\.kind !== "experiment"\)/);
  assert.doesNotMatch(page,/selected\.kind === "experiment" && !mvpEditor/);

@@ -29,6 +29,10 @@ export const experimentFields: {
   { key: "ease", label: "Facilidad (1–10)", type: "number" },
 ];
 const iceKeys = new Set(["impact", "confidence", "ease"]);
+// Keep the full schema above for existing records, AI/provider preparation and
+// exports. The shared editor presents only the fields currently requested.
+const editorKeys = new Set(["context", "description", "audience", "metric", "success_criteria"]);
+export const experimentEditorFields = experimentFields.filter(field => editorKeys.has(field.key));
 const legacyKeys = ["secondary_metrics", "audience", "traffic_plan", "risks",
   "description", "end", "result", "learning", "decision", "mvp_hypothesis_id"];
 export const experimentSections = {
